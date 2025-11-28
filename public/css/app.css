@@ -1,0 +1,230 @@
+:root {
+  --primary-blue: #174081;       /* Brand/headers/nav/CTA */
+  --accent-blue: #3B82F6;        /* Accent, highlights, active */
+  --white: #FFFFFF;              /* Cards, base backgrounds */
+  --bg-light: #FAFBFD;           /* Subtle off-white, easy on eyes */
+  --border-grey: #D8DEE9;        /* Borders, separators */
+  --text-dark: #222222;          /* Primary text */
+  --text-grey: #373737;          /* Subtext, table headings */
+}
+
+
+
+
+/* Global Styles */
+body {
+  background: var(--bg-light);
+  color: var(--text-dark);
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+}
+.card {
+  background: var(--white);
+  border: 1.5px solid var(--border-grey);
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(23,64,129,0.07);
+  padding: 1.25rem 1.25rem; /* Not too much! */
+  margin-bottom: 1rem;      /* Compact */
+}
+
+
+/* NAVBAR */
+.navbar {
+  background: var(--white);
+  border-bottom: 2px solid var(--primary-blue);
+  box-shadow: 0 2px 8px rgba(23,64,129,0.05);
+  padding-top: 0.35rem;
+  padding-bottom: 0.35rem;
+  min-height: 56px;
+}
+
+
+.navbar .navbar-brand {
+  display: flex;
+  align-items: center;
+  padding-top: 0;
+  padding-bottom: 0;
+  margin-left: 0;
+  font-size: 1.15rem;
+  color: var(--primary-blue);
+}
+.navbar-brand img {
+  height: 28px;
+  width: auto;
+  margin-right: 8px;
+  margin-bottom: 2px;
+}
+
+/* Make Navbar Dropdown Always Wide and Floating (MNC Style) */
+.dropdown-menu {
+  min-width: 15rem;              /* Wider than default Bootstrap */
+  box-shadow: 0 6px 24px 0 rgba(23,64,129,0.12);
+  border-radius: 10px;
+  padding: 0.5rem 0.75rem;
+  z-index: 2000;                 /* Ensure always on top */
+  left: auto !important;
+  right: 0 !important;           /* Align to right edge of menu (optional) */
+}
+
+/* If dropdown is too close to the right, add a little margin: */
+@media (min-width: 992px) {
+  .navbar .dropdown-menu {
+    margin-right: 0.75rem;
+  }
+}
+
+
+/* Navbar links */
+.nav-link, .dropdown-item {
+  color: var(--text-grey);
+  font-weight: 500;
+  transition: color 0.15s;
+}
+.nav-link.active, .dropdown-item.active {
+  color: var(--primary-blue);
+  border-bottom: 3px solid var(--accent-blue);
+  background: none;
+  font-weight: 600;
+  transition: border-bottom 0.2s;
+}
+.nav-link:hover, .dropdown-item:hover {
+  color: var(--accent-blue);
+}
+
+
+
+/* Table */
+.table th {
+  color: var(--primary-blue);
+  background: var(--bg-light);
+  border-bottom: 2px solid var(--border-grey);
+}
+
+
+.table td {
+  color: var(--text-dark);
+  vertical-align: middle;
+}
+
+/* Buttons */
+.btn-primary {
+  background: linear-gradient(90deg, var(--primary-blue), var(--accent-blue));
+  border: none;
+  color: #fff;
+  font-weight: 500;
+}
+.btn-primary:hover, .btn-primary:focus {
+  background: linear-gradient(90deg, var(--accent-blue), var(--primary-blue));
+  color: #fff;
+}
+
+
+
+
+
+
+/* Buttons
+.btn-primary {
+  background: var(--accent-blue) !important;
+  border: none !important;
+  color: #fff !important;
+  font-weight: 500;
+}
+.btn-primary:hover, 
+.btn-primary:focus,
+.btn-primary:active {
+  background: var(--accent-blue) !important;
+  color: #fff !important;
+} */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.btn-outline-primary {
+  color: var(--primary-blue);
+  border-color: var(--primary-blue);
+  background: none;
+}
+.btn-outline-primary:hover, .btn-outline-primary:focus {
+  background: var(--primary-blue);
+  color: #fff;
+  border-color: var(--primary-blue);
+}
+
+/* Section Headings (for h4/h5 etc.) */
+.section-title {
+  border-left: 4px solid var(--accent-blue);
+  padding-left: 12px;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: var(--primary-blue);
+}
+
+/* Section block (optional for grouping content) */
+.section-bg {
+  background: var(--bg-light);
+  padding: 2rem 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+}
+
+/* Footer */
+footer {
+  background: #f1f5fa;
+  color: var(--primary-blue);
+  border-top: 1.5px solid var(--border-grey);
+  font-size: 0.95rem;
+}
+
+/* Scrollbar (Webkit browsers) */
+::-webkit-scrollbar-thumb {
+  background: var(--border-grey);
+  border-radius: 8px;
+}
+::-webkit-scrollbar {
+  background: var(--bg-light);
+  width: 10px;
+}
+
+
+/* fieldset {
+  background: var(--white);
+  border: 1.5px solid var(--border-grey);
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem 1.5rem;
+  box-shadow: 0 2px 12px rgba(23,64,129,0.07);
+}
+legend {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--primary-blue);
+  padding: 0 .5rem;
+} */
+
+
+/* Responsive Tweaks */
+@media (max-width: 767px) {
+  .navbar .navbar-brand {
+    font-size: 1rem;
+  }
+  .card {
+    padding: 1rem;
+  }
+  .section-bg {
+    padding: 1rem 0.75rem;
+  }
+}
