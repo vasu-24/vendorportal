@@ -18,6 +18,8 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\VendorRejectionMail;
 
 class VendorApprovalController extends Controller
 {
@@ -269,7 +271,7 @@ class VendorApprovalController extends Controller
     }
 
     // =====================================================
-    // REJECT VENDOR
+    // 🔥 REJECT VENDOR (UPDATED WITH EMAIL)
     // =====================================================
     
     public function rejectVendor(Request $request, $id)
@@ -303,6 +305,7 @@ class VendorApprovalController extends Controller
 
             $dataSnapshot = $this->getVendorDataSnapshot($vendor);
 
+            // Update vendor status
             $vendor->update([
                 'approval_status' => 'rejected',
                 'rejected_by' => $userId,
@@ -313,8 +316,11 @@ class VendorApprovalController extends Controller
                 'revision_requested_by' => null,
                 'revision_requested_at' => null,
                 'revision_notes' => null,
+                // 🔥 Reset registration so vendor can resubmit
+                'registration_completed' => false,
             ]);
 
+            // Create history entry
             VendorApprovalHistory::create([
                 'vendor_id' => $vendor->id,
                 'action' => 'rejected',
@@ -329,9 +335,32 @@ class VendorApprovalController extends Controller
 
             DB::commit();
 
+            // 🔥 SEND REJECTION EMAIL TO VENDOR
+            $emailSent = false;
+            try {
+            $correctionUrl = route('vendor.registration', $vendor->token);
+
+                
+                Mail::to($vendor->vendor_email)->send(
+                    new VendorRejectionMail(
+                        $vendor,
+                        $request->rejection_reason,
+                        $correctionUrl
+                    )
+                );
+                $emailSent = true;
+                
+            } catch (\Exception $e) {
+                Log::error('Rejection Email Error: ' . $e->getMessage());
+                // Don't fail the rejection if email fails
+            }
+
             return response()->json([
                 'success' => true,
-                'message' => 'Vendor rejected successfully.',
+                'message' => $emailSent 
+                    ? 'Vendor rejected successfully. Email notification sent to vendor.' 
+                    : 'Vendor rejected successfully. (Email could not be sent)',
+                'email_sent' => $emailSent,
                 'data' => $vendor->fresh()
             ]);
 

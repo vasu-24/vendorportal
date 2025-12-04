@@ -21,19 +21,35 @@ use Illuminate\Support\Facades\Log;
 class VendorRegistrationController extends Controller
 {
     /**
-     * Show the registration wizard
+     * 🔥 Show the registration wizard (UPDATED)
      */
     public function showWizard($token)
     {
-        $vendor = Vendor::where('token', $token)->firstOrFail();
+        // Load vendor WITH all relationships for pre-filling
+        $vendor = Vendor::with([
+            'companyInfo',
+            'contact',
+            'statutoryInfo',
+            'bankDetails',
+            'taxInfo',
+            'businessProfile',
+            'documents'
+        ])->where('token', $token)->firstOrFail();
 
-        // Check if vendor has accepted
-        if ($vendor->status !== 'accepted') {
+        // Allow access if:
+        // 1. Vendor accepted the invitation (status = accepted)
+        // 2. OR Vendor was rejected and needs to correct (approval_status = rejected)
+        // 3. OR Revision was requested (approval_status = revision_requested)
+        
+        $canAccess = ($vendor->status === 'accepted') || 
+                     in_array($vendor->approval_status, ['rejected', 'revision_requested']);
+
+        if (!$canAccess) {
             abort(403, 'Unauthorized access. Please accept the invitation first.');
         }
 
-        // Check if already registered
-        if ($vendor->registration_completed) {
+        // Don't redirect to success if rejected - let them edit
+        if ($vendor->registration_completed && !in_array($vendor->approval_status, ['rejected', 'revision_requested'])) {
             return redirect()->route('vendor.registration.success', $token);
         }
 
@@ -55,7 +71,7 @@ class VendorRegistrationController extends Controller
     }
 
     /**
-     * Get vendor by token
+     * Get vendor by token (UPDATED)
      */
     private function getVendor($token)
     {
@@ -65,7 +81,11 @@ class VendorRegistrationController extends Controller
             return null;
         }
 
-        if ($vendor->status !== 'accepted') {
+        // 🔥 Allow if accepted OR rejected (for corrections)
+        $canAccess = ($vendor->status === 'accepted') || 
+                     in_array($vendor->approval_status, ['rejected', 'revision_requested']);
+
+        if (!$canAccess) {
             return null;
         }
 
@@ -388,7 +408,7 @@ class VendorRegistrationController extends Controller
     }
 
     /**
-     * Step 4: Save KYC Documents + Complete Registration
+     * Step 4: Save KYC Documents + Complete Registration (UPDATED)
      */
     public function saveStep4(Request $request, $token)
     {
@@ -463,6 +483,11 @@ class VendorRegistrationController extends Controller
                 }
             }
 
+            // 🔥 Check if this is a resubmission (vendor was rejected)
+            $isResubmission = in_array($vendor->approval_status, ['rejected', 'revision_requested']);
+            $historyAction = $isResubmission ? 'resubmitted' : 'submitted';
+            $historyNotes = $isResubmission ? 'Vendor resubmitted registration after corrections' : 'Vendor submitted registration form';
+
             // Update vendor as registration completed + set pending_approval
             $vendor->update([
                 'current_step' => 4,
@@ -473,16 +498,23 @@ class VendorRegistrationController extends Controller
                 'declaration_accurate' => $request->declaration_accurate ? true : false,
                 'declaration_authorized' => $request->declaration_authorized ? true : false,
                 'declaration_terms' => $request->declaration_terms ? true : false,
+                // 🔥 Clear rejection fields on resubmission
+                'rejected_by' => null,
+                'rejected_at' => null,
+                'rejection_reason' => null,
+                'revision_requested_by' => null,
+                'revision_requested_at' => null,
+                'revision_notes' => null,
             ]);
 
-            // Add history entry for submission
+            // Add history entry for submission/resubmission
             VendorApprovalHistory::create([
                 'vendor_id' => $vendor->id,
-                'action' => 'submitted',
+                'action' => $historyAction,
                 'action_by_type' => 'vendor',
                 'action_by_id' => $vendor->id,
                 'action_by_name' => $vendor->vendor_name,
-                'notes' => 'Vendor submitted registration form',
+                'notes' => $historyNotes,
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ]);

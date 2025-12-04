@@ -1,6 +1,10 @@
 @extends('layouts.app')
 @section('title', 'Vendor Review')
 
+
+
+
+
 @section('content')
 <div class="container-fluid">
 
@@ -693,6 +697,11 @@
 <!-- =====================================================
      INCLUDE MODALS
      ===================================================== -->
+
+@push('head')
+    <link href="{{ asset('css/vendor-review.css') }}" rel="stylesheet">
+@endpush
+
 @include('pages.vendors.approval.partials.modals')
 
 @endsection

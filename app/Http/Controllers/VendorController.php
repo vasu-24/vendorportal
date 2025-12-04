@@ -18,143 +18,141 @@ class VendorController extends Controller
     }
 
     // Store new vendor
-    // Store new vendor
-public function store(Request $request)
-{
-    $request->validate([
-        'vendor_name' => 'required|string|max:255',
-        'vendor_email' => 'required|email|max:255'
-    ]);
+    public function store(Request $request)
+    {
+        $request->validate([
+            'vendor_name' => 'required|string|max:255|unique:vendors,vendor_name',
+            'vendor_email' => 'required|email|max:255'
+        ], [
+            'vendor_name.unique' => 'A vendor with this name already exists!',
+        ]);
 
-    $vendor = Vendor::create([
-        'vendor_name' => $request->vendor_name,
-        'vendor_email' => $request->vendor_email,
-        'status' => 'pending',
-        'token' => Vendor::generateToken()
-    ]);
+        $vendor = Vendor::create([
+            'vendor_name' => $request->vendor_name,
+            'vendor_email' => $request->vendor_email,
+            'status' => 'pending',
+            'token' => Vendor::generateToken()
+        ]);
 
-    return redirect()->route('vendors.index')->with('success', 'Vendor created successfully! Please select a template to send email.');
-}
+        return redirect()->route('vendors.index')->with('success', 'Vendor created successfully! Please select a template to send email.');
+    }
 
-// Update vendor template
-public function updateTemplate(Request $request, $id)
-{
-    $request->validate([
-        'template_id' => 'required|exists:mail_templates,id'
-    ]);
-
-    $vendor = Vendor::findOrFail($id);
-    $vendor->update(['template_id' => $request->template_id]);
-
-    return response()->json([
-        'success' => true,
-        'message' => 'Template updated successfully!'
-    ]);
-}
+    // Update template
+    public function updateTemplate(Request $request, $id)
+    {
+        $vendor = Vendor::findOrFail($id);
+        
+        $vendor->template_id = $request->template_id;
+        $vendor->save();
+        
+        $vendor->load('template');
+        
+        return response()->json([
+            'message' => 'Template updated successfully',
+            'template' => [
+                'id' => $vendor->template->id,
+                'name' => $vendor->template->name,
+                'subject' => $vendor->template->subject,
+                'body' => $vendor->template->body
+            ]
+        ]);
+    }
 
     // List all vendors
-   // List all vendors
-public function index()
-{
-    $vendors = Vendor::with('template')->orderBy('created_at', 'desc')->get();
-    $templates = MailTemplate::where('status', 'active')->get();
-    return view('pages.vendors.index', compact('vendors', 'templates'));
-}
+    public function index()
+    {
+        $vendors = Vendor::with('template')->orderBy('created_at', 'desc')->get();
+        $templates = MailTemplate::where('status', 'active')->get();
+        return view('pages.vendors.index', compact('vendors', 'templates'));
+    }
 
     // Send email to vendor
-    // Send email to vendor
-// Send email to vendor
-public function sendEmail(Request $request, $id)
-{
-    $request->validate([
-        'email_message' => 'required|string'
-    ]);
+    public function sendEmail(Request $request, $id)
+    {
+        $vendor = Vendor::with('template')->findOrFail($id);
 
-    $vendor = Vendor::with('template')->findOrFail($id);
+        if (!$vendor->template) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No template selected for this vendor!'
+            ], 400);
+        }
 
-    if (!$vendor->template) {
-        return back()->with('error', 'No template selected for this vendor!');
+        $templateBody = $vendor->template->body;
+        $templateSubject = $vendor->template->subject;
+
+        $placeholders = [
+            '{vendor_name}' => $vendor->vendor_name,
+            '{vendor_email}' => $vendor->vendor_email,
+            '{portal_url}' => url('/'),
+            '{current_date}' => now()->format('d-M-Y'),
+            '{current_time}' => now()->format('h:i A'),
+            '{year}' => date('Y'),
+            '{company_name}' => 'Vendor Portal',
+        ];
+
+        foreach ($placeholders as $placeholder => $value) {
+            $templateBody = str_replace($placeholder, $value, $templateBody);
+            $templateSubject = str_replace($placeholder, $value, $templateSubject);
+        }
+
+        $acceptUrl = route('vendors.accept', $vendor->token);
+        $rejectUrl = route('vendors.reject', $vendor->token);
+
+        try {
+            Mail::to($vendor->vendor_email)->send(
+                new VendorMail(
+                    $templateSubject,
+                    $templateBody,
+                    $acceptUrl,
+                    $rejectUrl,
+                    $vendor->vendor_name,
+                    $templateBody
+                )
+            );
+            
+            $vendor->update(['email_sent_at' => now()]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Email sent successfully to ' . $vendor->vendor_email
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send email: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
-    // Save email message
-    $vendor->update(['email_message' => $request->email_message]);
-
-    // Get custom email message
-    $emailMessage = $request->email_message;
-
-    // Replace placeholders in email message
-    $placeholders = [
-        '{vendor_name}' => $vendor->vendor_name,
-        '{vendor_email}' => $vendor->vendor_email,
-        '{portal_url}' => url('/'),
-        '{current_date}' => now()->format('d-M-Y'),
-        '{current_time}' => now()->format('h:i A'),
-        '{year}' => date('Y'),
-        '{company_name}' => 'Vendor Portal',
-    ];
-
-    foreach ($placeholders as $placeholder => $value) {
-        $emailMessage = str_replace($placeholder, $value, $emailMessage);
-    }
-
-    // Get template content for PDF
-    $templateBody = $vendor->template->body;
-    foreach ($placeholders as $placeholder => $value) {
-        $templateBody = str_replace($placeholder, $value, $templateBody);
-    }
-
-    // Generate accept/reject URLs with token
-    $acceptUrl = route('vendors.accept', $vendor->token);
-    $rejectUrl = route('vendors.reject', $vendor->token);
-
-    // Send email with custom message and template PDF
-    try {
-        Mail::to($vendor->vendor_email)->send(
-            new VendorMail(
-                $vendor->template->subject,
-                $emailMessage,  // Custom email message
-                $acceptUrl,
-                $rejectUrl,
-                $vendor->vendor_name,
-                $templateBody,  // Template content for PDF
-                $vendor->template->name
-            )
-        );
-        
-        // Update email sent timestamp
-        $vendor->update(['email_sent_at' => now()]);
-        
-        return back()->with('success', 'Email sent successfully with template attachment to ' . $vendor->vendor_email);
-    } catch (\Exception $e) {
-        return back()->with('error', 'Failed to send email: ' . $e->getMessage());
-    }
-}
-
-    // Handle vendor acceptance
+    // Handle vendor acceptance - Redirect to wizard
     public function accept($token)
     {
         $vendor = Vendor::where('token', $token)->firstOrFail();
 
-        if ($vendor->status !== 'pending') {
+        // Allow access if pending OR if rejected (for correction)
+        if (!in_array($vendor->status, ['pending', 'accepted']) && 
+            !in_array($vendor->approval_status, ['rejected', 'revision_requested'])) {
             return view('pages.vendors.response', [
                 'message' => 'This link has already been used.',
                 'type' => 'warning'
             ]);
         }
 
-        $vendor->update([
-            'status' => 'accepted',
-            'responded_at' => now()
-        ]);
+        // Update status to accepted if still pending
+        if ($vendor->status === 'pending') {
+            $vendor->update([
+                'status' => 'accepted',
+                'responded_at' => now()
+            ]);
+        }
 
-        return view('pages.vendors.response', [
-            'message' => 'Thank you! You have successfully accepted the invitation.',
-            'type' => 'success',
-            'vendor' => $vendor
-        ]);
+        // Redirect to wizard form
+        return redirect()->route('vendors.wizard', $vendor->token);
     }
 
-    // Handle vendor rejection
+    // Handle vendor rejection (from initial email)
     public function reject($token)
     {
         $vendor = Vendor::where('token', $token)->firstOrFail();
@@ -176,5 +174,34 @@ public function sendEmail(Request $request, $id)
             'type' => 'info',
             'vendor' => $vendor
         ]);
+    }
+
+    // =====================================================
+    // 🔥 SHOW WIZARD FORM (NEW METHOD)
+    // =====================================================
+    public function showWizard($token)
+    {
+        $vendor = Vendor::with([
+            'companyInfo',
+            'contact',
+            'statutoryInfo',
+            'bankDetails',
+            'taxInfo',
+            'businessProfile',
+            'documents'
+        ])->where('token', $token)->firstOrFail();
+
+        // Check if vendor can access wizard
+        $canAccess = in_array($vendor->status, ['accepted']) || 
+                     in_array($vendor->approval_status, ['rejected', 'revision_requested', 'draft', null]);
+
+        if (!$canAccess) {
+            return view('pages.vendors.response', [
+                'message' => 'You cannot access this form at this time.',
+                'type' => 'warning'
+            ]);
+        }
+
+        return view('pages.vendors.wizard.main', compact('vendor'));
     }
 }

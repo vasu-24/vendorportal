@@ -13,12 +13,12 @@
   @endif
 
   <!-- Page Header -->
-  <div class="row mb-4">
+  <div class="row mb-4 align-items-center">
     <div class="col">
-      <h2 class="fw-bold" style="color: var(--primary-blue);">
+      <h2 class="fw-bold mb-1" style="color: var(--primary-blue);">
         <i class="bi bi-file-earmark-text me-2"></i>Templates
       </h2>
-      <p class="text-muted">Manage email templates for vendor communication</p>
+      <p class="text-muted mb-0">Manage email templates for vendor communication</p>
     </div>
     <div class="col-auto">
       <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTemplateModal">
@@ -28,35 +28,42 @@
   </div>
 
   <!-- Template Cards -->
-  <div class="row g-4">
+  <div class="row g-3">
     
     @forelse($templates as $template)
     <div class="col-md-6 col-lg-4">
-      <div class="card h-100 shadow-sm">
-        <div class="card-body">
+      <div class="card template-card shadow-sm h-100">
+        <div class="card-body p-3">
+          
+          <!-- Header with Title and Badge -->
           <div class="d-flex justify-content-between align-items-start mb-3">
-            <h5 class="card-title fw-bold" style="color: var(--primary-blue);">
-  <i class="bi bi-file-earmark-text me-2"></i>{{ $template->name }}
-</h5>
-            <span class="badge bg-{{ $template->status === 'active' ? 'success' : 'warning' }}">
+            <h6 class="card-title fw-bold mb-0" style="color: var(--primary-blue);">
+              <i class="bi bi-file-earmark-text me-2"></i>{{ $template->name }}
+            </h6>
+            <span class="badge {{ $template->status === 'active' ? 'badge-active' : 'badge-inactive' }}">
               {{ ucfirst($template->status) }}
             </span>
           </div>
           
-          <p class="card-text text-muted small mb-2">
-            <strong>Subject:</strong> {{ Str::limit($template->subject, 50) }}
+          <!-- Subject -->
+          <div class="mb-2">
+            <strong class="small">Subject:</strong>
+            <span class="text-muted small d-block">{{ Str::limit($template->subject, 50) }}</span>
+          </div>
+          
+          <!-- Body Preview -->
+          <p class="text-muted small mb-3" style="min-height: 60px; line-height: 1.5;">
+            {{ Str::limit($template->body, 120) }}
           </p>
           
-          <p class="card-text text-muted small" style="min-height: 60px;">
-            {{ Str::limit($template->body, 100) }}
-          </p>
-          
+          <!-- Date -->
           <div class="mb-3">
             <small class="text-muted">
               <i class="bi bi-clock me-1"></i>{{ $template->updated_at->format('d M Y') }}
             </small>
           </div>
           
+          <!-- Action Buttons -->
           <div class="d-flex gap-2">
             <button class="btn btn-sm btn-outline-primary flex-fill" onclick="previewTemplate({{ $template->id }})">
               <i class="bi bi-eye me-1"></i>Preview
@@ -68,13 +75,15 @@
               <i class="bi bi-trash"></i>
             </button>
           </div>
+          
         </div>
       </div>
     </div>
     @empty
     <div class="col-12">
-      <div class="alert alert-info text-center">
-        <i class="bi bi-info-circle me-2"></i>No templates found. Create your first template!
+      <div class="text-center py-5">
+        <i class="bi bi-file-earmark-text" style="font-size: 4rem; color: #ccc;"></i>
+        <p class="text-muted mt-3">No templates found. Create your first template!</p>
       </div>
     </div>
     @endforelse
@@ -97,7 +106,7 @@
           
           <div class="mb-3">
             <label class="form-label fw-bold">Template Name <span class="text-danger">*</span></label>
-            <input type="text" name="name" class="form-control" placeholder="e.g., Welcome Email" required>
+            <input type="text" name="name" class="form-control" placeholder="e.g., Vendor Invitation" required>
           </div>
 
           <div class="mb-3">
@@ -173,6 +182,7 @@
           <div class="mb-3">
             <label class="form-label fw-bold">Email Body <span class="text-danger">*</span></label>
             <textarea name="body" id="edit_body" class="form-control" rows="10" required></textarea>
+            <small class="text-muted">Use placeholders: {vendor_name}, {vendor_email}, {portal_url}, {current_date}</small>
           </div>
 
           <div class="row">
@@ -239,6 +249,74 @@
 </div>
 
 @endsection
+
+@push('head')
+<style>
+/* Template Card Styling */
+.template-card {
+    border: 1px solid var(--border-grey);
+    border-radius: 10px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.template-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 15px rgba(23, 64, 129, 0.12);
+}
+
+/* Badge Styling */
+.badge-active {
+    background-color: #28a745;
+    color: white;
+    font-size: 0.7rem;
+    padding: 0.35rem 0.6rem;
+    border-radius: 4px;
+}
+
+.badge-inactive {
+    background-color: #ffc107;
+    color: #000;
+    font-size: 0.7rem;
+    padding: 0.35rem 0.6rem;
+    border-radius: 4px;
+}
+
+/* Button Styling */
+.btn-outline-primary {
+    border-color: var(--primary-blue);
+    color: var(--primary-blue);
+    font-size: 0.85rem;
+}
+
+.btn-outline-primary:hover {
+    background: var(--primary-blue);
+    color: white;
+}
+
+.btn-outline-secondary {
+    border-color: #6c757d;
+    color: #6c757d;
+    font-size: 0.85rem;
+}
+
+.btn-outline-secondary:hover {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-outline-danger {
+    border-color: #dc3545;
+    color: #dc3545;
+    font-size: 0.85rem;
+    padding: 0.375rem 0.5rem;
+}
+
+.btn-outline-danger:hover {
+    background: #dc3545;
+    color: white;
+}
+</style>
+@endpush
 
 @push('scripts')
 <script>

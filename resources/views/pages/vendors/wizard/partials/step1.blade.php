@@ -1,24 +1,24 @@
 {{-- Step 1: Company Information + Contact Details --}}
 
-<!-- Company Information Section -->
-<div class="form-section">
-    <div class="form-section-title">
-        <i class="bi bi-building"></i>Company Information
-    </div>
+<div class="mb-3">
+    <h6 class="fw-semibold mb-1">Company Information & Contact Details</h6>
+    <small class="text-muted">Step 1 of 4</small>
+</div>
+
+<!-- Company Information -->
+<div class="form-section mb-3">
+    <div class="section-title">Company Information</div>
     
-    <div class="row g-3">
-        <!-- Legal Entity Name -->
+    <div class="row g-2">
         <div class="col-md-6">
-            <label class="form-label fw-medium">Legal Entity Name</label>
-            <input type="text" name="legal_entity_name" class="form-control" 
-                   placeholder="Enter legal entity name">
+            <label class="form-label form-label-sm">Legal Entity Name {{-- <span class="text-danger">*</span> --}}</label>
+            <input type="text" name="legal_entity_name" class="form-control form-control-sm" placeholder="Enter legal entity name" {{-- required --}}>
         </div>
         
-        <!-- Business Type -->
         <div class="col-md-6">
-            <label class="form-label fw-medium">Business Type</label>
-            <select name="business_type" class="form-select">
-                <option value="">-- Select Business Type --</option>
+            <label class="form-label form-label-sm">Business Type {{-- <span class="text-danger">*</span> --}}</label>
+            <select name="business_type" class="form-select form-select-sm" {{-- required --}}>
+                <option value="">Select business type</option>
                 <option value="Proprietorship">Proprietorship</option>
                 <option value="Partnership">Partnership</option>
                 <option value="LLP">LLP</option>
@@ -28,90 +28,59 @@
             </select>
         </div>
         
-        <!-- Date of Incorporation -->
         <div class="col-md-6">
-            <label class="form-label fw-medium">Date of Incorporation</label>
-            <input type="date" name="incorporation_date" class="form-control">
+            <label class="form-label form-label-sm">Date of Incorporation {{-- <span class="text-danger">*</span> --}}</label>
+            <input type="date" name="incorporation_date" class="form-control form-control-sm" {{-- required --}}>
         </div>
         
-        <!-- Website -->
         <div class="col-md-6">
-            <label class="form-label fw-medium">Website</label>
-            <input type="url" name="website" class="form-control" 
-                   placeholder="https://www.example.com">
+            <label class="form-label form-label-sm">Website</label>
+            <input type="url" name="website" class="form-control form-control-sm" placeholder="https://example.com">
         </div>
         
-        <!-- Registered Office Address -->
         <div class="col-12">
-            <label class="form-label fw-medium">Registered Office Address</label>
-            <textarea name="registered_address" class="form-control" rows="2" 
-                      placeholder="Enter complete registered office address"></textarea>
+            <label class="form-label form-label-sm">Registered Office Address {{-- <span class="text-danger">*</span> --}}</label>
+            <textarea name="registered_address" class="form-control form-control-sm" rows="2" placeholder="Enter registered office address" {{-- required --}}></textarea>
         </div>
         
-        <!-- Corporate Office Address -->
         <div class="col-12">
-            <label class="form-label fw-medium">Corporate Office Address <small class="text-muted">(if different)</small></label>
-            <textarea name="corporate_address" class="form-control" rows="2" 
-                      placeholder="Enter corporate office address (leave blank if same as above)"></textarea>
+            <label class="form-label form-label-sm">Corporate Office Address <small class="text-muted">(if different)</small></label>
+            <textarea name="corporate_address" class="form-control form-control-sm" rows="2" placeholder="Leave blank if same as above"></textarea>
         </div>
         
-        <!-- Parent Company -->
         <div class="col-md-6">
-            <label class="form-label fw-medium">Parent Company <small class="text-muted">(if applicable)</small></label>
-            <input type="text" name="parent_company" class="form-control" 
-                   placeholder="Enter parent company name">
+            <label class="form-label form-label-sm">Parent Company <small class="text-muted">(if any)</small></label>
+            <input type="text" name="parent_company" class="form-control form-control-sm" placeholder="Enter parent company">
         </div>
     </div>
 </div>
 
-<!-- Contact Details Section -->
-<div class="form-section">
-    <div class="form-section-title">
-        <i class="bi bi-person-lines-fill"></i>Contact Details
-    </div>
+<!-- Contact Details -->
+<div class="form-section mb-3">
+    <div class="section-title">Contact Details</div>
     
-    <div class="row g-3">
-        <!-- Primary Contact Person -->
+    <div class="row g-2">
         <div class="col-md-6">
-            <label class="form-label fw-medium">Primary Contact Person</label>
-            <input type="text" name="contact_person" class="form-control" 
-                   placeholder="Enter contact person name">
+            <label class="form-label form-label-sm">Primary Contact Person {{-- <span class="text-danger">*</span> --}}</label>
+            <input type="text" name="contact_person" class="form-control form-control-sm" placeholder="Enter contact person" {{-- required --}}>
         </div>
         
-        <!-- Designation -->
         <div class="col-md-6">
-            <label class="form-label fw-medium">Designation</label>
-            <input type="text" name="designation" class="form-control" 
-                   placeholder="e.g. Manager, Director">
+            <label class="form-label form-label-sm">Designation {{-- <span class="text-danger">*</span> --}}</label>
+            <input type="text" name="designation" class="form-control form-control-sm" placeholder="e.g. Manager" {{-- required --}}>
         </div>
         
-        <!-- Mobile Number -->
         <div class="col-md-6">
-            <label class="form-label fw-medium">Mobile Number</label>
-            <div class="input-group">
-                <span class="input-group-text"><i class="bi bi-phone"></i> +91</span>
-                <input type="tel" name="mobile" class="form-control" 
-                       placeholder="10 digit mobile number" 
-                       pattern="[0-9]{10}" maxlength="10">
+            <label class="form-label form-label-sm">Mobile Number {{-- <span class="text-danger">*</span> --}}</label>
+            <div class="input-group input-group-sm">
+                <span class="input-group-text">+91</span>
+                <input type="tel" name="mobile" class="form-control form-control-sm" placeholder="10 digit number" pattern="[0-9]{10}" maxlength="10" {{-- required --}}>
             </div>
         </div>
         
-        <!-- Email ID -->
         <div class="col-md-6">
-            <label class="form-label fw-medium">Email ID</label>
-            <div class="input-group">
-                <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-                <input type="email" name="contact_email" class="form-control" 
-                       placeholder="contact@company.com">
-            </div>
+            <label class="form-label form-label-sm">Email ID {{-- <span class="text-danger">*</span> --}}</label>
+            <input type="email" name="contact_email" class="form-control form-control-sm" placeholder="contact@company.com" {{-- required --}}>
         </div>
-    </div>
-</div>
-
-<!-- Step Info -->
-<div class="alert alert-info d-flex align-items-center" role="alert">
-    <i class="bi bi-info-circle me-2 fs-5"></i>
-    <div>
-        <strong>Step 1 of 4:</strong> Please fill in your company and contact information.
     </div>
 </div>

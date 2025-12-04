@@ -6,9 +6,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
-use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Queue\SerializesModels;
-use Barryvdh\DomPDF\Facade\Pdf;
 
 class VendorMail extends Mailable
 {
@@ -20,12 +18,11 @@ class VendorMail extends Mailable
     public $rejectUrl;
     public $vendorName;
     public $templateContent;
-    public $templateName;
 
     /**
      * Create a new message instance.
      */
-    public function __construct($subject, $body, $acceptUrl, $rejectUrl, $vendorName, $templateContent, $templateName)
+    public function __construct($subject, $body, $acceptUrl, $rejectUrl, $vendorName, $templateContent)
     {
         $this->subject = $subject;
         $this->body = $body;
@@ -33,7 +30,6 @@ class VendorMail extends Mailable
         $this->rejectUrl = $rejectUrl;
         $this->vendorName = $vendorName;
         $this->templateContent = $templateContent;
-        $this->templateName = $templateName;
     }
 
     /**
@@ -61,15 +57,6 @@ class VendorMail extends Mailable
      */
     public function attachments(): array
     {
-        // Generate PDF from template
-        $pdf = Pdf::loadView('emails.template-pdf', [
-            'content' => $this->templateContent,
-            'vendorName' => $this->vendorName
-        ]);
-
-        return [
-            Attachment::fromData(fn () => $pdf->output(), $this->templateName . '.pdf')
-                ->withMime('application/pdf'),
-        ];
+        return []; // NO PDF ATTACHMENT!
     }
 }

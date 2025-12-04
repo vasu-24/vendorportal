@@ -1,5 +1,3 @@
-
-
 (function() {
     'use strict';
 
@@ -24,8 +22,6 @@
     // =====================================================
     
     async function loadVendorDetails() {
-        showPageLoader();
-
         try {
             const response = await axios.get(`${apiBaseUrl}/${vendorId}/details`);
 
@@ -39,8 +35,6 @@
         } catch (error) {
             console.error('Error loading vendor details:', error);
             showAlert('danger', 'Error loading vendor details. Please try again.');
-        } finally {
-            hidePageLoader();
         }
     }
 
@@ -49,10 +43,7 @@
     // =====================================================
     
     function populateAllSections() {
-        // Vendor header info
         populateVendorHeader();
-        
-        // All sections
         populateCompanySection();
         populateContactSection();
         populateStatutorySection();
@@ -63,31 +54,21 @@
         populateHistorySection();
     }
 
-    // -----------------------------------------------------
-    // Vendor Header
-    // -----------------------------------------------------
     function populateVendorHeader() {
         document.getElementById('vendorName').textContent = vendorData.vendor_name || 'N/A';
         document.getElementById('vendorEmail').textContent = vendorData.vendor_email || 'N/A';
         document.getElementById('submittedDate').textContent = formatDate(vendorData.registration_completed_at);
         
-        // Status badge
         const statusBadge = document.getElementById('vendorStatusBadge');
         const statusInfo = getStatusInfo(vendorData.approval_status);
         statusBadge.className = `badge ${statusInfo.class} px-3 py-2`;
         statusBadge.innerHTML = `<i class="bi ${statusInfo.icon} me-1"></i>${statusInfo.label}`;
     }
 
-    // -----------------------------------------------------
-    // Company Section
-    // -----------------------------------------------------
     function populateCompanySection() {
         const data = vendorData.company_info || {};
-        
-        // Store original data for cancel
         originalData.company = { ...data };
 
-        // View mode
         document.getElementById('view_legal_entity_name').textContent = data.legal_entity_name || '-';
         document.getElementById('view_business_type').textContent = data.business_type || '-';
         document.getElementById('view_incorporation_date').textContent = formatDate(data.incorporation_date);
@@ -96,7 +77,6 @@
         document.getElementById('view_corporate_address').textContent = data.corporate_address || '-';
         document.getElementById('view_parent_company').textContent = data.parent_company || '-';
 
-        // Edit mode
         document.getElementById('edit_legal_entity_name').value = data.legal_entity_name || '';
         document.getElementById('edit_business_type').value = data.business_type || '';
         document.getElementById('edit_incorporation_date').value = data.incorporation_date || '';
@@ -106,16 +86,10 @@
         document.getElementById('edit_parent_company').value = data.parent_company || '';
     }
 
-    // -----------------------------------------------------
-    // Contact Section
-    // -----------------------------------------------------
     function populateContactSection() {
         const data = vendorData.contact || {};
-        
-        // Store original data for cancel
         originalData.contact = { ...data };
 
-        // View mode
         document.getElementById('view_contact_person').textContent = data.contact_person || '-';
         document.getElementById('view_designation').textContent = data.designation || '-';
         document.getElementById('view_mobile').textContent = data.mobile ? `+91 ${data.mobile}` : '-';
@@ -123,7 +97,6 @@
         document.getElementById('view_alternate_mobile').textContent = data.alternate_mobile || '-';
         document.getElementById('view_landline').textContent = data.landline || '-';
 
-        // Edit mode
         document.getElementById('edit_contact_person').value = data.contact_person || '';
         document.getElementById('edit_designation').value = data.designation || '';
         document.getElementById('edit_mobile').value = data.mobile || '';
@@ -132,23 +105,16 @@
         document.getElementById('edit_landline').value = data.landline || '';
     }
 
-    // -----------------------------------------------------
-    // Statutory Section
-    // -----------------------------------------------------
     function populateStatutorySection() {
         const data = vendorData.statutory_info || {};
-        
-        // Store original data for cancel
         originalData.statutory = { ...data };
 
-        // View mode
         document.getElementById('view_pan_number').textContent = data.pan_number || '-';
         document.getElementById('view_tan_number').textContent = data.tan_number || '-';
         document.getElementById('view_gstin').textContent = data.gstin || '-';
         document.getElementById('view_cin').textContent = data.cin || '-';
         document.getElementById('view_msme_registered').textContent = data.msme_registered || '-';
 
-        // Edit mode
         document.getElementById('edit_pan_number').value = data.pan_number || '';
         document.getElementById('edit_tan_number').value = data.tan_number || '';
         document.getElementById('edit_gstin').value = data.gstin || '';
@@ -156,16 +122,10 @@
         document.getElementById('edit_msme_registered').value = data.msme_registered || '';
     }
 
-    // -----------------------------------------------------
-    // Bank Section
-    // -----------------------------------------------------
     function populateBankSection() {
         const data = vendorData.bank_details || {};
-        
-        // Store original data for cancel
         originalData.bank = { ...data };
 
-        // View mode
         document.getElementById('view_bank_name').textContent = data.bank_name || '-';
         document.getElementById('view_branch_address').textContent = data.branch_address || '-';
         document.getElementById('view_account_holder_name').textContent = data.account_holder_name || '-';
@@ -173,7 +133,6 @@
         document.getElementById('view_ifsc_code').textContent = data.ifsc_code || '-';
         document.getElementById('view_account_type').textContent = data.account_type || '-';
 
-        // Edit mode
         document.getElementById('edit_bank_name').value = data.bank_name || '';
         document.getElementById('edit_branch_address').value = data.branch_address || '';
         document.getElementById('edit_account_holder_name').value = data.account_holder_name || '';
@@ -182,36 +141,23 @@
         document.getElementById('edit_account_type').value = data.account_type || '';
     }
 
-    // -----------------------------------------------------
-    // Tax Section
-    // -----------------------------------------------------
     function populateTaxSection() {
         const data = vendorData.tax_info || {};
-        
-        // Store original data for cancel
         originalData.tax = { ...data };
 
-        // View mode
         document.getElementById('view_tax_residency').textContent = data.tax_residency || '-';
         document.getElementById('view_gst_reverse_charge').textContent = data.gst_reverse_charge || '-';
         document.getElementById('view_sez_status').textContent = data.sez_status || '-';
 
-        // Edit mode
         document.getElementById('edit_tax_residency').value = data.tax_residency || '';
         document.getElementById('edit_gst_reverse_charge').value = data.gst_reverse_charge || '';
         document.getElementById('edit_sez_status').value = data.sez_status || '';
     }
 
-    // -----------------------------------------------------
-    // Business Section
-    // -----------------------------------------------------
     function populateBusinessSection() {
         const data = vendorData.business_profile || {};
-        
-        // Store original data for cancel
         originalData.business = { ...data };
 
-        // View mode
         document.getElementById('view_core_activities').textContent = data.core_activities || '-';
         document.getElementById('view_employee_count').textContent = data.employee_count || '-';
         document.getElementById('view_credit_period').textContent = data.credit_period || '-';
@@ -219,7 +165,6 @@
         document.getElementById('view_turnover_fy2').textContent = data.turnover_fy2 || '-';
         document.getElementById('view_turnover_fy3').textContent = data.turnover_fy3 || '-';
 
-        // Edit mode
         document.getElementById('edit_core_activities').value = data.core_activities || '';
         document.getElementById('edit_employee_count').value = data.employee_count || '';
         document.getElementById('edit_credit_period').value = data.credit_period || '';
@@ -228,9 +173,6 @@
         document.getElementById('edit_turnover_fy3').value = data.turnover_fy3 || '';
     }
 
-    // -----------------------------------------------------
-    // Documents Section
-    // -----------------------------------------------------
     function populateDocumentsSection() {
         const documents = vendorData.documents || [];
         const container = document.getElementById('documentsContainer');
@@ -277,9 +219,6 @@
         container.innerHTML = html;
     }
 
-    // -----------------------------------------------------
-    // History Section
-    // -----------------------------------------------------
     function populateHistorySection() {
         const history = vendorData.approval_history || [];
         const container = document.getElementById('historyContainer');
@@ -341,14 +280,12 @@
         const editBtnText = document.getElementById(`${section}EditBtnText`);
 
         if (viewMode.classList.contains('d-none')) {
-            // Switch to view mode
             viewMode.classList.remove('d-none');
             editMode.classList.add('d-none');
             saveBtn.classList.add('d-none');
             cancelBtn.classList.add('d-none');
             editBtnText.textContent = 'Edit';
         } else {
-            // Switch to edit mode
             viewMode.classList.add('d-none');
             editMode.classList.remove('d-none');
             saveBtn.classList.remove('d-none');
@@ -358,33 +295,18 @@
     };
 
     window.cancelEdit = function(section) {
-        // Reset form values to original
         resetSectionData(section);
-        
-        // Toggle back to view mode
         toggleEdit(section);
     };
 
     function resetSectionData(section) {
         switch(section) {
-            case 'company':
-                populateCompanySection();
-                break;
-            case 'contact':
-                populateContactSection();
-                break;
-            case 'statutory':
-                populateStatutorySection();
-                break;
-            case 'bank':
-                populateBankSection();
-                break;
-            case 'tax':
-                populateTaxSection();
-                break;
-            case 'business':
-                populateBusinessSection();
-                break;
+            case 'company': populateCompanySection(); break;
+            case 'contact': populateContactSection(); break;
+            case 'statutory': populateStatutorySection(); break;
+            case 'bank': populateBankSection(); break;
+            case 'tax': populateTaxSection(); break;
+            case 'business': populateBusinessSection(); break;
         }
     }
 
@@ -396,18 +318,13 @@
         const data = getSectionData(section);
         const endpoint = getSectionEndpoint(section);
 
-        showPageLoader();
-
         try {
             const response = await axios.put(`${apiBaseUrl}/${vendorId}/${endpoint}`, data);
 
             if (response.data.success) {
                 showAlert('success', response.data.message || 'Data saved successfully!');
-                
-                // Reload vendor data to refresh all sections
                 await loadVendorDetails();
                 
-                // Switch back to view mode
                 const viewMode = document.getElementById(`${section}ViewMode`);
                 const editMode = document.getElementById(`${section}EditMode`);
                 const saveBtn = document.getElementById(`${section}SaveBtn`);
@@ -426,8 +343,6 @@
             console.error('Error saving section:', error);
             const message = error.response?.data?.message || 'Error saving data. Please try again.';
             showAlert('danger', message);
-        } finally {
-            hidePageLoader();
         }
     };
 
@@ -513,16 +428,12 @@
     window.confirmApproval = async function() {
         const notes = document.getElementById('approvalNotes').value;
 
-        showPageLoader();
-
         try {
             const response = await axios.post(`${apiBaseUrl}/${vendorId}/approve`, { notes });
 
             if (response.data.success) {
                 showAlert('success', 'Vendor approved successfully!');
                 bootstrap.Modal.getInstance(document.getElementById('approveModal')).hide();
-                
-                // Reload vendor data
                 await loadVendorDetails();
             } else {
                 showAlert('danger', response.data.message || 'Failed to approve vendor.');
@@ -530,14 +441,16 @@
         } catch (error) {
             console.error('Error approving vendor:', error);
             showAlert('danger', 'Error approving vendor. Please try again.');
-        } finally {
-            hidePageLoader();
         }
     };
 
-    window.rejectVendor = async function() {
-        const reason = document.getElementById('rejectionReason').value.trim();
-        const reasonInput = document.getElementById('rejectionReason');
+    // =====================================================
+    // 🔥 CONFIRM REJECT FUNCTION (FIXED)
+    // =====================================================
+    
+    window.confirmReject = async function() {
+        const reason = document.getElementById('rejectReason').value.trim();
+        const reasonInput = document.getElementById('rejectReason');
 
         // Validation
         if (!reason) {
@@ -546,14 +459,20 @@
         }
         reasonInput.classList.remove('is-invalid');
 
-        showPageLoader();
-
         try {
             const response = await axios.post(`${apiBaseUrl}/${vendorId}/reject`, { rejection_reason: reason });
 
             if (response.data.success) {
-                showAlert('success', 'Vendor rejected successfully!');
+                // Show success with email status
+                const emailMsg = response.data.email_sent 
+                    ? 'Vendor rejected successfully! Email sent to vendor.' 
+                    : 'Vendor rejected successfully!';
+                showAlert('success', emailMsg);
+                
                 bootstrap.Modal.getInstance(document.getElementById('rejectModal')).hide();
+                
+                // Clear the textarea
+                reasonInput.value = '';
                 
                 // Reload vendor data
                 await loadVendorDetails();
@@ -563,8 +482,6 @@
         } catch (error) {
             console.error('Error rejecting vendor:', error);
             showAlert('danger', 'Error rejecting vendor. Please try again.');
-        } finally {
-            hidePageLoader();
         }
     };
 
@@ -572,14 +489,11 @@
         const notes = document.getElementById('revisionNotes').value.trim();
         const notesInput = document.getElementById('revisionNotes');
 
-        // Validation
         if (!notes) {
             notesInput.classList.add('is-invalid');
             return;
         }
         notesInput.classList.remove('is-invalid');
-
-        showPageLoader();
 
         try {
             const response = await axios.post(`${apiBaseUrl}/${vendorId}/request-revision`, { revision_notes: notes });
@@ -587,8 +501,6 @@
             if (response.data.success) {
                 showAlert('success', 'Revision request sent successfully!');
                 bootstrap.Modal.getInstance(document.getElementById('revisionModal')).hide();
-                
-                // Reload vendor data
                 await loadVendorDetails();
             } else {
                 showAlert('danger', response.data.message || 'Failed to request revision.');
@@ -596,8 +508,6 @@
         } catch (error) {
             console.error('Error requesting revision:', error);
             showAlert('danger', 'Error requesting revision. Please try again.');
-        } finally {
-            hidePageLoader();
         }
     };
 
@@ -616,7 +526,6 @@
         const fileUrl = `/storage/${path}`;
         downloadBtn.href = fileUrl;
 
-        // Check file extension
         const ext = path.split('.').pop().toLowerCase();
 
         if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
@@ -640,9 +549,6 @@
     // =====================================================
     
     function updateActionButtons() {
-        const btnApprove = document.getElementById('btnApprove');
-        const btnReject = document.getElementById('btnReject');
-        const btnRevision = document.getElementById('btnRevision');
         const actionCard = document.getElementById('actionButtonsCard');
 
         if (vendorData.approval_status === 'approved') {
@@ -669,33 +575,62 @@
         }
     }
 
-    function showPageLoader() {
-        document.getElementById('pageLoader').classList.remove('d-none');
-    }
-
-    function hidePageLoader() {
-        document.getElementById('pageLoader').classList.add('d-none');
-    }
-
     function showAlert(type, message) {
         const container = document.getElementById('alertContainer');
         const alertId = 'alert-' + Date.now();
 
+        let bgColor, borderColor, textColor, icon;
+        
+        if (type === 'success') {
+            bgColor = '#d1fae5';
+            borderColor = '#10b981';
+            textColor = '#065f46';
+            icon = 'bi-check-circle-fill';
+        } else if (type === 'danger' || type === 'error') {
+            bgColor = '#fce7f3';
+            borderColor = '#fb7185';
+            textColor = '#9f1239';
+            icon = 'bi-exclamation-circle-fill';
+        } else if (type === 'warning') {
+            bgColor = '#fef3c7';
+            borderColor = '#f59e0b';
+            textColor = '#92400e';
+            icon = 'bi-exclamation-triangle-fill';
+        } else {
+            bgColor = '#dbeafe';
+            borderColor = '#3b82f6';
+            textColor = '#1e40af';
+            icon = 'bi-info-circle-fill';
+        }
+
         const alertHtml = `
-            <div class="alert alert-${type} alert-dismissible fade show" role="alert" id="${alertId}">
-                <i class="bi ${type === 'success' ? 'bi-check-circle' : 'bi-exclamation-circle'} me-2"></i>
-                ${escapeHtml(message)}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <div class="alert alert-dismissible fade show" 
+                 role="alert" 
+                 id="${alertId}"
+                 style="background-color: ${bgColor}; 
+                        border-left: 4px solid ${borderColor}; 
+                        color: ${textColor};
+                        border-radius: 8px;
+                        padding: 16px 20px;
+                        margin-bottom: 20px;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <i class="bi ${icon} me-2" style="color: ${borderColor};"></i>
+                <strong>${escapeHtml(message)}</strong>
+                <button type="button" 
+                        class="btn-close" 
+                        data-bs-dismiss="alert" 
+                        aria-label="Close"
+                        style="filter: brightness(0.8);"></button>
             </div>
         `;
 
         container.innerHTML = alertHtml;
 
-        // Auto dismiss after 5 seconds
         setTimeout(() => {
             const alertElement = document.getElementById(alertId);
             if (alertElement) {
-                alertElement.remove();
+                const bsAlert = new bootstrap.Alert(alertElement);
+                bsAlert.close();
             }
         }, 5000);
     }
@@ -730,18 +665,14 @@
 
     function getFileIcon(filename) {
         if (!filename) return 'bi-file-earmark';
-        
         const ext = filename.split('.').pop().toLowerCase();
         const icons = {
             'pdf': 'bi-file-earmark-pdf',
             'doc': 'bi-file-earmark-word',
             'docx': 'bi-file-earmark-word',
-            'xls': 'bi-file-earmark-excel',
-            'xlsx': 'bi-file-earmark-excel',
             'jpg': 'bi-file-earmark-image',
             'jpeg': 'bi-file-earmark-image',
-            'png': 'bi-file-earmark-image',
-            'gif': 'bi-file-earmark-image'
+            'png': 'bi-file-earmark-image'
         };
         return icons[ext] || 'bi-file-earmark';
     }
@@ -749,23 +680,13 @@
     function formatDate(dateString) {
         if (!dateString) return '-';
         const date = new Date(dateString);
-        return date.toLocaleDateString('en-IN', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric'
-        });
+        return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
     }
 
     function formatDateTime(dateString) {
         if (!dateString) return '-';
         const date = new Date(dateString);
-        return date.toLocaleDateString('en-IN', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
+        return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
     }
 
     function escapeHtml(text) {
@@ -776,7 +697,7 @@
     }
 
     // =====================================================
-    // INITIALIZE ON DOM READY
+    // INITIALIZE
     // =====================================================
     
     if (document.readyState === 'loading') {
@@ -786,3 +707,4 @@
     }
 
 })();
+

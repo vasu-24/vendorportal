@@ -22,8 +22,7 @@
 
     <!-- Custom CSS -->
     <link href="{{ asset('css/app.css') }}" rel="stylesheet">
-    <link href="{{ asset('css/master.css') }}" rel="stylesheet">
-    <link href="{{ asset('css/modules_table.css') }}" rel="stylesheet">
+  
 
     <!-- Select2 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />

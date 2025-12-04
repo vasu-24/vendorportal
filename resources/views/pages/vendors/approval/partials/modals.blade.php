@@ -1,74 +1,60 @@
 <!-- =====================================================
      REJECT MODAL
-     ===================================================== -->
-<div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
+ Reject Modal -->
+
+
+
+<div class="modal fade" id="rejectModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title" id="rejectModalLabel">
-                    <i class="bi bi-x-circle me-2"></i>Reject Vendor
+        <div class="modal-content border-0 shadow-lg">
+            
+            <!-- Header - Light Color Instead of Red -->
+            <div class="modal-header" style="background: linear-gradient(135deg, #fb7185 0%, #f472b6 100%); border: none;">
+                <h5 class="modal-title text-white">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Reject Vendor
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
-                <div class="alert alert-warning d-flex align-items-center mb-3">
-                    <i class="bi bi-exclamation-triangle me-2 fs-5"></i>
-                    <small>This action will reject the vendor registration. The vendor will be notified.</small>
+            
+            <!-- Body - Clean & Professional -->
+            <div class="modal-body p-4">
+                
+                <div class="alert alert-warning border-0 mb-4" style="background: #fef3c7;">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>Note:</strong> The vendor will be notified via email with the rejection reason and can resubmit their application after making corrections.
                 </div>
-                <div class="mb-3">
-                    <label class="form-label fw-medium">Rejection Reason <span class="text-danger">*</span></label>
-                    <textarea class="form-control" id="rejectionReason" rows="4" 
-                              placeholder="Please provide a detailed reason for rejection..."></textarea>
-                    <div class="invalid-feedback" id="rejectionReasonError">Please provide a rejection reason.</div>
-                </div>
+                
+                <form id="rejectForm">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Rejection Reason <span class="text-danger">*</span></label>
+                        <textarea class="form-control" 
+                                  id="rejectReason" 
+                                  rows="4" 
+                                  placeholder="Please provide a clear reason for rejection so the vendor can make necessary corrections..."
+                                  required></textarea>
+                        <small class="text-muted">This reason will be sent to the vendor via email.</small>
+                    </div>
+                </form>
+                
             </div>
-            <div class="modal-footer">
+            
+            <!-- Footer -->
+            <div class="modal-footer bg-light border-0">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="bi bi-x me-1"></i>Cancel
+                    <i class="bi bi-x-circle me-1"></i>Cancel
                 </button>
-                <button type="button" class="btn btn-danger" id="confirmRejectBtn" onclick="rejectVendor()">
-                    <i class="bi bi-x-circle me-1"></i>Reject Vendor
+                <button type="button" class="btn btn-danger" onclick="confirmReject()">
+                    <i class="bi bi-send me-1"></i>Confirm Rejection
                 </button>
             </div>
+            
         </div>
     </div>
 </div>
 
-<!-- =====================================================
-     REVISION REQUEST MODAL
-     ===================================================== -->
-<div class="modal fade" id="revisionModal" tabindex="-1" aria-labelledby="revisionModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-info text-white">
-                <h5 class="modal-title" id="revisionModalLabel">
-                    <i class="bi bi-arrow-repeat me-2"></i>Request Revision
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="alert alert-info d-flex align-items-center mb-3">
-                    <i class="bi bi-info-circle me-2 fs-5"></i>
-                    <small>The vendor will be notified to update their registration details.</small>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-medium">Revision Notes <span class="text-danger">*</span></label>
-                    <textarea class="form-control" id="revisionNotes" rows="4" 
-                              placeholder="Please specify what needs to be corrected or updated..."></textarea>
-                    <div class="invalid-feedback" id="revisionNotesError">Please provide revision notes.</div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="bi bi-x me-1"></i>Cancel
-                </button>
-                <button type="button" class="btn btn-info" id="confirmRevisionBtn" onclick="requestRevision()">
-                    <i class="bi bi-arrow-repeat me-1"></i>Request Revision
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
+
+
+
 
 <!-- =====================================================
      APPROVE CONFIRMATION MODAL

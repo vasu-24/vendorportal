@@ -33,7 +33,7 @@
         <li class="nav-item">
           <a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}"
              href="{{ route('dashboard') }}">
-             Dashboard
+             <i class="bi bi-speedometer2 me-1"></i>Dashboard
           </a>
         </li>
 
@@ -41,7 +41,7 @@
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle {{ request()->is('vendors*') ? 'active' : '' }}"
              href="#" id="vendorsDropdown" role="button" data-bs-toggle="dropdown">
-             Vendors
+             <i class="bi bi-people me-1"></i>Vendors
           </a>
           <ul class="dropdown-menu" aria-labelledby="vendorsDropdown">
             <li>
@@ -70,7 +70,7 @@
         <li class="nav-item">
           <a class="nav-link {{ request()->is('invoices*') ? 'active' : '' }}"
              href="#">
-             Invoices
+             <i class="bi bi-receipt me-1"></i>Invoices
           </a>
         </li>
 
@@ -78,7 +78,7 @@
         <li class="nav-item">
           <a class="nav-link {{ request()->is('travel-invoices*') ? 'active' : '' }}"
              href="#">
-             Travel Invoices
+             <i class="bi bi-airplane me-1"></i>Travel Invoices
           </a>
         </li>
 
@@ -86,7 +86,7 @@
         <li class="nav-item">
           <a class="nav-link {{ request()->is('contracts*') ? 'active' : '' }}"
              href="#">
-             Contracts
+             <i class="bi bi-file-earmark-check me-1"></i>Contracts
           </a>
         </li>
 
@@ -94,18 +94,19 @@
         <li class="nav-item">
           <a class="nav-link {{ request()->is('bank-payments*') ? 'active' : '' }}"
              href="#">
-             Bank Payments
+             <i class="bi bi-bank me-1"></i>Bank Payments
           </a>
         </li>
 
         <!-- Settings -->
         <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle {{ request()->is('settings*') || request()->is('master*') ? 'active' : '' }}"
+          <a class="nav-link dropdown-toggle {{ request()->is('settings*') || request()->is('master*') || request()->is('admin*') ? 'active' : '' }}"
              href="#" id="settingsDropdown" role="button" data-bs-toggle="dropdown">
-            Settings
+            <i class="bi bi-gear me-1"></i>Settings
           </a>
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="settingsDropdown">
             
+            <!-- Master Section -->
             <li><h6 class="dropdown-header">Master</h6></li>
             
             <li><a class="dropdown-item {{ request()->routeIs('master.template') ? 'active' : '' }}"
@@ -115,6 +116,22 @@
             
             <li><hr class="dropdown-divider"></li>
             
+            <!-- Administration Section -->
+            <li><h6 class="dropdown-header">Administration</h6></li>
+            
+            <li><a class="dropdown-item {{ request()->routeIs('admin.users.*') ? 'active' : '' }}"
+                   href="{{ route('admin.users.index') }}" style="padding-left: 2rem;">
+                   <i class="bi bi-people me-2"></i>Users
+            </a></li>
+            
+            <li><a class="dropdown-item {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}"
+                   href="{{ route('admin.roles.index') }}" style="padding-left: 2rem;">
+                   <i class="bi bi-shield-lock me-2"></i>Roles & Permissions
+            </a></li>
+            
+            <li><hr class="dropdown-divider"></li>
+            
+            <!-- General Settings -->
             <li><a class="dropdown-item {{ request()->routeIs('settings.general') ? 'active' : '' }}"
                    href="{{ route('settings.general') }}">
                    <i class="bi bi-gear me-2"></i>General Settings
@@ -153,3 +170,4 @@
     </div>
   </div>
 </nav>
+
