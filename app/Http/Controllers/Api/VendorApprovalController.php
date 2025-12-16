@@ -20,6 +20,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\VendorRejectionMail;
+use App\Mail\VendorSetPasswordMail;
+use App\Services\ZohoService; // 🔥 ZOHO SERVICE
 
 class VendorApprovalController extends Controller
 {
@@ -186,7 +188,7 @@ class VendorApprovalController extends Controller
     }
 
     // =====================================================
-    // APPROVE VENDOR
+    // 🔥 APPROVE VENDOR (WITH EMAIL + ZOHO SYNC)
     // =====================================================
     
     public function approveVendor(Request $request, $id)
@@ -227,6 +229,7 @@ class VendorApprovalController extends Controller
 
             $dataSnapshot = $this->getVendorDataSnapshot($vendor);
 
+            // Update vendor status
             $vendor->update([
                 'approval_status' => 'approved',
                 'approved_by' => $userId,
@@ -239,6 +242,7 @@ class VendorApprovalController extends Controller
                 'revision_notes' => null,
             ]);
 
+            // Create approval history
             VendorApprovalHistory::create([
                 'vendor_id' => $vendor->id,
                 'action' => 'approved',
@@ -253,9 +257,66 @@ class VendorApprovalController extends Controller
 
             DB::commit();
 
+            // =====================================================
+            // 🔥 STEP 1: SEND SET PASSWORD EMAIL TO VENDOR
+            // =====================================================
+            $emailSent = false;
+            try {
+                $setPasswordUrl = route('vendor.password.show', $vendor->token);
+                
+                Mail::to($vendor->vendor_email)->send(
+                    new VendorSetPasswordMail(
+                        $vendor->vendor_name,
+                        $vendor->vendor_email,
+                        $setPasswordUrl
+                    )
+                );
+                $emailSent = true;
+                
+            } catch (\Exception $e) {
+                Log::error('Set Password Email Error: ' . $e->getMessage());
+            }
+
+            // =====================================================
+            // 🔥 STEP 2: PUSH TO ZOHO BOOKS
+            // =====================================================
+            $zohoSynced = false;
+            try {
+                $zohoService = app(ZohoService::class);
+                
+                // Check if Zoho is connected
+                if ($zohoService->isConnected()) {
+                    // Create vendor in Zoho Books
+                    $zohoService->createVendor($vendor);
+                    $zohoSynced = $vendor->fresh()->zoho_contact_id ? true : false;
+                    
+                    Log::info('Vendor pushed to Zoho Books', [
+                        'vendor_id' => $vendor->id,
+                        'zoho_contact_id' => $vendor->fresh()->zoho_contact_id,
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::error('Failed to push vendor to Zoho', [
+                    'vendor_id' => $vendor->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+            // =====================================================
+
+            // Build response message
+            $message = 'Vendor approved successfully.';
+            if ($emailSent) {
+                $message .= ' Set password email sent.';
+            }
+            if ($zohoSynced) {
+                $message .= ' Synced to Zoho Books.';
+            }
+
             return response()->json([
                 'success' => true,
-                'message' => 'Vendor approved successfully.',
+                'message' => $message,
+                'email_sent' => $emailSent,
+                'zoho_synced' => $zohoSynced,
                 'data' => $vendor->fresh()
             ]);
 
@@ -271,7 +332,57 @@ class VendorApprovalController extends Controller
     }
 
     // =====================================================
-    // 🔥 REJECT VENDOR (UPDATED WITH EMAIL)
+    // 🔥 MANUAL SYNC TO ZOHO (Separate Button)
+    // =====================================================
+    
+    public function syncToZoho($id)
+    {
+        try {
+            $vendor = Vendor::findOrFail($id);
+            
+            if ($vendor->approval_status !== 'approved') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Vendor must be approved before syncing to Zoho',
+                ], 400);
+            }
+
+            $zohoService = app(ZohoService::class);
+            
+            if (!$zohoService->isConnected()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Zoho Books is not connected. Please connect first in Settings.',
+                ], 400);
+            }
+
+            // Create or update in Zoho
+            if ($vendor->zoho_contact_id) {
+                $zohoService->updateVendor($vendor);
+                $message = 'Vendor updated in Zoho Books';
+            } else {
+                $zohoService->createVendor($vendor);
+                $message = 'Vendor created in Zoho Books';
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'zoho_contact_id' => $vendor->fresh()->zoho_contact_id,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Sync to Zoho Error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to sync: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // =====================================================
+    // 🔥 REJECT VENDOR (WITH EMAIL)
     // =====================================================
     
     public function rejectVendor(Request $request, $id)
@@ -316,7 +427,6 @@ class VendorApprovalController extends Controller
                 'revision_requested_by' => null,
                 'revision_requested_at' => null,
                 'revision_notes' => null,
-                // 🔥 Reset registration so vendor can resubmit
                 'registration_completed' => false,
             ]);
 
@@ -335,12 +445,11 @@ class VendorApprovalController extends Controller
 
             DB::commit();
 
-            // 🔥 SEND REJECTION EMAIL TO VENDOR
+            // Send rejection email
             $emailSent = false;
             try {
-            $correctionUrl = route('vendor.registration', $vendor->token);
+                $correctionUrl = route('vendor.registration', $vendor->token);
 
-                
                 Mail::to($vendor->vendor_email)->send(
                     new VendorRejectionMail(
                         $vendor,
@@ -352,7 +461,6 @@ class VendorApprovalController extends Controller
                 
             } catch (\Exception $e) {
                 Log::error('Rejection Email Error: ' . $e->getMessage());
-                // Don't fail the rejection if email fails
             }
 
             return response()->json([

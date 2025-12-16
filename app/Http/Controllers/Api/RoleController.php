@@ -10,25 +10,43 @@ use Illuminate\Support\Str;
 
 class RoleController extends Controller
 {
-    // Get all roles
+    // Get all roles WITH PERMISSIONS
     public function index()
     {
-        $roles = Role::withCount('users')->orderBy('created_at', 'desc')->get();
+        $roles = Role::with('permissions')
+            ->withCount('users')
+            ->orderBy('created_at', 'desc')
+            ->get();
+            
         return response()->json($roles);
     }
 
     // Get single role with permissions
     public function show($id)
     {
-        $role = Role::with('permissions')->findOrFail($id);
+        $role = Role::with('permissions')->withCount('users')->findOrFail($id);
         return response()->json($role);
     }
 
     // Get all permissions (grouped)
     public function getPermissions()
     {
-        $permissions = Permission::all()->groupBy('group');
-        return response()->json($permissions);
+        try {
+            $permissions = Permission::all();
+            
+            // Group by 'group' column if exists
+            if ($permissions->isNotEmpty()) {
+                $grouped = $permissions->groupBy('group');
+                return response()->json($grouped);
+            }
+            
+            return response()->json([]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     // Store new role
@@ -50,6 +68,7 @@ class RoleController extends Controller
 
         $role->permissions()->sync($request->permissions);
         $role->load('permissions');
+        $role->loadCount('users');
 
         return response()->json([
             'success' => true,
@@ -77,6 +96,7 @@ class RoleController extends Controller
 
         $role->permissions()->sync($request->permissions);
         $role->load('permissions');
+        $role->loadCount('users');
 
         return response()->json([
             'success' => true,

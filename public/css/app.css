@@ -105,7 +105,7 @@ body {
   vertical-align: middle;
 }
 
-/* Buttons */
+/* Buttons
 .btn-primary {
   background: linear-gradient(90deg, var(--primary-blue), var(--accent-blue));
   border: none;
@@ -115,25 +115,6 @@ body {
 .btn-primary:hover, .btn-primary:focus {
   background: linear-gradient(90deg, var(--accent-blue), var(--primary-blue));
   color: #fff;
-}
-
-
-
-
-
-
-/* Buttons
-.btn-primary {
-  background: var(--accent-blue) !important;
-  border: none !important;
-  color: #fff !important;
-  font-weight: 500;
-}
-.btn-primary:hover, 
-.btn-primary:focus,
-.btn-primary:active {
-  background: var(--accent-blue) !important;
-  color: #fff !important;
 } */
 
 
@@ -141,7 +122,28 @@ body {
 
 
 
+/* Buttons - Solid Accent Blue */
+.btn-primary {
+  background-color: var(--accent-blue);
+  border: none;
+  color: #fff;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
 
+.btn-primary:hover {
+  background-color: #2563EB;
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+}
+
+.btn-primary:focus,
+.btn-primary:active {
+  background-color: #1D4ED8;
+  color: #fff;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+}
 
 
 

@@ -1,172 +1,245 @@
 /**
  * Admin Roles Management
+ * Clean Minimal Design
  */
 
-let allPermissions = {};
 let allRoles = [];
+let allPermissions = {};
+let currentPage = 1;
+let perPage = 10;
+let activeDropdown = null;
 
-// Initialize on DOM ready
+// Initialize
 $(document).ready(function() {
     loadPermissions();
     loadRoles();
+    initSearch();
+    initClickOutside();
 });
 
-// Load all permissions
+// Load permissions
 function loadPermissions() {
     axios.get('/api/admin/roles/permissions')
         .then(response => {
             allPermissions = response.data;
             renderPermissionsInModal();
-            updateStats();
         })
         .catch(error => {
             console.error('Error loading permissions:', error);
         });
 }
 
-// Load all roles
+// Load roles
 function loadRoles() {
     axios.get('/api/admin/roles')
         .then(response => {
             allRoles = response.data;
-            renderRolesGrid();
-            updateStats();
+            $('#totalCount').text(allRoles.length);
+            renderTable();
         })
         .catch(error => {
             console.error('Error loading roles:', error);
         });
 }
 
-// Update stats
-function updateStats() {
-    $('#totalRoles').text(allRoles.length);
+// Render table
+function renderTable() {
+    let roles = [...allRoles];
     
-    let totalPermissions = 0;
-    Object.keys(allPermissions).forEach(group => {
-        totalPermissions += allPermissions[group].length;
-    });
-    $('#totalPermissions').text(totalPermissions);
-    
-    let totalUsers = 0;
-    allRoles.forEach(role => {
-        totalUsers += role.users_count || 0;
-    });
-    $('#totalUsers').text(totalUsers);
-}
-
-// Render roles grid
-function renderRolesGrid() {
-    const container = $('#rolesGrid');
-    container.empty();
-
-    if (allRoles.length === 0) {
-        container.html(`
-            <div class="col-12">
-                <div class="card border-0 shadow-sm">
-                    <div class="empty-state">
-                        <i class="bi bi-shield-x"></i>
-                        <h5>No Roles Found</h5>
-                        <p class="text-muted">Create your first role to get started</p>
-                        <button class="btn btn-primary" onclick="openCreateModal()">
-                            <i class="bi bi-plus-lg me-1"></i> Create Role
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `);
-        return;
+    // Apply search
+    const searchTerm = $('#searchInput').val().toLowerCase();
+    if (searchTerm) {
+        roles = roles.filter(role => 
+            role.name.toLowerCase().includes(searchTerm) ||
+            (role.description && role.description.toLowerCase().includes(searchTerm))
+        );
     }
 
-    allRoles.forEach(role => {
-        const permissionBadges = getPermissionBadges(role);
-        const isDefault = role.is_default ? `<span class="default-badge"><i class="bi bi-lock me-1"></i>System</span>` : '';
-        
-        const cardHtml = `
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card role-card h-100">
-                    <div class="card-header">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div class="d-flex align-items-center">
-                                <div class="role-icon me-3">
-                                    <i class="bi bi-shield-check"></i>
-                                </div>
-                                <div>
-                                    <h5 class="mb-1">${role.name}</h5>
-                                    <span class="users-count">
-                                        <i class="bi bi-people me-1"></i>${role.users_count || 0} Users
-                                    </span>
-                                </div>
+    // Pagination
+    const start = (currentPage - 1) * perPage;
+    const end = start + perPage;
+    const paginatedRoles = roles.slice(start, end);
+
+    let html = '';
+    
+    if (paginatedRoles.length === 0) {
+        html = `
+            <tr>
+                <td colspan="6" class="text-center py-4 text-muted">No roles found</td>
+            </tr>
+        `;
+    } else {
+        paginatedRoles.forEach(role => {
+            const permBadges = getPermissionBadges(role.permissions);
+            const typeClass = role.is_default ? 'system' : 'custom';
+            const typeText = role.is_default ? 'System' : 'Custom';
+
+            html += `
+                <tr>
+                    <td>
+                        <div class="role-info">
+                            <div class="role-icon">
+                                <i class="bi bi-shield-check"></i>
                             </div>
-                            ${isDefault}
+                            <div class="role-details">
+                                <p class="role-name">${role.name}</p>
+                                <p class="role-desc">${role.description || 'No description'}</p>
+                            </div>
                         </div>
-                    </div>
-                    <div class="card-body">
-                        <p class="text-muted small mb-3">${role.description || 'No description'}</p>
-                        <div class="mb-3">
-                            ${permissionBadges}
+                    </td>
+                    <td>
+                        <div class="permission-badges">
+                            ${permBadges}
                         </div>
-                    </div>
-                    <div class="card-footer bg-white border-0 pt-0">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <small class="text-muted">
-                                <i class="bi bi-key me-1"></i>${countPermissions(role)} permissions
-                            </small>
-                            <div class="role-actions">
-                                <button class="btn btn-info" onclick="viewRole(${role.id})" title="View">
-                                    <i class="bi bi-eye text-white"></i>
+                    </td>
+                    <td>
+                        <span class="users-count">
+                            <i class="bi bi-people"></i> ${role.users_count || 0}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="type-badge ${typeClass}">
+                            <i class="bi bi-${role.is_default ? 'lock' : 'unlock'}"></i> ${typeText}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="action-menu">
+                            <button class="action-menu-btn" onclick="toggleActionDropdown(event, ${role.id})">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <div class="action-dropdown" id="action-dropdown-${role.id}">
+                                <button type="button" class="action-dropdown-item view" onclick="viewRole(${role.id})">
+                                    <i class="bi bi-eye"></i> View details
                                 </button>
-                                <button class="btn btn-warning" onclick="editRole(${role.id})" title="Edit">
-                                    <i class="bi bi-pencil text-white"></i>
+                                <button type="button" class="action-dropdown-item edit" onclick="editRole(${role.id})">
+                                    <i class="bi bi-pencil"></i> Edit role
                                 </button>
                                 ${!role.is_default ? `
-                                    <button class="btn btn-danger" onclick="deleteRole(${role.id})" title="Delete">
-                                        <i class="bi bi-trash text-white"></i>
+                                    <div class="action-dropdown-divider"></div>
+                                    <button type="button" class="action-dropdown-item delete" onclick="deleteRole(${role.id})">
+                                        <i class="bi bi-trash"></i> Delete role
                                     </button>
                                 ` : ''}
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        container.append(cardHtml);
-    });
-}
-
-// Get permission badges HTML
-function getPermissionBadges(role) {
-    if (!role.permissions || role.permissions.length === 0) {
-        return '<span class="text-muted small">No permissions assigned</span>';
+                    </td>
+                </tr>
+            `;
+        });
     }
 
-    // Show max 5 permissions
-    const maxShow = 5;
-    let badges = '';
-    
-    role.permissions.slice(0, maxShow).forEach(perm => {
-        const type = getPermissionType(perm.slug);
-        badges += `<span class="permission-badge permission-${type}"><i class="bi bi-check-circle-fill"></i>${perm.name}</span>`;
-    });
-
-    if (role.permissions.length > maxShow) {
-        badges += `<span class="permission-badge"><i class="bi bi-plus-circle"></i>+${role.permissions.length - maxShow} more</span>`;
-    }
-
-    return badges;
+    $('#rolesTableBody').html(html);
+    renderPagination(roles.length);
 }
 
-// Get permission type from slug
-function getPermissionType(slug) {
+// Get permission badges
+function getPermissionBadges(permissions) {
+    if (!permissions || permissions.length === 0) {
+        return '<span class="text-muted" style="font-size: 12px;">No permissions</span>';
+    }
+
+    const maxShow = 3;
+    let html = '';
+
+    permissions.slice(0, maxShow).forEach(perm => {
+        const type = getPermType(perm.slug);
+        html += `<span class="perm-badge ${type}">${perm.name}</span>`;
+    });
+
+    if (permissions.length > maxShow) {
+        html += `<span class="perm-badge more">+${permissions.length - maxShow} more</span>`;
+    }
+
+    return html;
+}
+
+// Get permission type
+function getPermType(slug) {
     if (slug.includes('view')) return 'view';
     if (slug.includes('create')) return 'create';
     if (slug.includes('edit')) return 'edit';
     if (slug.includes('delete')) return 'delete';
+    if (slug.includes('approve')) return 'approve';
+    if (slug.includes('reject')) return 'reject';
+    if (slug.includes('manage')) return 'manage';
     return 'view';
 }
 
-// Count permissions
-function countPermissions(role) {
-    return role.permissions ? role.permissions.length : 0;
+// Render pagination
+function renderPagination(totalItems) {
+    const totalPages = Math.ceil(totalItems / perPage);
+    let html = '';
+
+    if (totalPages <= 1) {
+        $('#pagination').html('');
+        return;
+    }
+
+    html += `<button class="pagination-btn ${currentPage === 1 ? 'disabled' : ''}" onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>
+        <i class="bi bi-chevron-left"></i>
+    </button>`;
+
+    for (let i = 1; i <= totalPages; i++) {
+        if (i <= 5 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+            html += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+        } else if (i === 6 && totalPages > 6) {
+            html += `<span class="pagination-btn disabled">...</span>`;
+        }
+    }
+
+    html += `<button class="pagination-btn ${currentPage === totalPages ? 'disabled' : ''}" onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>
+        <i class="bi bi-chevron-right"></i>
+    </button>`;
+
+    $('#pagination').html(html);
+}
+
+// Go to page
+function goToPage(page) {
+    const totalPages = Math.ceil(allRoles.length / perPage);
+    if (page < 1 || page > totalPages) return;
+    currentPage = page;
+    renderTable();
+}
+
+// Toggle action dropdown
+function toggleActionDropdown(event, roleId) {
+    event.stopPropagation();
+    
+    $('.action-dropdown').removeClass('show');
+    
+    const dropdown = $(`#action-dropdown-${roleId}`);
+    const isOpen = dropdown.hasClass('show');
+    
+    if (!isOpen) {
+        dropdown.addClass('show');
+        activeDropdown = roleId;
+    } else {
+        activeDropdown = null;
+    }
+}
+
+// Close dropdown on click outside
+function initClickOutside() {
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('.action-menu').length) {
+            closeAllDropdowns();
+        }
+    });
+}
+
+// Close all dropdowns
+function closeAllDropdowns() {
+    $('.action-dropdown').removeClass('show');
+    activeDropdown = null;
+}
+
+// Initialize search
+function initSearch() {
+    $('#searchInput').on('input', function() {
+        currentPage = 1;
+        renderTable();
+    });
 }
 
 // Render permissions in modal
@@ -183,31 +256,29 @@ function renderPermissionsInModal() {
 
     Object.keys(allPermissions).forEach(group => {
         const icon = groupIcons[group] || 'bi-key';
-        
-        let permissionsHtml = '';
-        allPermissions[group].forEach(perm => {
-            const type = getPermissionType(perm.slug);
-            permissionsHtml += `
-                <div class="permission-checkbox">
+        const perms = allPermissions[group];
+
+        let permsHtml = '';
+        perms.forEach(perm => {
+            const type = getPermType(perm.slug);
+            permsHtml += `
+                <div class="permission-item" onclick="togglePermissionCheck(${perm.id})">
                     <input type="checkbox" class="permission-check" id="perm_${perm.id}" value="${perm.id}">
                     <label for="perm_${perm.id}">${perm.name}</label>
-                    <span class="permission-type ${type}">${type}</span>
+                    <span class="perm-type ${type}">${type}</span>
                 </div>
             `;
         });
 
         const groupHtml = `
             <div class="permission-group">
-                <div class="permission-group-title">
-                    <i class="bi ${icon}"></i>${group}
-                    <span class="ms-auto">
-                        <small class="text-white-50">${allPermissions[group].length} permissions</small>
-                    </span>
+                <div class="permission-group-header">
+                    <i class="bi ${icon}"></i>
+                    <span>${group}</span>
+                    <span class="perm-count">${perms.length} permissions</span>
                 </div>
-                <div class="row">
-                    <div class="col-12">
-                        ${permissionsHtml}
-                    </div>
+                <div class="permission-group-body">
+                    ${permsHtml}
                 </div>
             </div>
         `;
@@ -215,9 +286,23 @@ function renderPermissionsInModal() {
     });
 }
 
+// Toggle permission checkbox
+function togglePermissionCheck(permId) {
+    const checkbox = $(`#perm_${permId}`);
+    checkbox.prop('checked', !checkbox.prop('checked'));
+    updateSelectAllCheckbox();
+}
+
 // Toggle all permissions
 function toggleAllPermissions(checked) {
     $('.permission-check').prop('checked', checked);
+}
+
+// Update select all checkbox
+function updateSelectAllCheckbox() {
+    const total = $('.permission-check').length;
+    const checked = $('.permission-check:checked').length;
+    $('#selectAllPermissions').prop('checked', total === checked);
 }
 
 // Open create modal
@@ -234,6 +319,8 @@ function openCreateModal() {
 
 // Edit role
 function editRole(id) {
+    closeAllDropdowns();
+    
     axios.get(`/api/admin/roles/${id}`)
         .then(response => {
             const role = response.data;
@@ -244,31 +331,21 @@ function editRole(id) {
             $('#roleName').val(role.name);
             $('#roleDescription').val(role.description);
             
-            // Reset all checkboxes
             $('.permission-check').prop('checked', false);
             
-            // Check assigned permissions
             if (role.permissions) {
                 role.permissions.forEach(perm => {
                     $(`#perm_${perm.id}`).prop('checked', true);
                 });
             }
             
-            // Update select all checkbox
             updateSelectAllCheckbox();
             
             new bootstrap.Modal(document.getElementById('roleModal')).show();
         })
         .catch(error => {
-            alert('Error loading role details');
+            showToast('Error loading role details', false);
         });
-}
-
-// Update select all checkbox state
-function updateSelectAllCheckbox() {
-    const total = $('.permission-check').length;
-    const checked = $('.permission-check:checked').length;
-    $('#selectAllPermissions').prop('checked', total === checked);
 }
 
 // Save role
@@ -277,29 +354,22 @@ function saveRole() {
     const name = $('#roleName').val().trim();
     const description = $('#roleDescription').val().trim();
     
-    // Get selected permissions
     const permissions = [];
     $('.permission-check:checked').each(function() {
         permissions.push($(this).val());
     });
 
-    // Validation
     if (!name) {
-        alert('Please enter role name');
+        showToast('Please enter role name', false);
         return;
     }
     
     if (permissions.length === 0) {
-        alert('Please select at least one permission');
+        showToast('Please select at least one permission', false);
         return;
     }
 
-    const data = {
-        name: name,
-        description: description,
-        permissions: permissions
-    };
-
+    const data = { name, description, permissions };
     const url = id ? `/api/admin/roles/${id}` : '/api/admin/roles';
     const method = id ? 'put' : 'post';
 
@@ -307,48 +377,48 @@ function saveRole() {
         .then(response => {
             bootstrap.Modal.getInstance(document.getElementById('roleModal')).hide();
             loadRoles();
-            alert(response.data.message);
+            showToast(id ? 'Role updated successfully' : 'Role created successfully');
         })
         .catch(error => {
-            if (error.response && error.response.data) {
-                alert(error.response.data.message || 'Error saving role');
-            } else {
-                alert('Error saving role');
-            }
+            const message = error.response?.data?.message || 'Error saving role';
+            showToast(message, false);
         });
 }
 
 // View role
 function viewRole(id) {
+    closeAllDropdowns();
+    
     axios.get(`/api/admin/roles/${id}`)
         .then(response => {
             const role = response.data;
             
             $('#viewRoleName').text(role.name);
-            $('#viewRoleDescription').text(role.description || 'No description');
-            $('#viewRoleUsers').html(`<i class="bi bi-people me-1"></i>${role.users_count || 0} Users assigned`);
+            $('#viewRoleDesc').text(role.description || 'No description');
+            $('#viewUsersCount').text(role.users_count || 0);
+            $('#viewPermsCount').text(role.permissions ? role.permissions.length : 0);
             
-            // Show permissions
-            let permissionsHtml = '';
+            let permsHtml = '';
             if (role.permissions && role.permissions.length > 0) {
                 role.permissions.forEach(perm => {
-                    const type = getPermissionType(perm.slug);
-                    permissionsHtml += `<span class="permission-badge permission-${type}"><i class="bi bi-check-circle-fill"></i>${perm.name}</span>`;
+                    const type = getPermType(perm.slug);
+                    permsHtml += `<span class="view-perm-badge ${type}"><i class="bi bi-check-circle-fill"></i> ${perm.name}</span>`;
                 });
             } else {
-                permissionsHtml = '<p class="text-muted">No permissions assigned</p>';
+                permsHtml = '<p class="text-muted">No permissions assigned</p>';
             }
-            $('#viewRolePermissions').html(permissionsHtml);
+            $('#viewPermissions').html(permsHtml);
             
             new bootstrap.Modal(document.getElementById('viewRoleModal')).show();
         })
         .catch(error => {
-            alert('Error loading role details');
+            showToast('Error loading role details', false);
         });
 }
 
 // Delete role
 function deleteRole(id) {
+    closeAllDropdowns();
     $('#deleteRoleId').val(id);
     new bootstrap.Modal(document.getElementById('deleteModal')).show();
 }
@@ -361,15 +431,38 @@ function confirmDelete() {
         .then(response => {
             bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
             loadRoles();
-            alert(response.data.message);
+            showToast('Role deleted successfully');
         })
         .catch(error => {
-            if (error.response && error.response.data) {
-                alert(error.response.data.message || 'Error deleting role');
-            } else {
-                alert('Error deleting role');
-            }
+            const message = error.response?.data?.message || 'Error deleting role';
+            showToast(message, false);
         });
+}
+
+// Show toast
+function showToast(message, success = true) {
+    const toast = $('#toastNotification');
+    $('#toastMessage').text(message);
+    
+    const icon = toast.find('.toast-icon');
+    icon.removeClass('bi-check-circle-fill bi-x-circle-fill success error');
+    
+    if (success) {
+        icon.addClass('bi-check-circle-fill success');
+    } else {
+        icon.addClass('bi-x-circle-fill error');
+    }
+    
+    toast.addClass('show');
+    
+    setTimeout(() => {
+        hideToast();
+    }, 4000);
+}
+
+// Hide toast
+function hideToast() {
+    $('#toastNotification').removeClass('show');
 }
 
 // Listen for permission checkbox changes

@@ -38,57 +38,29 @@
         </li>
 
         <!-- Vendors (Dropdown) -->
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle {{ request()->is('vendors*') ? 'active' : '' }}"
-             href="#" id="vendorsDropdown" role="button" data-bs-toggle="dropdown">
-             <i class="bi bi-people me-1"></i>Vendors
-          </a>
-          <ul class="dropdown-menu" aria-labelledby="vendorsDropdown">
-            <li>
-              <a class="dropdown-item {{ request()->routeIs('vendors.index') ? 'active' : '' }}"
-                 href="{{ route('vendors.index') }}">
-                 <i class="bi bi-list-ul me-2"></i>All Vendors
-              </a>
-            </li>
-            <li>
-              <a class="dropdown-item {{ request()->routeIs('vendors.create') ? 'active' : '' }}"
-                 href="{{ route('vendors.create') }}">
-                 <i class="bi bi-person-plus me-2"></i>Add Vendor
-              </a>
-            </li>
-            <li><hr class="dropdown-divider"></li>
-            <li>
-              <a class="dropdown-item {{ request()->routeIs('vendors.approval.*') ? 'active' : '' }}"
-                 href="{{ route('vendors.approval.queue') }}">
-                 <i class="bi bi-check-circle me-2"></i>Approval Queue
-              </a>
-            </li>
-          </ul>
-        </li>
+     <li class="nav-item">
+    <a class="nav-link {{ request()->routeIs('vendors.*') ? 'active' : '' }}"
+       href="{{ route('vendors.index') }}">
+        <i class="bi bi-people me-1"></i> Vendors
+    </a>
+</li>
 
-        <!-- Invoices -->
-        <li class="nav-item">
-          <a class="nav-link {{ request()->is('invoices*') ? 'active' : '' }}"
-             href="#">
-             <i class="bi bi-receipt me-1"></i>Invoices
-          </a>
-        </li>
 
-        <!-- Travel Invoices -->
-        <li class="nav-item">
-          <a class="nav-link {{ request()->is('travel-invoices*') ? 'active' : '' }}"
-             href="#">
-             <i class="bi bi-airplane me-1"></i>Travel Invoices
-          </a>
-        </li>
+      <!-- Invoices -->
+<li class="nav-item">
+  <a class="nav-link {{ request()->is('invoices*') ? 'active' : '' }}"
+     href="{{ route('invoices.index') }}">
+     <i class="bi bi-receipt me-1"></i>Invoices
+  </a>
+</li>
 
-        <!-- Contracts -->
-        <li class="nav-item">
-          <a class="nav-link {{ request()->is('contracts*') ? 'active' : '' }}"
-             href="#">
-             <i class="bi bi-file-earmark-check me-1"></i>Contracts
-          </a>
-        </li>
+     <!-- Contracts -->
+<li class="nav-item">
+  <a class="nav-link {{ request()->is('contracts*') ? 'active' : '' }}"
+    href="{{ route('contracts.index') }}">
+     <i class="bi bi-file-earmark-check me-1"></i>Contracts
+  </a>
+</li>
 
         <!-- Bank Payments -->
         <li class="nav-item">
@@ -106,15 +78,32 @@
           </a>
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="settingsDropdown">
             
-            <!-- Master Section -->
-            <li><h6 class="dropdown-header">Master</h6></li>
-            
-            <li><a class="dropdown-item {{ request()->routeIs('master.template') ? 'active' : '' }}"
-                   href="{{ route('master.template') }}" style="padding-left: 2rem;">
-                   <i class="bi bi-file-earmark-text me-2"></i>Template
-            </a></li>
-            
-            <li><hr class="dropdown-divider"></li>
+          <!-- Master Section -->
+<li><h6 class="dropdown-header">Master</h6></li>
+
+<li>
+  <a class="dropdown-item {{ request()->routeIs('master.template') ? 'active' : '' }}"
+     href="{{ route('master.template') }}" style="padding-left: 2rem;">
+     <i class="bi bi-file-earmark-text me-2"></i>Template
+  </a>
+</li>
+
+<li>
+  <a class="dropdown-item {{ request()->routeIs('master.organisation') ? 'active' : '' }}"
+     href="{{ route('master.organisation') }}" style="padding-left: 2rem;">
+     <i class="bi bi-building me-2"></i>Organisation
+  </a>
+</li>
+
+<!-- ADD THIS -->
+<li>
+  <a class="dropdown-item {{ request()->routeIs('categories.index') ? 'active' : '' }}"
+     href="{{ route('categories.index') }}" style="padding-left: 2rem;">
+     <i class="bi bi-tags me-2"></i>Categories
+  </a>
+</li>
+
+<li><hr class="dropdown-divider"></li>
             
             <!-- Administration Section -->
             <li><h6 class="dropdown-header">Administration</h6></li>
@@ -136,6 +125,13 @@
                    href="{{ route('settings.general') }}">
                    <i class="bi bi-gear me-2"></i>General Settings
             </a></li>
+
+            <!-- Zoho Books -->
+            <li><a class="dropdown-item {{ request()->routeIs('settings.zoho') ? 'active' : '' }}"
+                   href="{{ route('settings.zoho') }}">
+                   <i class="bi bi-book me-2"></i>Zoho Books
+            </a></li>
+
           </ul>
         </li>
 
@@ -170,4 +166,3 @@
     </div>
   </div>
 </nav>
-

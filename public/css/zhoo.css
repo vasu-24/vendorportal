@@ -1,0 +1,372 @@
+/**
+ * Zoho Integration Page Styles
+ * Matches app.css design system
+ * ALL BUTTONS: Accent Blue (#3B82F6)
+ */
+
+/* ============================================
+   INTEGRATION CARD
+   ============================================ */
+
+.integration-card {
+    background: #fff;
+    border: 1px solid var(--border-grey, #D8DEE9);
+    border-radius: 12px;
+    padding: 32px;
+    max-width: 600px;
+    margin: 0 auto;
+    box-shadow: 0 2px 12px rgba(23, 64, 129, 0.07);
+}
+
+/* ============================================
+   INTEGRATION HEADER
+   ============================================ */
+
+.integration-header {
+    text-align: center;
+    margin-bottom: 32px;
+}
+
+.zoho-logo {
+    width: 80px;
+    height: 80px;
+    background: var(--accent-blue, #3B82F6);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    font-size: 32px;
+    color: #fff;
+}
+
+.integration-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-dark, #222222);
+    margin: 0 0 8px;
+}
+
+.integration-desc {
+    font-size: 14px;
+    color: var(--text-grey, #373737);
+    margin: 0;
+}
+
+/* ============================================
+   STATUS BADGES
+   ============================================ */
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 50px;
+    font-size: 13px;
+    font-weight: 500;
+    margin-top: 16px;
+}
+
+.status-badge.connected {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.status-badge.connected::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background: #22c55e;
+    border-radius: 50%;
+}
+
+.status-badge.disconnected {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.status-badge.disconnected::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background: #ef4444;
+    border-radius: 50%;
+}
+
+/* ============================================
+   CONNECT SECTION
+   ============================================ */
+
+.connect-section {
+    text-align: center;
+    padding: 24px 0;
+    border-top: 1px solid var(--border-grey, #D8DEE9);
+}
+
+/* ============================================
+   BUTTONS - ACCENT BLUE
+   ============================================ */
+
+.btn-connect {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 32px;
+    background: var(--accent-blue, #3B82F6);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-connect:hover {
+    background: #2563EB;
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+}
+
+.btn-connect:active {
+    transform: translateY(0);
+    background: #1D4ED8;
+}
+
+.btn-disconnect {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: #fee2e2;
+    color: #dc2626;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-disconnect:hover {
+    background: #fecaca;
+}
+
+.test-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 12px;
+    color: #374151;
+    cursor: pointer;
+    margin-top: 12px;
+    transition: all 0.2s ease;
+}
+
+.test-btn:hover {
+    background: #e5e7eb;
+}
+
+/* ============================================
+   ORGANIZATION SECTION
+   ============================================ */
+
+.org-section {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border-grey, #D8DEE9);
+}
+
+.org-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-grey, #373737);
+    margin-bottom: 8px;
+}
+
+.org-select {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid var(--border-grey, #D8DEE9);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--text-dark, #222222);
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.org-select:focus {
+    outline: none;
+    border-color: var(--accent-blue, #3B82F6);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+/* ============================================
+   FEATURES LIST
+   ============================================ */
+
+.features-list {
+    margin-top: 32px;
+    padding: 20px;
+    background: #f8fafc;
+    border-radius: 10px;
+}
+
+.features-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-dark, #222222);
+    margin: 0 0 16px;
+}
+
+.feature-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    font-size: 13px;
+    color: var(--text-grey, #373737);
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.feature-item:last-child {
+    border-bottom: none;
+}
+
+.feature-item i {
+    font-size: 16px;
+    color: #22c55e;
+}
+
+/* ============================================
+   ALERTS
+   ============================================ */
+
+.alert {
+    padding: 14px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.alert-success {
+    background: #dcfce7;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+}
+
+.alert-error {
+    background: #fee2e2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+}
+
+.alert i {
+    font-size: 16px;
+}
+
+/* ============================================
+   SYNC STATUS IN VENDOR TABLE
+   ============================================ */
+
+.zoho-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.zoho-badge.synced {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.zoho-badge.synced i {
+    color: #3b82f6;
+}
+
+.zoho-badge.not-synced {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+/* ============================================
+   SYNC BUTTON IN VENDOR DETAILS
+   ============================================ */
+
+.btn-sync {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: var(--accent-blue, #3B82F6);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-sync:hover {
+    background: #2563EB;
+}
+
+.btn-sync:disabled {
+    background: #94a3b8;
+    cursor: not-allowed;
+}
+
+.btn-sync.syncing {
+    pointer-events: none;
+}
+
+.btn-sync.syncing i {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+    .integration-card {
+        margin: 0 16px;
+        padding: 24px;
+    }
+
+    .zoho-logo {
+        width: 64px;
+        height: 64px;
+        font-size: 28px;
+    }
+
+    .integration-title {
+        font-size: 18px;
+    }
+
+    .btn-connect {
+        padding: 12px 24px;
+        font-size: 14px;
+    }
+}

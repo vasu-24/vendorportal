@@ -31,7 +31,7 @@ class VendorController extends Controller
             'vendor_name' => $request->vendor_name,
             'vendor_email' => $request->vendor_email,
             'status' => 'pending',
-            'token' => Vendor::generateToken()
+            'token' => Vendor::generateToken(),
         ]);
 
         return redirect()->route('vendors.index')->with('success', 'Vendor created successfully! Please select a template to send email.');
@@ -111,7 +111,9 @@ class VendorController extends Controller
                 )
             );
             
-            $vendor->update(['email_sent_at' => now()]);
+            $vendor->update([
+                'email_sent_at' => now(),
+            ]);
             
             return response()->json([
                 'success' => true,
@@ -126,33 +128,54 @@ class VendorController extends Controller
         }
     }
 
-    // Handle vendor acceptance - Redirect to wizard
+    // =====================================================
+    // 🔥 HANDLE VENDOR ACCEPTANCE
+    // =====================================================
     public function accept($token)
     {
         $vendor = Vendor::where('token', $token)->firstOrFail();
 
-        // Allow access if pending OR if rejected (for correction)
-        if (!in_array($vendor->status, ['pending', 'accepted']) && 
-            !in_array($vendor->approval_status, ['rejected', 'revision_requested'])) {
+        // CHECK 1: Already submitted the form
+        if ($vendor->registration_completed && !in_array($vendor->approval_status, ['rejected', 'revision_requested'])) {
             return view('pages.vendors.response', [
-                'message' => 'This link has already been used.',
+                'message' => 'You have already submitted your registration. Please wait for approval.',
+                'type' => 'already_submitted'
+            ]);
+        }
+
+        // CHECK 2: Vendor rejected the invitation (clicked reject button)
+        if ($vendor->status === 'rejected') {
+            return view('pages.vendors.response', [
+                'message' => 'You have declined this invitation.',
                 'type' => 'warning'
             ]);
         }
 
-        // Update status to accepted if still pending
-        if ($vendor->status === 'pending') {
-            $vendor->update([
-                'status' => 'accepted',
-                'responded_at' => now()
-            ]);
+        // If vendor was rejected by admin, allow them to access form for corrections
+        if (in_array($vendor->approval_status, ['rejected', 'revision_requested'])) {
+            return redirect()->route('vendor.registration', $vendor->token);
         }
 
-        // Redirect to wizard form
-        return redirect()->route('vendors.wizard', $vendor->token);
+        // For pending vendors - just show the form
+        if (in_array($vendor->status, ['pending', 'accepted'])) {
+            // Update to 'accepted' to indicate they clicked the link
+            if ($vendor->status === 'pending') {
+                $vendor->update([
+                    'status' => 'accepted',
+                ]);
+            }
+            
+            return redirect()->route('vendor.registration', $vendor->token);
+        }
+
+        // Fallback
+        return view('pages.vendors.response', [
+            'message' => 'This link is no longer valid.',
+            'type' => 'warning'
+        ]);
     }
 
-    // Handle vendor rejection (from initial email)
+    // Handle vendor rejection (from initial email - vendor declines invitation)
     public function reject($token)
     {
         $vendor = Vendor::where('token', $token)->firstOrFail();
@@ -177,7 +200,7 @@ class VendorController extends Controller
     }
 
     // =====================================================
-    // 🔥 SHOW WIZARD FORM (NEW METHOD)
+    // 🔥 SHOW WIZARD FORM
     // =====================================================
     public function showWizard($token)
     {
@@ -191,8 +214,16 @@ class VendorController extends Controller
             'documents'
         ])->where('token', $token)->firstOrFail();
 
+        // Check if already submitted (and not rejected)
+        if ($vendor->registration_completed && !in_array($vendor->approval_status, ['rejected', 'revision_requested'])) {
+            return view('pages.vendors.response', [
+                'message' => 'You have already submitted your registration.',
+                'type' => 'already_submitted'
+            ]);
+        }
+
         // Check if vendor can access wizard
-        $canAccess = in_array($vendor->status, ['accepted']) || 
+        $canAccess = in_array($vendor->status, ['pending', 'accepted']) || 
                      in_array($vendor->approval_status, ['rejected', 'revision_requested', 'draft', null]);
 
         if (!$canAccess) {
@@ -203,5 +234,25 @@ class VendorController extends Controller
         }
 
         return view('pages.vendors.wizard.main', compact('vendor'));
+    }
+
+    // =====================================================
+    // 🔥 RESEND INVITATION
+    // =====================================================
+    public function resendInvitation($id)
+    {
+        $vendor = Vendor::findOrFail($id);
+
+        // Generate new token
+        $vendor->update([
+            'token' => Vendor::generateToken(),
+            'status' => 'pending',
+            'registration_completed' => false,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Invitation reset. You can now send the email again.'
+        ]);
     }
 }

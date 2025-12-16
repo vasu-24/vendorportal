@@ -1,0 +1,665 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Invoice;
+use App\Models\InvoiceItem;
+use App\Models\InvoiceAttachment;
+use App\Models\Contract;
+use App\Models\ContractItem;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+
+class VendorInvoiceController extends Controller
+{
+    /**
+     * Get authenticated vendor
+     */
+    private function getVendor()
+    {
+        return Auth::guard('vendor')->user();
+    }
+
+    // =====================================================
+    // GET STATISTICS
+    // =====================================================
+
+    /**
+     * Get vendor's invoice statistics
+     */
+    public function getStatistics()
+    {
+        try {
+            $vendor = $this->getVendor();
+
+            $stats = [
+                'total' => Invoice::where('vendor_id', $vendor->id)->count(),
+                'draft' => Invoice::where('vendor_id', $vendor->id)->where('status', 'draft')->count(),
+                'submitted' => Invoice::where('vendor_id', $vendor->id)->where('status', 'submitted')->count(),
+                'under_review' => Invoice::where('vendor_id', $vendor->id)->where('status', 'under_review')->count(),
+                'approved' => Invoice::where('vendor_id', $vendor->id)->where('status', 'approved')->count(),
+                'rejected' => Invoice::where('vendor_id', $vendor->id)->where('status', 'rejected')->count(),
+                'paid' => Invoice::where('vendor_id', $vendor->id)->where('status', 'paid')->count(),
+                'total_amount' => Invoice::where('vendor_id', $vendor->id)->sum('grand_total'),
+                'total_approved' => Invoice::where('vendor_id', $vendor->id)->where('status', 'approved')->sum('grand_total'),
+                'total_paid' => Invoice::where('vendor_id', $vendor->id)->where('status', 'paid')->sum('grand_total'),
+            ];
+
+            return response()->json([
+                'success' => true,
+                'data' => $stats
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Vendor Invoice Statistics Error: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Something went wrong.'
+            ], 500);
+        }
+    }
+
+    // =====================================================
+    // LIST INVOICES
+    // =====================================================
+
+    /**
+     * Get list of vendor's invoices
+     */
+    public function index(Request $request)
+    {
+        try {
+            $vendor = $this->getVendor();
+
+            $query = Invoice::with(['attachments', 'contract', 'items.category'])
+                ->where('vendor_id', $vendor->id)
+                ->orderBy('created_at', 'desc');
+
+            // Filter by status
+            if ($request->has('status') && $request->status !== 'all') {
+                if ($request->status === 'pending') {
+                    $query->whereIn('status', ['submitted', 'under_review', 'resubmitted']);
+                } else {
+                    $query->where('status', $request->status);
+                }
+            }
+
+            // Filter by type
+            if ($request->has('type') && $request->type !== 'all') {
+                $query->where('invoice_type', $request->type);
+            }
+
+            // Search
+            if ($request->has('search') && $request->search) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('invoice_number', 'like', "%{$search}%")
+                      ->orWhere('description', 'like', "%{$search}%");
+                });
+            }
+
+            // Date filter
+            if ($request->has('from_date') && $request->from_date) {
+                $query->whereDate('invoice_date', '>=', $request->from_date);
+            }
+            if ($request->has('to_date') && $request->to_date) {
+                $query->whereDate('invoice_date', '<=', $request->to_date);
+            }
+
+            $invoices = $query->paginate($request->get('per_page', 10));
+
+            return response()->json([
+                'success' => true,
+                'data' => $invoices
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Vendor Get Invoices Error: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Something went wrong.'
+            ], 500);
+        }
+    }
+
+    // =====================================================
+    // GET INVOICES BY STATUS
+    // =====================================================
+
+    /**
+     * Get vendor's invoices by status
+     */
+    public function getByStatus($status)
+    {
+        try {
+            $vendor = $this->getVendor();
+
+            $allowedStatuses = ['draft', 'submitted', 'under_review', 'approved', 'rejected', 'resubmitted', 'paid', 'pending'];
+
+            if (!in_array($status, $allowedStatuses)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid status.'
+                ], 400);
+            }
+
+            $query = Invoice::with(['attachments', 'contract', 'items.category'])
+                ->where('vendor_id', $vendor->id);
+
+            if ($status === 'pending') {
+                $query->whereIn('status', ['submitted', 'under_review', 'resubmitted']);
+            } else {
+                $query->where('status', $status);
+            }
+
+            $invoices = $query->orderBy('created_at', 'desc')->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $invoices,
+                'count' => $invoices->count()
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Vendor Get Invoices By Status Error: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Something went wrong.'
+            ], 500);
+        }
+    }
+
+    // =====================================================
+    // GET CONTRACTS (for dropdown)
+    // =====================================================
+
+    /**
+     * Get vendor's contracts for dropdown
+     */
+    public function getContracts()
+    {
+        try {
+            $vendor = $this->getVendor();
+
+            $contracts = Contract::where('vendor_id', $vendor->id)
+                ->where('is_visible_to_vendor', true)
+                ->whereIn('status', ['draft', 'active', 'signed'])
+                ->select('id', 'contract_number', 'contract_value')
+                ->orderBy('contract_number', 'desc')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $contracts
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Get Contracts Error: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Something went wrong.'
+            ], 500);
+        }
+    }
+
+    // =====================================================
+    // CREATE INVOICE
+    // =====================================================
+
+    /**
+     * Store new invoice
+     */
+    public function store(Request $request)
+    {
+        try {
+            $vendor = $this->getVendor();
+
+            // Validation
+            $validator = Validator::make($request->all(), [
+                'contract_id' => 'required|exists:contracts,id',
+                'invoice_number' => 'required|string|max:50',
+                'invoice_date' => 'required|date',
+                'due_date' => 'nullable|date',
+                'description' => 'nullable|string|max:1000',
+                'base_total' => 'required|numeric|min:0',
+                'gst_total' => 'required|numeric|min:0',
+                'grand_total' => 'required|numeric|min:0',
+                'items' => 'required|string', // JSON string of line items
+                'invoice_attachment' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240', // 10MB
+            ]);
+
+            // Custom validation for unique invoice number per vendor
+            $validator->after(function ($validator) use ($request, $vendor) {
+                $exists = Invoice::where('vendor_id', $vendor->id)
+                    ->where('invoice_number', $request->invoice_number)
+                    ->exists();
+                
+                if ($exists) {
+                    $validator->errors()->add('invoice_number', 'This invoice number already exists.');
+                }
+            });
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed.',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Parse line items
+            $items = json_decode($request->items, true);
+            if (empty($items)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'At least one line item is required.'
+                ], 422);
+            }
+
+            DB::beginTransaction();
+
+            // Create invoice
+            $invoice = Invoice::create([
+                'vendor_id' => $vendor->id,
+                'contract_id' => $request->contract_id,
+                'invoice_type' => 'normal', // Default to normal
+                'invoice_number' => $request->invoice_number,
+                'invoice_date' => $request->invoice_date,
+                'due_date' => $request->due_date,
+                'description' => $request->description,
+                'base_total' => $request->base_total,
+                'gst_total' => $request->gst_total,
+                'grand_total' => $request->grand_total,
+                'status' => 'draft',
+            ]);
+
+            // Create line items
+            foreach ($items as $item) {
+                // Get category_id from contract_item
+                $contractItem = ContractItem::find($item['contract_item_id']);
+                $categoryId = $contractItem ? $contractItem->category_id : null;
+
+                InvoiceItem::create([
+                    'invoice_id' => $invoice->id,
+                    'contract_item_id' => $item['contract_item_id'],
+                    'category_id' => $categoryId,
+                    'particulars' => $item['particulars'] ?? null,
+                    'sac' => $item['sac'] ?? null,
+                    'quantity' => $item['quantity'],
+                    'unit' => $item['unit'] ?? null,
+                    'rate' => $item['rate'],
+                    'tax_percent' => $item['tax_percent'] ?? null,
+                    'amount' => $item['amount'],
+                ]);
+            }
+
+            // Upload invoice attachment
+            if ($request->hasFile('invoice_attachment')) {
+                $file = $request->file('invoice_attachment');
+                $fileName = 'invoice_' . $invoice->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+                $path = $file->storeAs('invoices/' . $vendor->id, $fileName, 'public');
+
+                InvoiceAttachment::create([
+                    'invoice_id' => $invoice->id,
+                    'attachment_type' => 'invoice',
+                    'file_name' => $file->getClientOriginalName(),
+                    'file_path' => $path,
+                    'file_type' => $file->getClientOriginalExtension(),
+                    'file_size' => $file->getSize(),
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Invoice created successfully.',
+                'data' => $invoice->load(['items.category', 'attachments'])
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Create Invoice Error: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Something went wrong. Please try again.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // =====================================================
+    // VIEW INVOICE
+    // =====================================================
+
+    /**
+     * Get invoice details
+     */
+    public function show($id)
+    {
+        try {
+            $vendor = $this->getVendor();
+
+            $invoice = Invoice::with(['attachments', 'contract', 'items.category', 'items.contractItem'])
+                ->where('vendor_id', $vendor->id)
+                ->findOrFail($id);
+
+            return response()->json([
+                'success' => true,
+                'data' => $invoice
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Get Invoice Details Error: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Invoice not found.'
+            ], 404);
+        }
+    }
+
+    // =====================================================
+    // UPDATE INVOICE
+    // =====================================================
+
+    /**
+     * Update invoice
+     */
+    public function update(Request $request, $id)
+    {
+        try {
+            $vendor = $this->getVendor();
+
+            $invoice = Invoice::where('vendor_id', $vendor->id)->findOrFail($id);
+
+            // Check if editable
+            if (!$invoice->isEditable()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This invoice cannot be edited.'
+                ], 403);
+            }
+
+            // Validation
+            $validator = Validator::make($request->all(), [
+                'contract_id' => 'required|exists:contracts,id',
+                'invoice_number' => 'required|string|max:50',
+                'invoice_date' => 'required|date',
+                'due_date' => 'nullable|date',
+                'description' => 'nullable|string|max:1000',
+                'base_total' => 'required|numeric|min:0',
+                'gst_total' => 'required|numeric|min:0',
+                'grand_total' => 'required|numeric|min:0',
+                'items' => 'required|string', // JSON string of line items
+                'invoice_attachment' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            ]);
+
+            // Check unique invoice number (excluding current)
+            $validator->after(function ($validator) use ($request, $vendor, $id) {
+                $exists = Invoice::where('vendor_id', $vendor->id)
+                    ->where('invoice_number', $request->invoice_number)
+                    ->where('id', '!=', $id)
+                    ->exists();
+                
+                if ($exists) {
+                    $validator->errors()->add('invoice_number', 'This invoice number already exists.');
+                }
+            });
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed.',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Parse line items
+            $items = json_decode($request->items, true);
+            if (empty($items)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'At least one line item is required.'
+                ], 422);
+            }
+
+            DB::beginTransaction();
+
+            // Determine new status
+            $newStatus = $invoice->status;
+            if ($invoice->status === 'rejected') {
+                $newStatus = 'resubmitted';
+            }
+
+            // Update invoice
+            $invoice->update([
+                'contract_id' => $request->contract_id,
+                'invoice_number' => $request->invoice_number,
+                'invoice_date' => $request->invoice_date,
+                'due_date' => $request->due_date,
+                'description' => $request->description,
+                'base_total' => $request->base_total,
+                'gst_total' => $request->gst_total,
+                'grand_total' => $request->grand_total,
+                'status' => $newStatus,
+                'rejection_reason' => null, // Clear rejection reason on edit
+            ]);
+
+            // Delete old line items and create new ones
+            $invoice->items()->delete();
+
+            foreach ($items as $item) {
+                $contractItem = ContractItem::find($item['contract_item_id']);
+                $categoryId = $contractItem ? $contractItem->category_id : null;
+
+                InvoiceItem::create([
+                    'invoice_id' => $invoice->id,
+                    'contract_item_id' => $item['contract_item_id'],
+                    'category_id' => $categoryId,
+                    'particulars' => $item['particulars'] ?? null,
+                    'sac' => $item['sac'] ?? null,
+                    'quantity' => $item['quantity'],
+                    'unit' => $item['unit'] ?? null,
+                    'rate' => $item['rate'],
+                    'tax_percent' => $item['tax_percent'] ?? null,
+                    'amount' => $item['amount'],
+                ]);
+            }
+
+            // Update invoice attachment if new file uploaded
+            if ($request->hasFile('invoice_attachment')) {
+                // Delete old attachment
+                $oldAttachment = $invoice->invoiceAttachment;
+                if ($oldAttachment) {
+                    Storage::disk('public')->delete($oldAttachment->file_path);
+                    $oldAttachment->delete();
+                }
+
+                // Upload new
+                $file = $request->file('invoice_attachment');
+                $fileName = 'invoice_' . $invoice->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+                $path = $file->storeAs('invoices/' . $vendor->id, $fileName, 'public');
+
+                InvoiceAttachment::create([
+                    'invoice_id' => $invoice->id,
+                    'attachment_type' => 'invoice',
+                    'file_name' => $file->getClientOriginalName(),
+                    'file_path' => $path,
+                    'file_type' => $file->getClientOriginalExtension(),
+                    'file_size' => $file->getSize(),
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Invoice updated successfully.',
+                'data' => $invoice->fresh()->load(['items.category', 'attachments'])
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Update Invoice Error: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Something went wrong. Please try again.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // =====================================================
+    // SUBMIT INVOICE
+    // =====================================================
+
+    /**
+     * Submit invoice for approval
+     */
+    public function submit($id)
+    {
+        try {
+            $vendor = $this->getVendor();
+
+            $invoice = Invoice::where('vendor_id', $vendor->id)->findOrFail($id);
+
+            // Check if can submit
+            if (!$invoice->canSubmit()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This invoice cannot be submitted.'
+                ], 403);
+            }
+
+            // Check if invoice attachment exists
+            if (!$invoice->invoiceAttachment) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please upload invoice document before submitting.'
+                ], 422);
+            }
+
+            // Check if has line items
+            if ($invoice->items()->count() === 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please add at least one line item before submitting.'
+                ], 422);
+            }
+
+            // Determine status (resubmitted if was rejected before)
+            $newStatus = $invoice->status === 'rejected' ? 'resubmitted' : 'submitted';
+
+            $invoice->update([
+                'status' => $newStatus,
+                'submitted_at' => now(),
+                'rejection_reason' => null, // Clear rejection reason on resubmit
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Invoice submitted successfully.',
+                'data' => $invoice->fresh()
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Submit Invoice Error: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Something went wrong. Please try again.'
+            ], 500);
+        }
+    }
+
+    // =====================================================
+    // DELETE INVOICE
+    // =====================================================
+
+    /**
+     * Delete draft invoice
+     */
+    public function destroy($id)
+    {
+        try {
+            $vendor = $this->getVendor();
+
+            $invoice = Invoice::where('vendor_id', $vendor->id)->findOrFail($id);
+
+            // Only draft invoices can be deleted
+            if ($invoice->status !== 'draft') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only draft invoices can be deleted.'
+                ], 403);
+            }
+
+            // Delete attachments from storage
+            foreach ($invoice->attachments as $attachment) {
+                Storage::disk('public')->delete($attachment->file_path);
+            }
+
+            // Delete invoice (cascade will delete items and attachments)
+            $invoice->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Invoice deleted successfully.',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Delete Invoice Error: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Something went wrong. Please try again.'
+            ], 500);
+        }
+    }
+
+    // =====================================================
+    // DOWNLOAD ATTACHMENT
+    // =====================================================
+
+    /**
+     * Download invoice attachment
+     */
+    public function downloadAttachment($invoiceId, $attachmentId)
+    {
+        try {
+            $vendor = $this->getVendor();
+
+            $invoice = Invoice::where('vendor_id', $vendor->id)->findOrFail($invoiceId);
+            $attachment = InvoiceAttachment::where('invoice_id', $invoice->id)->findOrFail($attachmentId);
+
+            if (!Storage::disk('public')->exists($attachment->file_path)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File not found.'
+                ], 404);
+            }
+
+            return Storage::disk('public')->download($attachment->file_path, $attachment->file_name);
+
+        } catch (\Exception $e) {
+            Log::error('Download Attachment Error: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Something went wrong.'
+            ], 500);
+        }
+    }
+}

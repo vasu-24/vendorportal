@@ -8,16 +8,20 @@ use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
-    // Show login page
+    /**
+     * Show internal team login page
+     */
     public function showLogin()
     {
         if (Auth::check()) {
             return redirect()->route('dashboard');
         }
-        return view('pages.auth.login');
+        return view('pages.auth.login', ['type' => 'internal']);
     }
 
-    // Handle login
+    /**
+     * Handle internal team login
+     */
     public function login(Request $request)
     {
         $request->validate([
@@ -44,7 +48,9 @@ class AuthController extends Controller
         return back()->with('error', 'Invalid email or password.');
     }
 
-    // Handle logout
+    /**
+     * Handle internal team logout
+     */
     public function logout(Request $request)
     {
         Auth::logout();

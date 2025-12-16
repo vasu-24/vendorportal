@@ -2,56 +2,63 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Login - Vendor Portal</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-
-    <link rel="icon" type="image/png" href="{{ asset('image/logo.png') }}">
-    
-    <!-- Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
-    <!-- Bootstrap Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-    <!-- Login Page CSS -->
-    <link href="{{ asset('css/login.css') }}" rel="stylesheet">
+    <title>{{ $type == 'vendor' ? 'Vendor Login' : 'Login' }} - Vendor Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ asset('css/login.css') }}">
 </head>
-
 <body class="login-page">
     <div class="login-wrapper">
         
-        <!-- Left Panel - Branding -->
+        <!-- Left Panel - Branding with Canvas Animation -->
         <div class="left-panel">
             <canvas id="bgCanvas"></canvas>
-            
             <div class="brand-content">
                 <div class="logo-container">
-                    <img src="{{ asset('image/logo.png') }}" alt="Logo">
+                    <img src="{{ asset('images/logo.png') }}" alt="Logo" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2260%22 height=%2260%22 viewBox=%220 0 24 24%22 fill=%22white%22><path d=%22M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5%22/></svg>'">
                 </div>
                 <h1>Vendor Portal</h1>
                 <p class="tagline">Streamline your vendor management process with our powerful platform</p>
-
+                
                 <div class="features">
-                    <div class="feature-item">
-                        <i class="bi bi-shield-check"></i>
-                        <span>Secure Authentication</span>
-                    </div>
-                    <div class="feature-item">
-                        <i class="bi bi-people"></i>
-                        <span>Vendor Management</span>
-                    </div>
-                    <div class="feature-item">
-                        <i class="bi bi-graph-up"></i>
-                        <span>Real-time Analytics</span>
-                    </div>
-                    <div class="feature-item">
-                        <i class="bi bi-file-earmark-check"></i>
-                        <span>Document Processing</span>
-                    </div>
+                    @if($type == 'vendor')
+                        <div class="feature-item">
+                            <i class="bi bi-person-check"></i>
+                            <span>Manage Your Profile</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="bi bi-file-earmark-text"></i>
+                            <span>Submit Invoices</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="bi bi-cloud-upload"></i>
+                            <span>Upload Documents</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="bi bi-graph-up"></i>
+                            <span>Track Payments</span>
+                        </div>
+                    @else
+                        <div class="feature-item">
+                            <i class="bi bi-shield-check"></i>
+                            <span>Secure Authentication</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="bi bi-people"></i>
+                            <span>Vendor Management</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="bi bi-graph-up-arrow"></i>
+                            <span>Real-time Analytics</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="bi bi-file-earmark-check"></i>
+                            <span>Document Processing</span>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -60,14 +67,21 @@
         <div class="right-panel">
             <div class="login-form-container">
                 
-                <!-- Header -->
+                <!-- Login Header -->
                 <div class="login-header">
-                    <div class="badge-admin">
-                        <i class="bi bi-building"></i>
-                        Internal Team Access
-                    </div>
-                    <h2>Welcome Back!</h2>
-                    <p>Sign in to access the admin dashboard</p>
+                    @if($type == 'vendor')
+                        <div class="badge-admin">
+                            <i class="bi bi-building"></i> Vendor Access
+                        </div>
+                        <h2>Vendor Login</h2>
+                        <p>Sign in to access your vendor portal</p>
+                    @else
+                        <div class="badge-admin">
+                            <i class="bi bi-shield-lock"></i> Internal Team Access
+                        </div>
+                        <h2>Welcome Back!</h2>
+                        <p>Sign in to access the admin dashboard</p>
+                    @endif
                 </div>
 
                 <!-- Error Alert -->
@@ -87,66 +101,60 @@
                 @endif
 
                 <!-- Login Form -->
-                <form action="{{ route('login.submit') }}" method="POST" id="loginForm">
+                <form method="POST" action="{{ $type == 'vendor' ? route('vendor.login.submit') : route('login.submit') }}">
                     @csrf
 
-                    <!-- Email -->
                     <div class="form-group">
                         <label>Email Address</label>
                         <div class="input-wrapper">
                             <i class="bi bi-envelope input-icon"></i>
-                            <input 
-                                type="email" 
-                                name="email" 
-                                placeholder="Enter your email"
-                                value="{{ old('email') }}"
-                                required
-                            >
+                            <input type="email" 
+                                   name="email" 
+                                   placeholder="Enter your email"
+                                   value="{{ old('email') }}"
+                                   required>
                         </div>
                         @error('email')
-                            <small class="text-danger mt-1 d-block">{{ $message }}</small>
+                            <small style="color: #dc2626; font-size: 12px;">{{ $message }}</small>
                         @enderror
                     </div>
 
-                    <!-- Password -->
                     <div class="form-group">
                         <label>Password</label>
                         <div class="input-wrapper">
                             <i class="bi bi-lock input-icon"></i>
-                            <input 
-                                type="password" 
-                                name="password" 
-                                id="password"
-                                placeholder="Enter your password"
-                                required
-                            >
+                            <input type="password" 
+                                   name="password" 
+                                   id="password"
+                                   placeholder="Enter your password"
+                                   required>
                             <button type="button" class="toggle-password" onclick="togglePassword()">
                                 <i class="bi bi-eye" id="toggleIcon"></i>
                             </button>
                         </div>
                         @error('password')
-                            <small class="text-danger mt-1 d-block">{{ $message }}</small>
+                            <small style="color: #dc2626; font-size: 12px;">{{ $message }}</small>
                         @enderror
                     </div>
 
-                    <!-- Remember Me -->
                     <div class="form-options">
                         <div class="form-check-custom">
                             <input type="checkbox" name="remember" id="remember">
                             <label for="remember">Remember me</label>
                         </div>
+                        @if($type == 'vendor')
+                            <a href="#" class="forgot-link">Forgot Password?</a>
+                        @endif
                     </div>
 
-                    <!-- Submit Button -->
-                    <button type="submit" class="btn-login" id="loginBtn">
-                        <span id="btnText">Sign In</span>
-                        <i class="bi bi-arrow-right" id="btnIcon"></i>
+                    <button type="submit" class="btn-login">
+                        Sign In <i class="bi bi-arrow-right"></i>
                     </button>
                 </form>
 
                 <!-- Footer -->
                 <div class="login-footer">
-                    <p>&copy; {{ date('Y') }} Vendor Portal — Powered by <a href="https://kredo.in" target="_blank">Kredo</a></p>
+                    <p>&copy; {{ date('Y') }} Vendor Portal — Powered by <a href="#">Kredo</a></p>
                 </div>
 
             </div>
@@ -154,15 +162,11 @@
 
     </div>
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Canvas Animation Script -->
+    <script src="{{ asset('js/login-canvas.js') }}"></script>
     
-    <!-- Canvas Animation -->
-    <script src="{{ asset('js/login.js') }}"></script>
-
-    <!-- Login Functions -->
+    <!-- Password Toggle -->
     <script>
-        // Toggle password visibility
         function togglePassword() {
             const passwordInput = document.getElementById('password');
             const toggleIcon = document.getElementById('toggleIcon');
@@ -177,18 +181,6 @@
                 toggleIcon.classList.add('bi-eye');
             }
         }
-
-        // Form submit loading
-        document.getElementById('loginForm').addEventListener('submit', function() {
-            const btn = document.getElementById('loginBtn');
-            const btnText = document.getElementById('btnText');
-            const btnIcon = document.getElementById('btnIcon');
-            
-            btn.disabled = true;
-            btnText.textContent = 'Signing in...';
-            btnIcon.classList.remove('bi-arrow-right');
-            btnIcon.classList.add('spinner-border', 'spinner-border-sm');
-        });
     </script>
 </body>
 </html>

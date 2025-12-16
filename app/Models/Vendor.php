@@ -38,6 +38,9 @@ class Vendor extends Authenticatable
         'revision_requested_by',
         'revision_requested_at',
         'revision_notes',
+        'link_expires_at',       // 🔥 For 48-hour link expiry
+        'zoho_contact_id',       // 🔥 Zoho Books Contact ID
+        'zoho_synced_at',        // 🔥 When synced to Zoho
     ];
 
     protected $hidden = [
@@ -57,7 +60,8 @@ class Vendor extends Authenticatable
         'approved_at' => 'datetime',
         'rejected_at' => 'datetime',
         'revision_requested_at' => 'datetime',
-        'password' => 'hashed',
+        'link_expires_at' => 'datetime',    // 🔥 Added
+        'zoho_synced_at' => 'datetime',     // 🔥 Added
     ];
 
     const STATUS_DRAFT = 'draft';
@@ -66,6 +70,9 @@ class Vendor extends Authenticatable
     const STATUS_REJECTED = 'rejected';
     const STATUS_REVISION_REQUESTED = 'revision_requested';
 
+    /**
+     * Generate unique token for vendor
+     */
     public static function generateToken()
     {
         do {
@@ -74,6 +81,10 @@ class Vendor extends Authenticatable
 
         return $token;
     }
+
+    // =====================================================
+    // RELATIONSHIPS
+    // =====================================================
 
     public function template()
     {
@@ -135,6 +146,10 @@ class Vendor extends Authenticatable
         return $this->belongsTo(User::class, 'revision_requested_by');
     }
 
+    // =====================================================
+    // SCOPES
+    // =====================================================
+
     public function scopePending($query)
     {
         return $query->where('status', 'pending');
@@ -180,6 +195,21 @@ class Vendor extends Authenticatable
         return $query->where('approval_status', self::STATUS_REVISION_REQUESTED);
     }
 
+    // 🔥 Zoho Scopes
+    public function scopeSyncedToZoho($query)
+    {
+        return $query->whereNotNull('zoho_contact_id');
+    }
+
+    public function scopeNotSyncedToZoho($query)
+    {
+        return $query->whereNull('zoho_contact_id');
+    }
+
+    // =====================================================
+    // STATUS CHECK METHODS
+    // =====================================================
+
     public function isRegistrationComplete()
     {
         return $this->registration_completed === true;
@@ -205,6 +235,24 @@ class Vendor extends Authenticatable
         return $this->approval_status === self::STATUS_REVISION_REQUESTED;
     }
 
+    // 🔥 Zoho Check Methods
+    public function isSyncedToZoho()
+    {
+        return !empty($this->zoho_contact_id);
+    }
+
+    public function isLinkExpired()
+    {
+        if (!$this->link_expires_at) {
+            return false;
+        }
+        return now()->isAfter($this->link_expires_at);
+    }
+
+    // =====================================================
+    // ATTRIBUTES
+    // =====================================================
+
     public function getApprovalStatusLabelAttribute()
     {
         $labels = [
@@ -218,10 +266,23 @@ class Vendor extends Authenticatable
         return $labels[$this->approval_status] ?? ['label' => 'Unknown', 'color' => 'secondary'];
     }
 
+    // 🔥 Zoho Status Label
+    public function getZohoStatusLabelAttribute()
+    {
+        if ($this->zoho_contact_id) {
+            return ['label' => 'Synced', 'color' => 'success'];
+        }
+        return ['label' => 'Not Synced', 'color' => 'secondary'];
+    }
+
     public function getRegistrationProgress()
     {
         return ($this->current_step / 4) * 100;
     }
+
+    // =====================================================
+    // HELPER METHODS
+    // =====================================================
 
     public function loadFullRegistration()
     {

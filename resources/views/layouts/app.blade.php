@@ -37,6 +37,8 @@
    
     @include('components.navbar')
 
+      <x-toast />
+
     {{-- 🔵 Page Content --}}
     <main class="container-fluid py-4 flex-grow-1">
         @yield('content')
