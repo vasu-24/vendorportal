@@ -801,4 +801,208 @@ class ZohoService
             $token->update(['is_active' => false]);
         }
     }
+    // =====================================================
+    // CHART OF ACCOUNTS METHODS - NEW!
+    // =====================================================
+
+    /**
+     * 🔥 Get Chart of Accounts from Zoho Books
+     * Used for Category → Zoho Account mapping dropdown
+     */
+    public function getChartOfAccounts(string $accountType = null): array
+    {
+        $accessToken = $this->getValidToken();
+        $organizationId = $this->getOrganizationId();
+
+        if (!$accessToken) {
+            throw new Exception('Not connected to Zoho');
+        }
+
+        if (!$organizationId) {
+            throw new Exception('Organization ID not set');
+        }
+
+        $url = "{$this->apiUrl}/books/v3/chartofaccounts?organization_id={$organizationId}";
+        
+        // Filter by account type if provided (expense, income, asset, liability, equity)
+        if ($accountType) {
+            $url .= "&account_type={$accountType}";
+        }
+
+        $response = Http::withHeaders([
+            'Authorization' => "Zoho-oauthtoken {$accessToken}",
+        ])->get($url);
+
+        if ($response->failed()) {
+            Log::error('Zoho Get Chart of Accounts Error', ['response' => $response->json()]);
+            throw new Exception('Failed to get chart of accounts from Zoho');
+        }
+
+        $result = $response->json();
+
+        Log::info('Fetched Chart of Accounts from Zoho', [
+            'count' => count($result['chartofaccounts'] ?? []),
+        ]);
+
+        return $result['chartofaccounts'] ?? [];
+    }
+
+    /**
+     * Get only Expense accounts from Zoho
+     * Most commonly used for bill line items
+     */
+    public function getExpenseAccounts(): array
+    {
+        return $this->getChartOfAccounts('expense');
+    }
+
+    /**
+     * Get single account details from Zoho
+     */
+    public function getAccount(string $accountId): array
+    {
+        $accessToken = $this->getValidToken();
+        $organizationId = $this->getOrganizationId();
+
+        if (!$accessToken) {
+            throw new Exception('Not connected to Zoho');
+        }
+
+        $response = Http::withHeaders([
+            'Authorization' => "Zoho-oauthtoken {$accessToken}",
+        ])->get("{$this->apiUrl}/books/v3/chartofaccounts/{$accountId}?organization_id={$organizationId}");
+
+        if ($response->failed()) {
+            throw new Exception('Failed to get account from Zoho');
+        }
+
+        return $response->json()['account'] ?? [];
+    }
+
+    // =====================================================
+    // TAX METHODS (TDS & GST) - NEW!
+    // =====================================================
+
+    /**
+     * 🔥 Get all Taxes from Zoho Books
+     * Used for TDS & GST dropdowns in admin panel
+     */
+    public function getTaxes(): array
+    {
+        $accessToken = $this->getValidToken();
+        $organizationId = $this->getOrganizationId();
+
+        if (!$accessToken) {
+            throw new Exception('Not connected to Zoho');
+        }
+
+        if (!$organizationId) {
+            throw new Exception('Organization ID not set');
+        }
+
+        $response = Http::withHeaders([
+            'Authorization' => "Zoho-oauthtoken {$accessToken}",
+        ])->get("{$this->apiUrl}/books/v3/settings/taxes?organization_id={$organizationId}");
+
+        if ($response->failed()) {
+            Log::error('Zoho Get Taxes Error', ['response' => $response->json()]);
+            throw new Exception('Failed to get taxes from Zoho');
+        }
+
+        $result = $response->json();
+
+        Log::info('Fetched Taxes from Zoho', [
+            'count' => count($result['taxes'] ?? []),
+        ]);
+
+        return $result['taxes'] ?? [];
+    }
+
+    /**
+     * Get Tax Groups from Zoho (TDS groups like 194C, 194J)
+     */
+    public function getTaxGroups(): array
+    {
+        $accessToken = $this->getValidToken();
+        $organizationId = $this->getOrganizationId();
+
+        if (!$accessToken) {
+            throw new Exception('Not connected to Zoho');
+        }
+
+        if (!$organizationId) {
+            throw new Exception('Organization ID not set');
+        }
+
+        $response = Http::withHeaders([
+            'Authorization' => "Zoho-oauthtoken {$accessToken}",
+        ])->get("{$this->apiUrl}/books/v3/settings/taxgroups?organization_id={$organizationId}");
+
+        if ($response->failed()) {
+            Log::error('Zoho Get Tax Groups Error', ['response' => $response->json()]);
+            throw new Exception('Failed to get tax groups from Zoho');
+        }
+
+        return $response->json()['tax_groups'] ?? [];
+    }
+
+    /**
+     * Get single tax details from Zoho
+     */
+    public function getTax(string $taxId): array
+    {
+        $accessToken = $this->getValidToken();
+        $organizationId = $this->getOrganizationId();
+
+        if (!$accessToken) {
+            throw new Exception('Not connected to Zoho');
+        }
+
+        $response = Http::withHeaders([
+            'Authorization' => "Zoho-oauthtoken {$accessToken}",
+        ])->get("{$this->apiUrl}/books/v3/settings/taxes/{$taxId}?organization_id={$organizationId}");
+
+        if ($response->failed()) {
+            throw new Exception('Failed to get tax from Zoho');
+        }
+
+        return $response->json()['tax'] ?? [];
+    }
+
+    /**
+     * 🔥 Get formatted taxes for dropdown
+     * Separates GST and TDS for easy use in frontend
+     */
+    public function getFormattedTaxes(): array
+    {
+        $taxes = $this->getTaxes();
+        
+        $gstTaxes = [];
+        $tdsTaxes = [];
+        
+        foreach ($taxes as $tax) {
+            $taxData = [
+                'tax_id' => $tax['tax_id'] ?? '',
+                'tax_name' => $tax['tax_name'] ?? '',
+                'tax_percentage' => $tax['tax_percentage'] ?? 0,
+                'tax_type' => $tax['tax_type'] ?? '',
+            ];
+            
+            // Separate TDS and GST
+            $taxName = strtolower($tax['tax_name'] ?? '');
+            $taxType = strtolower($tax['tax_type'] ?? '');
+            
+            if (str_contains($taxName, 'tds') || str_contains($taxType, 'tds') || str_contains($taxName, '194')) {
+                $tdsTaxes[] = $taxData;
+            } else {
+                $gstTaxes[] = $taxData;
+            }
+        }
+        
+        return [
+            'gst' => $gstTaxes,
+            'tds' => $tdsTaxes,
+            'all' => $taxes,
+        ];
+    }
 }

@@ -15,6 +15,8 @@ class Category extends Model
         'description',
         'hsn_sac_code',
         'status',
+        'zoho_account_id',      // 👈 NEW
+        'zoho_account_name',    // 👈 NEW
     ];
 
     // =====================================================
@@ -44,6 +46,22 @@ class Category extends Model
         return $query->where('status', self::STATUS_INACTIVE);
     }
 
+    /**
+     * Scope to get categories with Zoho mapping
+     */
+    public function scopeZohoMapped($query)
+    {
+        return $query->whereNotNull('zoho_account_id');
+    }
+
+    /**
+     * Scope to get categories without Zoho mapping
+     */
+    public function scopeZohoUnmapped($query)
+    {
+        return $query->whereNull('zoho_account_id');
+    }
+
     // =====================================================
     // RELATIONSHIPS
     // =====================================================
@@ -69,6 +87,14 @@ class Category extends Model
     }
 
     /**
+     * Check if category is mapped to Zoho
+     */
+    public function isZohoMapped()
+    {
+        return !empty($this->zoho_account_id);
+    }
+
+    /**
      * Get status badge HTML
      */
     public function getStatusBadgeAttribute()
@@ -77,5 +103,16 @@ class Category extends Model
             return '<span class="badge bg-success">Active</span>';
         }
         return '<span class="badge bg-secondary">Inactive</span>';
+    }
+
+    /**
+     * Get Zoho mapping badge HTML
+     */
+    public function getZohoBadgeAttribute()
+    {
+        if ($this->isZohoMapped()) {
+            return '<span class="badge bg-info">Mapped</span>';
+        }
+        return '<span class="badge bg-warning">Not Mapped</span>';
     }
 }

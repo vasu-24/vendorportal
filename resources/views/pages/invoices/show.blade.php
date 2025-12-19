@@ -6,7 +6,6 @@
     .card { border: none; border-radius: 8px; }
     .modal-content { border: none; border-radius: 8px; }
 
-    /* Page Header */
     .page-icon {
         width: 44px;
         height: 44px;
@@ -31,7 +30,6 @@
         margin: 0;
     }
 
-    /* Soft Badge Colors */
     .badge-draft { background-color: #e9ecef; color: #495057; font-weight: 500; }
     .badge-submitted { background-color: #e2e3f1; color: #383d6e; font-weight: 500; }
     .badge-under-review { background-color: #fff3cd; color: #856404; font-weight: 500; }
@@ -65,6 +63,24 @@
     .timeline-item.warning::before { background: #ffc107; }
     .timeline-item.danger::before { background: #dc3545; }
     .timeline-item.info::before { background: #0dcaf0; }
+
+    /* Editable tax fields */
+    .tax-edit-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .tax-edit-row select {
+        width: 120px;
+        font-size: 13px;
+    }
+    .tax-edit-row .btn-save-tax {
+        padding: 2px 8px;
+        font-size: 12px;
+    }
+    .tax-changed {
+        background-color: #fff3cd !important;
+    }
 </style>
 
 <div class="container-fluid py-3">
@@ -79,7 +95,7 @@
                 <h2 class="page-title">Invoice Details</h2>
                 <p class="page-subtitle">
                     <a href="{{ route('invoices.index') }}" class="text-decoration-none">Invoices</a> / 
-                    <span id="breadcrumbInvoiceNumber">Loading...</span>
+                    <span id="breadcrumbInvoiceNumber">-</span>
                 </p>
             </div>
         </div>
@@ -88,14 +104,8 @@
         </a>
     </div>
 
-    {{-- Loading --}}
-    <div id="loadingSpinner" class="text-center py-5">
-        <div class="spinner-border text-primary"></div>
-        <p class="mt-2 text-muted">Loading invoice details...</p>
-    </div>
-
     {{-- Main Content --}}
-    <div id="mainContent" style="display: none;">
+    <div id="mainContent">
         <div class="row">
             {{-- Left Column --}}
             <div class="col-lg-8">
@@ -179,14 +189,14 @@
                             <table class="table table-sm mb-0">
                                 <thead class="bg-light">
                                     <tr>
-                                        <th class="ps-3">#</th>
+                                        <th class="ps-3" style="width: 40px;">#</th>
                                         <th>Category</th>
-                                        <th>Description</th>
-                                        <th class="text-center">Qty</th>
-                                        <th class="text-end">Rate</th>
-                                        <th class="text-end">GST %</th>
-                                        <th class="text-end">GST Amt</th>
-                                        <th class="text-end pe-3">Total</th>
+                                        <th>Particulars</th>
+                                        <th style="width: 80px;">SAC</th>
+                                        <th class="text-center" style="width: 80px;">Qty</th>
+                                        <th style="width: 60px;">UOM</th>
+                                        <th class="text-end" style="width: 100px;">Rate</th>
+                                        <th class="text-end pe-3" style="width: 120px;">Amount</th>
                                     </tr>
                                 </thead>
                                 <tbody id="lineItemsBody">
@@ -197,28 +207,88 @@
                     </div>
                 </div>
 
-                {{-- Amount Summary --}}
+                {{-- Amount Summary with Editable Tax Rates --}}
                 <div class="card shadow-sm mb-4">
-                    <div class="card-header bg-light py-2">
+                    <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
                         <h6 class="mb-0 fw-semibold"><i class="bi bi-currency-rupee me-2"></i>Amount Summary</h6>
+                        <span class="badge bg-secondary" id="taxEditMode" style="display: none;">
+                            <i class="bi bi-pencil me-1"></i>Editing Tax Rates
+                        </span>
                     </div>
                     <div class="card-body">
                         <div class="row justify-content-end">
-                            <div class="col-md-6">
+                            <div class="col-md-7">
                                 <table class="table table-sm table-borderless mb-0">
                                     <tr>
                                         <td class="text-muted">Base Total</td>
                                         <td class="text-end fw-medium" id="baseTotal">₹0.00</td>
                                     </tr>
+                                    
+                                    {{-- GST Rate - Editable Dropdown --}}
                                     <tr>
-                                        <td class="text-muted">GST Total</td>
+                                        <td class="text-muted">
+                                            GST Rate
+                                            <small class="text-info d-block" id="vendorGstLabel"></small>
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="tax-edit-row justify-content-end">
+                                                <select class="form-select form-select-sm" id="gstRateSelect">
+                                                    <option value="0">0%</option>
+                                                    <option value="5">5%</option>
+                                                    <option value="12">12%</option>
+                                                    <option value="18" selected>18%</option>
+                                                    <option value="28">28%</option>
+                                                </select>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted">GST Amount</td>
                                         <td class="text-end fw-medium" id="gstTotal">₹0.00</td>
                                     </tr>
                                     <tr class="border-top">
                                         <td class="fw-bold">Grand Total</td>
-                                        <td class="text-end fw-bold fs-5 text-success" id="grandTotal">₹0.00</td>
+                                        <td class="text-end fw-bold fs-5" id="grandTotal">₹0.00</td>
+                                    </tr>
+                                    
+                                    {{-- TDS Rate - Editable Dropdown --}}
+                                    <tr>
+                                        <td class="text-muted">
+                                            TDS Rate
+                                            <small class="text-info d-block" id="vendorTdsLabel"></small>
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="tax-edit-row justify-content-end">
+                                                <select class="form-select form-select-sm" id="tdsRateSelect">
+                                                    <option value="0">0%</option>
+                                                    <option value="1">1%</option>
+                                                    <option value="2">2%</option>
+                                                    <option value="5" selected>5%</option>
+                                                    <option value="10">10%</option>
+                                                    <option value="20">20%</option>
+                                                </select>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted">TDS Deduction</td>
+                                        <td class="text-end fw-medium text-danger" id="tdsAmount">-₹0.00</td>
+                                    </tr>
+                                    <tr class="border-top bg-light">
+                                        <td class="fw-bold text-success py-2">Net Payable</td>
+                                        <td class="text-end fw-bold fs-5 text-success py-2" id="netPayable">₹0.00</td>
                                     </tr>
                                 </table>
+                                
+                                {{-- Save Tax Changes Button --}}
+                                <div class="text-end mt-3" id="saveTaxBtnContainer" style="display: none;">
+                                    <button type="button" class="btn btn-primary btn-sm" id="saveTaxChangesBtn">
+                                        <i class="bi bi-check-circle me-1"></i>Save Tax Changes
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm ms-2" id="resetTaxBtn">
+                                        <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -234,6 +304,30 @@
                             <div class="col-12 text-center text-muted py-3">
                                 <i class="bi bi-paperclip fs-4 d-block mb-2"></i>No attachments
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Timesheet Section --}}
+                <div class="card shadow-sm mb-4" id="timesheetCard" style="display: none;">
+                    <div class="card-header bg-light py-2">
+                        <h6 class="mb-0 fw-semibold"><i class="bi bi-clock-history me-2"></i>Timesheet</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-file-earmark-excel text-success fs-2 me-3"></i>
+                                <div>
+                                    <div class="fw-medium" id="timesheetFilename">Timesheet.xlsx</div>
+                                    <small class="text-muted">Timesheet attachment included</small>
+                                </div>
+                            </div>
+                            <a href="#" id="timesheetDownloadBtn" class="btn btn-sm btn-outline-success" target="_blank">
+                                <i class="bi bi-download me-1"></i>Download
+                            </a>
+                        </div>
+                        <div id="timesheetNoFile" class="text-center text-muted py-3" style="display: none;">
+                            <i class="bi bi-exclamation-circle me-1"></i>Timesheet was requested but no file uploaded
                         </div>
                     </div>
                 </div>
@@ -262,7 +356,7 @@
                         <h6 class="mb-0 fw-semibold"><i class="bi bi-lightning me-2"></i>Actions</h6>
                     </div>
                     <div class="card-body" id="actionCardBody">
-                        <p class="text-muted text-center">Loading...</p>
+                        <p class="text-muted text-center small">No actions available</p>
                     </div>
                 </div>
 
@@ -272,7 +366,7 @@
                         <h6 class="mb-0 fw-semibold"><i class="bi bi-clock-history me-2"></i>Timeline</h6>
                     </div>
                     <div class="card-body" id="timelineContainer">
-                        <p class="text-muted text-center">No timeline data</p>
+                        <p class="text-muted text-center small">No timeline data</p>
                     </div>
                 </div>
 
@@ -358,17 +452,76 @@
 @push('scripts')
 <script>
     const API_BASE = '/api/admin/invoices';
+    const ZOHO_API = '/api/zoho';
     const INVOICE_ID = '{{ $invoiceId }}';
+    
     let invoiceData = null;
+    let zohoGstRates = [];
+    let zohoTdsRates = [];
+    let originalGstPercent = 18;
+    let originalTdsPercent = 5;
+    let taxChanged = false;
 
-    // =====================================================
-    // INIT
-    // =====================================================
     $(document).ready(function() {
+        loadZohoTaxes();
         loadInvoice();
+        
         $('#confirmRejectBtn').on('click', rejectInvoice);
         $('#confirmPaidBtn').on('click', markAsPaid);
+        $('#saveTaxChangesBtn').on('click', saveTaxChanges);
+        $('#resetTaxBtn').on('click', resetTaxRates);
+        
+        // Tax rate change handlers
+        $('#gstRateSelect, #tdsRateSelect').on('change', function() {
+            recalculateTotals();
+            checkTaxChanged();
+        });
     });
+
+    // =====================================================
+    // LOAD ZOHO TAX RATES
+    // =====================================================
+    function loadZohoTaxes() {
+        // Load GST rates from Zoho
+        axios.get(`${ZOHO_API}/taxes`)
+            .then(res => {
+                if (res.data.success && res.data.data) {
+                    // Populate GST dropdown
+                    if (res.data.data.gst && res.data.data.gst.length > 0) {
+                        let gstHtml = '<option value="0">No GST (0%)</option>';
+                        res.data.data.gst.forEach(tax => {
+                            gstHtml += `<option value="${tax.tax_percentage}" data-tax-id="${tax.tax_id}">${tax.tax_name} (${tax.tax_percentage}%)</option>`;
+                        });
+                        $('#gstRateSelect').html(gstHtml);
+                        zohoGstRates = res.data.data.gst;
+                    }
+                    
+                    // Populate TDS dropdown
+                    if (res.data.data.tds && res.data.data.tds.length > 0) {
+                        let tdsHtml = '<option value="0">No TDS (0%)</option>';
+                        res.data.data.tds.forEach(tax => {
+                            tdsHtml += `<option value="${tax.tax_percentage}" data-tax-id="${tax.tax_id}">${tax.tax_name} (${tax.tax_percentage}%)</option>`;
+                        });
+                        $('#tdsRateSelect').html(tdsHtml);
+                        zohoTdsRates = res.data.data.tds;
+                    } else {
+                        // Default TDS options if not from Zoho
+                        $('#tdsRateSelect').html(`
+                            <option value="0">No TDS (0%)</option>
+                            <option value="1">TDS 1%</option>
+                            <option value="2">TDS 2%</option>
+                            <option value="5" selected>TDS 5%</option>
+                            <option value="10">TDS 10%</option>
+                            <option value="20">TDS 20%</option>
+                        `);
+                    }
+                }
+            })
+            .catch(err => {
+                console.log('Using default tax options');
+                // Keep default options if Zoho fails
+            });
+    }
 
     // =====================================================
     // LOAD INVOICE
@@ -379,19 +532,11 @@
                 if (res.data.success) {
                     invoiceData = res.data.data;
                     renderInvoice();
-                    $('#loadingSpinner').hide();
-                    $('#mainContent').show();
                 }
             })
             .catch(err => {
                 console.error('Failed:', err);
-                $('#loadingSpinner').html(`
-                    <div class="text-danger">
-                        <i class="bi bi-exclamation-circle fs-1"></i>
-                        <p class="mt-2">Failed to load invoice details</p>
-                        <a href="{{ route('invoices.index') }}" class="btn btn-primary btn-sm">Back to List</a>
-                    </div>
-                `);
+                alert('Failed to load invoice details');
             });
     }
 
@@ -419,16 +564,41 @@
         $('#vendorPhone').text(inv.vendor?.companyInfo?.phone || inv.vendor?.phone || '-');
         $('#vendorCompany').text(inv.vendor?.companyInfo?.legal_entity_name || '-');
 
-        // Amounts - FIXED FIELD NAMES
-        $('#baseTotal').text('₹' + formatNumber(inv.base_total));
-        $('#gstTotal').text('₹' + formatNumber(inv.gst_total));
-        $('#grandTotal').text('₹' + formatNumber(inv.grand_total));
+        // Store original tax rates
+        originalGstPercent = parseFloat(inv.gst_percent) || 18;
+        originalTdsPercent = parseFloat(inv.tds_percent) || 5;
+
+        // Set dropdown values
+        $('#gstRateSelect').val(originalGstPercent);
+        $('#tdsRateSelect').val(originalTdsPercent);
+
+        // Show what vendor submitted
+        $('#vendorGstLabel').text(`Vendor submitted: ${originalGstPercent}%`);
+        $('#vendorTdsLabel').text(`Vendor submitted: ${originalTdsPercent}%`);
+
+        // Calculate and display amounts
+        recalculateTotals();
 
         // Line Items
         renderLineItems(inv.items);
 
         // Attachments
         renderAttachments(inv.attachments);
+
+        // Timesheet
+        if (inv.include_timesheet) {
+            $('#timesheetCard').show();
+            if (inv.timesheet_path) {
+                $('#timesheetFilename').text(inv.timesheet_filename || 'Timesheet.xlsx');
+                $('#timesheetDownloadBtn').attr('href', `/storage/${inv.timesheet_path}`).show();
+                $('#timesheetNoFile').hide();
+            } else {
+                $('#timesheetDownloadBtn').hide();
+                $('#timesheetNoFile').show();
+            }
+        } else {
+            $('#timesheetCard').hide();
+        }
 
         // Timeline
         renderTimeline(inv);
@@ -454,6 +624,127 @@
     }
 
     // =====================================================
+    // RECALCULATE TOTALS (when tax rate changes)
+    // =====================================================
+    function recalculateTotals() {
+        const baseTotal = parseFloat(invoiceData?.base_total) || 0;
+        const gstPercent = parseFloat($('#gstRateSelect').val()) || 0;
+        const tdsPercent = parseFloat($('#tdsRateSelect').val()) || 0;
+
+        const gstAmount = (baseTotal * gstPercent) / 100;
+        const grandTotal = baseTotal + gstAmount;
+        const tdsAmount = (baseTotal * tdsPercent) / 100;
+        const netPayable = grandTotal - tdsAmount;
+
+        // Update display
+        $('#baseTotal').text('₹' + formatNumber(baseTotal));
+        $('#gstTotal').text('₹' + formatNumber(gstAmount));
+        $('#grandTotal').text('₹' + formatNumber(grandTotal));
+        $('#tdsAmount').text('-₹' + formatNumber(tdsAmount));
+        $('#netPayable').text('₹' + formatNumber(netPayable));
+    }
+
+    // =====================================================
+    // CHECK IF TAX CHANGED
+    // =====================================================
+    function checkTaxChanged() {
+        const currentGst = parseFloat($('#gstRateSelect').val()) || 0;
+        const currentTds = parseFloat($('#tdsRateSelect').val()) || 0;
+
+        taxChanged = (currentGst !== originalGstPercent || currentTds !== originalTdsPercent);
+
+        if (taxChanged) {
+            $('#saveTaxBtnContainer').show();
+            $('#taxEditMode').show();
+            
+            // Highlight changed fields
+            if (currentGst !== originalGstPercent) {
+                $('#gstRateSelect').addClass('tax-changed');
+            } else {
+                $('#gstRateSelect').removeClass('tax-changed');
+            }
+            
+            if (currentTds !== originalTdsPercent) {
+                $('#tdsRateSelect').addClass('tax-changed');
+            } else {
+                $('#tdsRateSelect').removeClass('tax-changed');
+            }
+        } else {
+            $('#saveTaxBtnContainer').hide();
+            $('#taxEditMode').hide();
+            $('#gstRateSelect, #tdsRateSelect').removeClass('tax-changed');
+        }
+    }
+
+    // =====================================================
+    // SAVE TAX CHANGES
+    // =====================================================
+    function saveTaxChanges() {
+        const gstPercent = parseFloat($('#gstRateSelect').val()) || 0;
+        const tdsPercent = parseFloat($('#tdsRateSelect').val()) || 0;
+        const baseTotal = parseFloat(invoiceData?.base_total) || 0;
+
+        // Get Zoho tax IDs
+        const gstTaxId = $('#gstRateSelect option:selected').data('tax-id') || null;
+        const tdsTaxId = $('#tdsRateSelect option:selected').data('tax-id') || null;
+
+        // Calculate new amounts
+        const gstAmount = (baseTotal * gstPercent) / 100;
+        const grandTotal = baseTotal + gstAmount;
+        const tdsAmount = (baseTotal * tdsPercent) / 100;
+        const netPayable = grandTotal - tdsAmount;
+
+        const btn = $('#saveTaxChangesBtn');
+        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
+
+        axios.post(`${API_BASE}/${INVOICE_ID}/update-taxes`, {
+            gst_percent: gstPercent,
+            gst_total: gstAmount,
+            zoho_gst_tax_id: gstTaxId,
+            tds_percent: tdsPercent,
+            tds_amount: tdsAmount,
+            zoho_tds_tax_id: tdsTaxId,
+            grand_total: grandTotal,
+            net_payable: netPayable
+        })
+        .then(res => {
+            if (res.data.success) {
+                Toast.success('Tax rates updated successfully');
+                
+                // Update original values
+                originalGstPercent = gstPercent;
+                originalTdsPercent = tdsPercent;
+                
+                // Update labels
+                $('#vendorGstLabel').text(`Current: ${gstPercent}%`);
+                $('#vendorTdsLabel').text(`Current: ${tdsPercent}%`);
+                
+                // Hide save button
+                checkTaxChanged();
+                
+                // Reload invoice data
+                loadInvoice();
+            }
+        })
+        .catch(err => {
+            Toast.error(err.response?.data?.message || 'Failed to update tax rates');
+        })
+        .finally(() => {
+            btn.prop('disabled', false).html('<i class="bi bi-check-circle me-1"></i>Save Tax Changes');
+        });
+    }
+
+    // =====================================================
+    // RESET TAX RATES
+    // =====================================================
+    function resetTaxRates() {
+        $('#gstRateSelect').val(originalGstPercent);
+        $('#tdsRateSelect').val(originalTdsPercent);
+        recalculateTotals();
+        checkTaxChanged();
+    }
+
+    // =====================================================
     // RENDER LINE ITEMS
     // =====================================================
     function renderLineItems(items) {
@@ -466,21 +757,21 @@
 
         let html = '';
         items.forEach((item, i) => {
-            const baseAmount = parseFloat(item.quantity) * parseFloat(item.rate);
-        const gstAmount = baseAmount * (parseFloat(item.tax_percent || 0) / 100);
-            const total = baseAmount + gstAmount;
+            const categoryName = item.contract_item?.category?.name || 
+                                 item.contract_item?.category_name || 
+                                 item.category?.name || 
+                                 item.category_name || '-';
 
             html += `
                 <tr>
                     <td class="ps-3">${i + 1}</td>
-                    <td>${item.category?.name || '-'}</td>
-                 <td>${item.particulars || '-'}</td>
-
-                    <td class="text-center">${item.quantity} ${item.unit || ''}</td>
+                    <td>${escapeHtml(categoryName)}</td>
+                    <td>${escapeHtml(item.particulars) || '-'}</td>
+                    <td>${escapeHtml(item.sac) || '-'}</td>
+                    <td class="text-center">${item.quantity || 0}</td>
+                    <td>${escapeHtml(item.unit) || '-'}</td>
                     <td class="text-end">₹${formatNumber(item.rate)}</td>
-               <td class="text-end">${item.tax_percent || 0}%</td>
-                    <td class="text-end">₹${formatNumber(gstAmount)}</td>
-                    <td class="text-end pe-3 fw-semibold">₹${formatNumber(total)}</td>
+                    <td class="text-end pe-3 fw-semibold">₹${formatNumber(item.amount)}</td>
                 </tr>
             `;
         });
@@ -593,8 +884,19 @@
 
         let html = '';
         attachments.forEach(att => {
-            const icon = att.attachment_type === 'invoice' ? 'bi-file-earmark-pdf text-danger' : 'bi-file-earmark text-primary';
-            const label = att.attachment_type === 'invoice' ? 'Invoice Document' : 'Supporting Document';
+            let icon = 'bi-file-earmark text-primary';
+            let label = 'Document';
+            
+            if (att.attachment_type === 'invoice') {
+                icon = 'bi-file-earmark-pdf text-danger';
+                label = 'Invoice Document';
+            } else if (att.attachment_type === 'timesheet') {
+                icon = 'bi-file-earmark-excel text-success';
+                label = 'Timesheet';
+            } else if (att.attachment_type === 'supporting') {
+                icon = 'bi-file-earmark text-primary';
+                label = 'Supporting Document';
+            }
 
             html += `
                 <div class="col-md-6">

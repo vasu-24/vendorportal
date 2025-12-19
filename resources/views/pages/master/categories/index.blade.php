@@ -17,6 +17,10 @@
         font-weight: 600;
         border-bottom: 2px solid #212529;
     }
+    .zoho-badge {
+        font-size: 10px;
+        padding: 2px 6px;
+    }
 </style>
 @endpush
 
@@ -92,7 +96,7 @@
                                 <th>Name</th>
                                 <th>Code</th>
                                 <th>HSN/SAC</th>
-                                <th>Description</th>
+                                <th>Zoho Account</th>
                                 <th>Status</th>
                                 <th class="text-center">Action</th>
                             </tr>
@@ -162,6 +166,21 @@
                         <div class="invalid-feedback" id="error_hsn_sac_code"></div>
                     </div>
 
+                    <!-- Zoho Account Dropdown - NEW! -->
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <i class="bi bi-link-45deg me-1"></i>Zoho Account (COA)
+                        </label>
+                        <select class="form-select" id="zohoAccountId">
+                            <option value="">-- Select Zoho Account --</option>
+                        </select>
+                        <small class="text-muted">Link this category to a Zoho Chart of Account</small>
+                        <div id="zohoLoadingText" class="text-muted small mt-1" style="display: none;">
+                            <span class="spinner-border spinner-border-sm me-1"></span>Loading accounts from Zoho...
+                        </div>
+                        <div id="zohoErrorText" class="text-danger small mt-1" style="display: none;"></div>
+                    </div>
+
                     <!-- Description -->
                     <div class="mb-3">
                         <label class="form-label">Description</label>
@@ -220,10 +239,12 @@
     // CONFIGURATION
     // =====================================================
     const API_BASE = '/api/admin/categories';
+    const ZOHO_API = '/api/zoho';
     let currentStatus = 'all';
     let currentPage = 1;
     let currentSearch = '';
     let deleteId = null;
+    let zohoAccounts = []; // Store fetched accounts
 
     // =====================================================
     // INITIALIZATION
@@ -257,6 +278,59 @@
         // Delete confirm
         $('#confirmDeleteBtn').on('click', deleteCategory);
     });
+
+    // =====================================================
+    // LOAD ZOHO ACCOUNTS (COA)
+    // =====================================================
+    function loadZohoAccounts(selectedAccountId = null) {
+        // If already loaded, just populate
+        if (zohoAccounts.length > 0) {
+            populateZohoDropdown(selectedAccountId);
+            return;
+        }
+
+        $('#zohoLoadingText').show();
+        $('#zohoErrorText').hide();
+        $('#zohoAccountId').prop('disabled', true);
+
+        axios.get(`${ZOHO_API}/chart-of-accounts`)
+            .then(response => {
+                $('#zohoLoadingText').hide();
+                $('#zohoAccountId').prop('disabled', false);
+
+                if (response.data.success) {
+                    zohoAccounts = response.data.data || [];
+                    populateZohoDropdown(selectedAccountId);
+                } else {
+                    $('#zohoErrorText').text('Failed to load Zoho accounts').show();
+                }
+            })
+            .catch(error => {
+                $('#zohoLoadingText').hide();
+                $('#zohoAccountId').prop('disabled', false);
+                
+                const message = error.response?.data?.message || 'Zoho not connected';
+                $('#zohoErrorText').text(message).show();
+                console.error('Failed to load Zoho accounts:', error);
+            });
+    }
+
+    // =====================================================
+    // POPULATE ZOHO DROPDOWN
+    // =====================================================
+    function populateZohoDropdown(selectedAccountId = null) {
+        let html = '<option value="">-- Select Zoho Account --</option>';
+        
+        zohoAccounts.forEach(account => {
+            const isSelected = selectedAccountId && account.account_id === selectedAccountId ? 'selected' : '';
+            const accountType = account.account_type ? ` (${account.account_type})` : '';
+            html += `<option value="${account.account_id}" data-name="${escapeHtml(account.account_name)}" ${isSelected}>
+                ${escapeHtml(account.account_name)}${accountType}
+            </option>`;
+        });
+
+        $('#zohoAccountId').html(html);
+    }
 
     // =====================================================
     // LOAD STATISTICS
@@ -320,6 +394,10 @@
         let html = '';
 
         categories.forEach((category, index) => {
+            const zohoStatus = category.zoho_account_id 
+                ? `<span class="badge bg-info zoho-badge">${escapeHtml(category.zoho_account_name) || 'Mapped'}</span>`
+                : `<span class="badge bg-warning zoho-badge">Not Mapped</span>`;
+
             html += `
                 <tr>
                     <td class="ps-4 text-muted">${index + 1}</td>
@@ -332,9 +410,7 @@
                     <td>
                         <span class="text-muted">${category.hsn_sac_code || '-'}</span>
                     </td>
-                    <td>
-                        <span class="text-muted small">${category.description ? escapeHtml(category.description.substring(0, 40)) + '...' : '-'}</span>
-                    </td>
+                    <td>${zohoStatus}</td>
                     <td>${getStatusBadge(category.status)}</td>
                     <td class="text-center">
                         <div class="btn-group btn-group-sm">
@@ -366,7 +442,13 @@
         $('#categoryId').val('');
         $('#categoryForm')[0].reset();
         $('#categoryStatus').val('active');
+        $('#zohoAccountId').val('');
+        $('#zohoErrorText').hide();
         clearErrors();
+        
+        // Load Zoho accounts
+        loadZohoAccounts();
+        
         new bootstrap.Modal('#categoryModal').show();
     }
 
@@ -386,6 +468,10 @@
                     $('#hsnSacCode').val(category.hsn_sac_code || '');
                     $('#categoryDescription').val(category.description || '');
                     $('#categoryStatus').val(category.status);
+                    $('#zohoErrorText').hide();
+                    
+                    // Load Zoho accounts with pre-selected value
+                    loadZohoAccounts(category.zoho_account_id);
                     
                     clearErrors();
                     new bootstrap.Modal('#categoryModal').show();
@@ -405,12 +491,16 @@
         clearErrors();
 
         const id = $('#categoryId').val();
+        const selectedOption = $('#zohoAccountId option:selected');
+        
         const data = {
             name: $('#categoryName').val(),
             code: $('#categoryCode').val() || null,
             hsn_sac_code: $('#hsnSacCode').val() || null,
             description: $('#categoryDescription').val() || null,
             status: $('#categoryStatus').val(),
+            zoho_account_id: $('#zohoAccountId').val() || null,
+            zoho_account_name: selectedOption.data('name') || null,
         };
 
         const btn = $('#saveBtn');

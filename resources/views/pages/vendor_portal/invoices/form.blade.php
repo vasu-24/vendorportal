@@ -29,12 +29,12 @@
                 </ol>
             </nav>
         </div>
-        <a href="{{ route('vendor.invoices.index') }}" class="btn btn-outline-secondary">
+        <a href="{{ route('vendor.invoices.index') }}" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-arrow-left me-1"></i> Back to List
         </a>
     </div>
 
-    <!-- Loading Spinner (for show/edit modes) -->
+    <!-- Loading Spinner -->
     @if($mode != 'create')
     <div id="loadingSpinner" class="text-center py-5">
         <div class="spinner-border text-primary" role="status"></div>
@@ -45,7 +45,7 @@
     <!-- Main Content -->
     <div id="mainContent" @if($mode != 'create') style="display: none;" @endif>
         
-        <!-- Rejection Notice (for edit mode) -->
+        <!-- Rejection Notice -->
         <div id="rejectionNotice" class="alert alert-danger align-items-start mb-4 d-none">
             <i class="bi bi-exclamation-triangle fs-4 me-3"></i>
             <div>
@@ -56,20 +56,14 @@
         </div>
 
         @if($mode == 'show')
-            <!-- =====================================================
-                 SHOW MODE (Read-Only)
-                 ===================================================== -->
             @include('pages.vendor_portal.invoices.partials.show')
         @else
-            <!-- =====================================================
-                 CREATE / EDIT MODE (Form)
-                 ===================================================== -->
             <form id="invoiceForm" enctype="multipart/form-data">
                 <div class="row">
-                    <div class="col-lg-9">
+                    <div class="col-lg-8">
                         
-                        <!-- Contract & Basic Info Card -->
-                        <div class="card shadow-sm mb-3">
+                        <!-- Invoice Details Card -->
+                        <div class="card shadow-sm border-0 mb-3">
                             <div class="card-header bg-primary text-white py-2">
                                 <h6 class="mb-0 fw-bold">
                                     <i class="bi bi-info-circle me-2"></i>Invoice Details
@@ -77,29 +71,22 @@
                             </div>
                             <div class="card-body py-3">
                                 <div class="row g-3">
-                                    <!-- Contract -->
                                     <div class="col-md-3">
-                                        <label class="form-label mb-1">Contract <span class="text-danger">*</span></label>
+                                        <label class="form-label mb-1 small">Contract <span class="text-danger">*</span></label>
                                         <select class="form-select form-select-sm" name="contract_id" id="contractId" required>
-                                            <option value="">-- Select Contract --</option>
+                                            <option value="">-- Select --</option>
                                         </select>
                                     </div>
-
-                                    <!-- Invoice Number (NO PLACEHOLDER) -->
                                     <div class="col-md-3">
-                                        <label class="form-label mb-1">Invoice Number <span class="text-danger">*</span></label>
+                                        <label class="form-label mb-1 small">Invoice Number <span class="text-danger">*</span></label>
                                         <input type="text" class="form-control form-control-sm" name="invoice_number" id="invoiceNumber" required>
                                     </div>
-
-                                    <!-- Invoice Date -->
                                     <div class="col-md-3">
-                                        <label class="form-label mb-1">Invoice Date <span class="text-danger">*</span></label>
+                                        <label class="form-label mb-1 small">Invoice Date <span class="text-danger">*</span></label>
                                         <input type="date" class="form-control form-control-sm" name="invoice_date" id="invoiceDate" value="{{ date('Y-m-d') }}" required>
                                     </div>
-
-                                    <!-- Due Date -->
                                     <div class="col-md-3">
-                                        <label class="form-label mb-1">Due Date</label>
+                                        <label class="form-label mb-1 small">Due Date</label>
                                         <input type="date" class="form-control form-control-sm" name="due_date" id="dueDate">
                                     </div>
                                 </div>
@@ -107,7 +94,7 @@
                         </div>
 
                         <!-- Line Items Card -->
-                        <div class="card shadow-sm mb-3">
+                        <div class="card shadow-sm border-0 mb-3">
                             <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
                                 <h6 class="mb-0 fw-bold">
                                     <i class="bi bi-list-ul me-2"></i>Line Items
@@ -121,78 +108,132 @@
                                     <table class="table table-bordered table-sm mb-0" id="lineItemsTable">
                                         <thead class="bg-light">
                                             <tr>
-                                                <th style="width: 40px; font-size: 11px;">S.No</th>
-                                                <th style="width: 140px; font-size: 11px;">Category <span class="text-danger">*</span></th>
+                                                <th style="width: 40px; font-size: 11px;">#</th>
+                                                <th style="width: 150px; font-size: 11px;">Category <span class="text-danger">*</span></th>
                                                 <th style="font-size: 11px;">Particulars</th>
-                                                <th style="width: 90px; font-size: 11px;">SAC</th>
-                                                <th style="width: 90px; font-size: 11px;">Qty <span class="text-danger">*</span></th>
+                                                <th style="width: 80px; font-size: 11px;">SAC</th>
+                                                <th style="width: 70px; font-size: 11px;">Qty <span class="text-danger">*</span></th>
                                                 <th style="width: 70px; font-size: 11px;">UOM</th>
-                                                <th style="width: 90px; font-size: 11px;">Rate <span class="text-danger">*</span></th>
-                                                <th style="width: 70px; font-size: 11px;">Tax %</th>
-                                                <th style="width: 110px; font-size: 11px;">Amount <span class="text-danger">*</span></th>
+                                                <th style="width: 100px; font-size: 11px;">Rate <span class="text-danger">*</span></th>
+                                                <th style="width: 110px; font-size: 11px;">Amount</th>
                                                 <th style="width: 35px;"></th>
                                             </tr>
                                         </thead>
-                                        <tbody id="lineItemsBody">
-                                            <!-- Rows added dynamically -->
-                                        </tbody>
+                                        <tbody id="lineItemsBody"></tbody>
                                     </table>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Totals Card -->
-                        <div class="card shadow-sm mb-3">
+                        <div class="card shadow-sm border-0 mb-3">
                             <div class="card-header bg-white py-2">
                                 <h6 class="mb-0 fw-bold">
                                     <i class="bi bi-calculator me-2"></i>Totals
                                 </h6>
                             </div>
                             <div class="card-body py-3">
-                                <div class="row g-3">
-                                    <div class="col-md-4">
-                                        <label class="form-label mb-1">Base Total <span class="text-danger">*</span></label>
+                                <div class="row g-3 align-items-end">
+                                    <!-- Base Total -->
+                                    <div class="col-md-3">
+                                        <label class="form-label mb-1 small">Base Total <span class="text-danger">*</span></label>
                                         <div class="input-group input-group-sm">
                                             <span class="input-group-text">₹</span>
-                                            <input type="number" class="form-control" name="base_total" id="baseTotal" step="0.01" placeholder="0.00" required>
+                                            <input type="number" class="form-control bg-light" name="base_total" id="baseTotal" step="0.01" readonly>
                                         </div>
                                     </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label mb-1">GST Total <span class="text-danger">*</span></label>
+
+                                    <!-- GST Rate -->
+                                    <div class="col-md-2">
+                                        <label class="form-label mb-1 small">GST Rate <span class="text-danger">*</span></label>
+                                        <select class="form-select form-select-sm" name="gst_percent" id="gstPercent" required>
+                                            <option value="18" selected>18%</option>
+                                            <option value="5">5%</option>
+                                            <option value="12">12%</option>
+                                            <option value="28">28%</option>
+                                            <option value="0">0%</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- GST Amount -->
+                                    <div class="col-md-2">
+                                        <label class="form-label mb-1 small">GST Amount</label>
                                         <div class="input-group input-group-sm">
                                             <span class="input-group-text">₹</span>
-                                            <input type="number" class="form-control" name="gst_total" id="gstTotal" step="0.01" placeholder="0.00" required>
+                                            <input type="number" class="form-control bg-light" name="gst_total" id="gstTotal" step="0.01" readonly>
                                         </div>
                                     </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label mb-1">Grand Total <span class="text-danger">*</span></label>
+
+                                    <!-- Grand Total -->
+                                    <div class="col-md-2">
+                                        <label class="form-label mb-1 small">Grand Total</label>
                                         <div class="input-group input-group-sm">
                                             <span class="input-group-text">₹</span>
-                                            <input type="number" class="form-control fw-bold text-success" name="grand_total" id="grandTotal" step="0.01" placeholder="0.00" required>
+                                            <input type="number" class="form-control bg-light fw-bold" name="grand_total" id="grandTotal" step="0.01" readonly>
+                                        </div>
+                                    </div>
+
+                                    <!-- TDS Rate -->
+                                    <div class="col-md-1">
+                                        <label class="form-label mb-1 small">TDS %</label>
+                                        <input type="number" class="form-control form-control-sm" name="tds_percent" id="tdsPercent" step="0.01" value="5">
+                                    </div>
+
+                                    <!-- TDS Amount -->
+                                    <div class="col-md-2">
+                                        <label class="form-label mb-1 small">TDS Amount</label>
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text">₹</span>
+                                            <input type="number" class="form-control bg-light text-danger" name="tds_amount" id="tdsAmount" step="0.01" readonly>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Upload Invoice Card -->
-                        <div class="card shadow-sm mb-3">
+                        <!-- Attachments Card -->
+                        <div class="card shadow-sm border-0 mb-3">
                             <div class="card-header bg-white py-2">
                                 <h6 class="mb-0 fw-bold">
-                                    <i class="bi bi-paperclip me-2"></i>Upload Invoice
+                                    <i class="bi bi-paperclip me-2"></i>Attachments
                                 </h6>
                             </div>
                             <div class="card-body py-3">
                                 <div class="row g-3">
                                     <div class="col-md-6">
-                                        <label class="form-label mb-1">Invoice Document <span class="text-danger">*</span></label>
+                                        <label class="form-label mb-1 small">Invoice Document <span class="text-danger">*</span></label>
                                         <input type="file" class="form-control form-control-sm" name="invoice_attachment" id="invoiceAttachment" accept=".pdf,.jpg,.jpeg,.png" required>
                                         <small class="text-muted">PDF, JPG, PNG (Max: 10MB)</small>
-                                        <div id="currentInvoiceAttachment" class="mt-2 p-2 bg-light rounded" style="display: none;"></div>
+                                        <div id="currentInvoiceAttachment" class="mt-2" style="display: none;"></div>
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label mb-1">Description / Notes</label>
+                                        <label class="form-label mb-1 small">Description / Notes</label>
                                         <textarea class="form-control form-control-sm" name="description" id="description" rows="2" placeholder="Any additional notes..."></textarea>
+                                    </div>
+                                </div>
+
+                                <!-- Timesheet Section -->
+                                <div class="border-top pt-3 mt-3">
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="includeTimesheet" name="include_timesheet" value="1">
+                                        <label class="form-check-label small" for="includeTimesheet">
+                                            <i class="bi bi-clock-history me-1"></i>Include Timesheet
+                                        </label>
+                                    </div>
+
+                                    <div id="timesheetOptions" class="row g-3 mt-2" style="display: none;">
+                                        <div class="col-md-6">
+                                            <label class="form-label mb-1 small">Step 1: Download Template</label>
+                                            <a href="{{ asset('templates/timesheet_template.xlsx') }}" class="btn btn-outline-success btn-sm w-100" download>
+                                                <i class="bi bi-download me-1"></i>Download Excel Template
+                                            </a>
+                                            <small class="text-muted d-block mt-1">Fill data, don't change columns</small>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label mb-1 small">Step 2: Upload Filled Timesheet</label>
+                                            <input type="file" class="form-control form-control-sm" name="timesheet_attachment" id="timesheetFile" accept=".xlsx,.xls">
+                                            <div id="timesheetStatus" class="mt-1 small"></div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -200,39 +241,48 @@
 
                     </div>
 
-                    <!-- Right Column - Summary & Submit -->
-                    <div class="col-lg-3">
+                    <!-- Right Column -->
+                    <div class="col-lg-4">
                         <!-- Summary Card -->
-                        <div class="card shadow-sm mb-3">
+                        <div class="card shadow-sm border-0 mb-3">
                             <div class="card-header bg-white py-2">
                                 <h6 class="mb-0 fw-bold">
                                     <i class="bi bi-receipt me-2"></i>Summary
                                 </h6>
                             </div>
-                            <div class="card-body py-2">
+                            <div class="card-body py-3">
                                 <table class="table table-sm table-borderless mb-0">
                                     <tr>
-                                        <td class="text-muted">Line Items</td>
-                                        <td class="text-end" id="summaryItems">0</td>
+                                        <td class="text-muted small py-1">Line Items</td>
+                                        <td class="text-end small py-1" id="summaryItems">0</td>
                                     </tr>
                                     <tr>
-                                        <td class="text-muted">Base Total</td>
-                                        <td class="text-end" id="summaryBase">₹0.00</td>
+                                        <td class="text-muted small py-1">Base Total</td>
+                                        <td class="text-end small py-1" id="summaryBase">₹0.00</td>
                                     </tr>
                                     <tr>
-                                        <td class="text-muted">GST</td>
-                                        <td class="text-end" id="summaryGst">₹0.00</td>
+                                        <td class="text-muted small py-1">GST (<span id="summaryGstPercent">18</span>%)</td>
+                                        <td class="text-end small py-1" id="summaryGst">₹0.00</td>
                                     </tr>
                                     <tr class="border-top">
-                                        <td class="fw-bold">Grand Total</td>
-                                        <td class="text-end fw-bold text-success" id="summaryTotal">₹0.00</td>
+                                        <td class="fw-bold py-2">Grand Total</td>
+                                        <td class="text-end fw-bold py-2" id="summaryGrandTotal">₹0.00</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted small py-1">TDS (<span id="summaryTdsPercent">5</span>%)</td>
+                                        <td class="text-end small text-danger py-1" id="summaryTds">-₹0.00</td>
+                                    </tr>
+                                    <tr class="border-top bg-light">
+                                        <td class="fw-bold text-success py-2">Net Payable</td>
+                                        <td class="text-end fw-bold text-success py-2" id="summaryNetPayable">₹0.00</td>
                                     </tr>
                                 </table>
+                                <input type="hidden" name="net_payable" id="netPayable" value="0">
                             </div>
                         </div>
 
                         <!-- Submit Card -->
-                        <div class="card shadow-sm border-primary">
+                        <div class="card shadow-sm border-0">
                             <div class="card-body py-3">
                                 <div class="d-grid gap-2">
                                     <button type="submit" class="btn btn-primary" id="submitBtn">
@@ -243,12 +293,9 @@
                                         Cancel
                                     </a>
                                 </div>
-                                <div class="text-center mt-2">
-                                    <small class="text-muted">
-                                        <i class="bi bi-info-circle me-1"></i>
-                                        Once submitted, cannot be edited.
-                                    </small>
-                                </div>
+                                <p class="text-center text-muted small mt-2 mb-0">
+                                    <i class="bi bi-info-circle me-1"></i>Once submitted, cannot be edited.
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -264,14 +311,13 @@
 <script>
     const API_BASE = '/api/vendor/invoices';
     const CONTRACT_API = '/api/vendor/contracts';
+    const ZOHO_API = '/api/zoho';
     const MODE = '{{ $mode }}';
     const INVOICE_ID = '{{ $invoiceId ?? "" }}';
     
-    // Get contract_id from URL if present
     const urlParams = new URLSearchParams(window.location.search);
     const URL_CONTRACT_ID = urlParams.get('contract_id');
 
-    // Store contract items (categories)
     let contractItems = [];
     let rowCounter = 0;
 
@@ -279,20 +325,52 @@
     // INITIALIZATION
     // =====================================================
     $(document).ready(function() {
-        // Load contracts dropdown
         loadContracts();
+        loadZohoTaxes();
 
-        // If edit or show mode, load invoice data
         if ((MODE === 'edit' || MODE === 'show') && INVOICE_ID) {
             loadInvoiceData();
         }
-        // For create mode, don't add empty row - wait for contract selection
 
         // Event listeners
         $('#contractId').on('change', handleContractChange);
-        $('#baseTotal, #gstTotal, #grandTotal').on('input', updateSummary);
+        $('#gstPercent').on('change', calculateTotals);
+        $('#tdsPercent').on('input', calculateTotals);
         $('#invoiceForm').on('submit', handleFormSubmit);
+
+        // Timesheet toggle
+        $('#includeTimesheet').on('change', function() {
+            $('#timesheetOptions').toggle($(this).is(':checked'));
+        });
+
+        // Timesheet file validation
+        $('#timesheetFile').on('change', handleTimesheetUpload);
     });
+
+    // =====================================================
+    // LOAD ZOHO TAXES (GST)
+    // =====================================================
+    function loadZohoTaxes() {
+        axios.get(`${ZOHO_API}/taxes`)
+            .then(response => {
+                if (response.data.success && response.data.data) {
+                    const taxes = response.data.data;
+                    
+                    if (taxes.gst && taxes.gst.length > 0) {
+                        let html = '';
+                        taxes.gst.forEach(tax => {
+                            const selected = tax.tax_percentage == 18 ? 'selected' : '';
+                            html += `<option value="${tax.tax_percentage}" data-tax-id="${tax.tax_id}" ${selected}>${tax.tax_name || tax.tax_percentage + '%'}</option>`;
+                        });
+                        html += '<option value="0">No GST (0%)</option>';
+                        $('#gstPercent').html(html);
+                    }
+                }
+            })
+            .catch(error => {
+                console.log('Using default GST options');
+            });
+    }
 
     // =====================================================
     // LOAD CONTRACTS
@@ -308,17 +386,14 @@
                     });
                     $('#contractId').html(options);
 
-                    // If contract_id from URL, trigger change
-                    if (URL_CONTRACT_ID) {
-                        handleContractChange();
-                    }
+                    if (URL_CONTRACT_ID) handleContractChange();
                 }
             })
             .catch(error => console.error('Failed to load contracts:', error));
     }
 
     // =====================================================
-    // HANDLE CONTRACT CHANGE - AUTO-FILL LINE ITEMS
+    // HANDLE CONTRACT CHANGE
     // =====================================================
     function handleContractChange() {
         const contractId = $('#contractId').val();
@@ -326,30 +401,22 @@
         if (!contractId) {
             contractItems = [];
             $('#lineItemsBody').empty();
-            updateSummary();
+            calculateBaseTotal();
             return;
         }
 
-        // Load contract items and AUTO-FILL line items
         axios.get(`${CONTRACT_API}/${contractId}/items`)
             .then(response => {
                 if (response.data.success) {
                     contractItems = response.data.data;
-                    
-                    // Clear existing rows
                     $('#lineItemsBody').empty();
                     
-                    // AUTO-FILL: Add a row for each contract item
                     if (contractItems.length > 0) {
-                        contractItems.forEach(item => {
-                            addLineItemFromContract(item);
-                        });
+                        contractItems.forEach(item => addLineItemFromContract(item));
                     } else {
-                        // No items in contract, add empty row
                         addLineItem();
                     }
-                    
-                    updateSummary();
+                    calculateBaseTotal();
                 }
             })
             .catch(error => {
@@ -359,141 +426,171 @@
     }
 
     // =====================================================
-    // ADD LINE ITEM FROM CONTRACT (AUTO-FILL CATEGORY ONLY)
+    // ADD LINE ITEM FROM CONTRACT
     // =====================================================
     function addLineItemFromContract(contractItem) {
         rowCounter++;
         const rowId = `row_${rowCounter}`;
 
-        // Build category options with this item selected
         let categoryOptions = '<option value="">Select</option>';
         contractItems.forEach(item => {
             const selected = (item.id == contractItem.id) ? 'selected' : '';
-            categoryOptions += `<option value="${item.id}" data-rate="${item.rate}" data-unit="${item.unit}" ${selected}>${item.category_name}</option>`;
+            categoryOptions += `<option value="${item.id}" ${selected}>${item.category_name}</option>`;
         });
 
-        // ONLY CATEGORY PRE-FILLED - Everything else empty
         const row = `
             <tr id="${rowId}">
-                <td class="text-center align-middle" style="font-size: 11px;">
-                    <span class="row-number">${$('#lineItemsBody tr').length + 1}</span>
-                </td>
-                <td>
-                    <select class="form-select form-select-sm category-select" style="font-size: 11px;" required>
-                        ${categoryOptions}
-                    </select>
-                </td>
-                <td>
-                    <input type="text" class="form-control form-control-sm particulars-input" style="font-size: 11px;" placeholder="Description" value="">
-                </td>
-                <td>
-                    <input type="text" class="form-control form-control-sm sac-input" style="font-size: 11px;" value="">
-                </td>
-                <td>
-                    <input type="number" class="form-control form-control-sm qty-input" style="font-size: 11px;" step="0.01" value="" required>
-                </td>
-                <td>
-                    <input type="text" class="form-control form-control-sm uom-input" style="font-size: 11px;" value="">
-                </td>
-                <td>
-                    <input type="number" class="form-control form-control-sm rate-input" style="font-size: 11px;" step="0.01" value="" required>
-                </td>
-                <td>
-                    <input type="number" class="form-control form-control-sm tax-input" style="font-size: 11px;" step="0.01" value="">
-                </td>
-                <td>
-                    <input type="number" class="form-control form-control-sm amount-input" style="font-size: 11px;" step="0.01" value="" required>
-                </td>
+                <td class="text-center align-middle" style="font-size: 11px;"><span class="row-number">${$('#lineItemsBody tr').length + 1}</span></td>
+                <td><select class="form-select form-select-sm category-select" style="font-size: 11px;" required>${categoryOptions}</select></td>
+                <td><input type="text" class="form-control form-control-sm particulars-input" style="font-size: 11px;"></td>
+                <td><input type="text" class="form-control form-control-sm sac-input" style="font-size: 11px;"></td>
+                <td><input type="number" class="form-control form-control-sm qty-input" style="font-size: 11px;" step="0.01" required></td>
+                <td><input type="text" class="form-control form-control-sm uom-input" style="font-size: 11px;"></td>
+                <td><input type="number" class="form-control form-control-sm rate-input" style="font-size: 11px;" step="0.01" required></td>
+                <td><input type="number" class="form-control form-control-sm amount-input bg-light" style="font-size: 11px;" step="0.01" readonly></td>
                 <td class="text-center align-middle">
-                    <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1" onclick="removeLineItem('${rowId}')">
-                        <i class="bi bi-x"></i>
-                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1" onclick="removeLineItem('${rowId}')"><i class="bi bi-x"></i></button>
                 </td>
             </tr>
         `;
 
         $('#lineItemsBody').append(row);
-        bindRowEvents(rowId);
+        bindLineItemEvents(rowId);
         updateRowNumbers();
     }
 
     // =====================================================
-    // ADD EMPTY LINE ITEM ROW
+    // ADD EMPTY LINE ITEM
     // =====================================================
     function addLineItem(data = null) {
         rowCounter++;
         const rowId = `row_${rowCounter}`;
 
-        // Build category options
         let categoryOptions = '<option value="">Select</option>';
         contractItems.forEach(item => {
             const selected = (data && data.contract_item_id == item.id) ? 'selected' : '';
-            categoryOptions += `<option value="${item.id}" data-rate="${item.rate}" data-unit="${item.unit}" ${selected}>${item.category_name}</option>`;
+            categoryOptions += `<option value="${item.id}" ${selected}>${item.category_name}</option>`;
         });
 
         const row = `
             <tr id="${rowId}">
-                <td class="text-center align-middle" style="font-size: 11px;">
-                    <span class="row-number">${$('#lineItemsBody tr').length + 1}</span>
-                </td>
-                <td>
-                    <select class="form-select form-select-sm category-select" style="font-size: 11px;" required>
-                        ${categoryOptions}
-                    </select>
-                </td>
-                <td>
-                    <input type="text" class="form-control form-control-sm particulars-input" style="font-size: 11px;" placeholder="Description" value="${data?.particulars || ''}">
-                </td>
-                <td>
-                    <input type="text" class="form-control form-control-sm sac-input" style="font-size: 11px;" value="${data?.sac || ''}">
-                </td>
-                <td>
-                    <input type="number" class="form-control form-control-sm qty-input" style="font-size: 11px;" step="0.01" value="${data?.quantity || ''}" required>
-                </td>
-                <td>
-                    <input type="text" class="form-control form-control-sm uom-input" style="font-size: 11px;" value="${data?.unit || ''}">
-                </td>
-                <td>
-                    <input type="number" class="form-control form-control-sm rate-input" style="font-size: 11px;" step="0.01" value="${data?.rate || ''}" required>
-                </td>
-                <td>
-                    <input type="number" class="form-control form-control-sm tax-input" style="font-size: 11px;" step="0.01" value="${data?.tax_percent || ''}">
-                </td>
-                <td>
-                    <input type="number" class="form-control form-control-sm amount-input" style="font-size: 11px;" step="0.01" value="${data?.amount || ''}" required>
-                </td>
+                <td class="text-center align-middle" style="font-size: 11px;"><span class="row-number">${$('#lineItemsBody tr').length + 1}</span></td>
+                <td><select class="form-select form-select-sm category-select" style="font-size: 11px;" required>${categoryOptions}</select></td>
+                <td><input type="text" class="form-control form-control-sm particulars-input" style="font-size: 11px;" value="${data?.particulars || ''}"></td>
+                <td><input type="text" class="form-control form-control-sm sac-input" style="font-size: 11px;" value="${data?.sac || ''}"></td>
+                <td><input type="number" class="form-control form-control-sm qty-input" style="font-size: 11px;" step="0.01" value="${data?.quantity || ''}" required></td>
+                <td><input type="text" class="form-control form-control-sm uom-input" style="font-size: 11px;" value="${data?.unit || ''}"></td>
+                <td><input type="number" class="form-control form-control-sm rate-input" style="font-size: 11px;" step="0.01" value="${data?.rate || ''}" required></td>
+                <td><input type="number" class="form-control form-control-sm amount-input bg-light" style="font-size: 11px;" step="0.01" value="${data?.amount || ''}" readonly></td>
                 <td class="text-center align-middle">
-                    <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1" onclick="removeLineItem('${rowId}')">
-                        <i class="bi bi-x"></i>
-                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1" onclick="removeLineItem('${rowId}')"><i class="bi bi-x"></i></button>
                 </td>
             </tr>
         `;
 
         $('#lineItemsBody').append(row);
-        bindRowEvents(rowId);
+        bindLineItemEvents(rowId);
         updateRowNumbers();
-        updateSummary();
+        calculateBaseTotal();
     }
 
     // =====================================================
-    // BIND ROW EVENTS
+    // BIND LINE ITEM EVENTS (Qty & Rate → Amount)
     // =====================================================
-    function bindRowEvents(rowId) {
-        // Category change - NO auto-fill, vendor enters everything manually
-        $(`#${rowId} .category-select`).on('change', function() {
-            // Nothing auto-filled - vendor enters all values manually
+    function bindLineItemEvents(rowId) {
+        $(`#${rowId} .qty-input, #${rowId} .rate-input`).on('input', function() {
+            calculateLineItemAmount(rowId);
         });
     }
 
     // =====================================================
-    // REMOVE LINE ITEM ROW
+    // CALCULATE LINE ITEM AMOUNT (Qty × Rate)
+    // =====================================================
+    function calculateLineItemAmount(rowId) {
+        const row = $(`#${rowId}`);
+        const qty = parseFloat(row.find('.qty-input').val()) || 0;
+        const rate = parseFloat(row.find('.rate-input').val()) || 0;
+        const amount = qty * rate;
+        
+        row.find('.amount-input').val(amount.toFixed(2));
+        calculateBaseTotal();
+    }
+
+    // =====================================================
+    // CALCULATE BASE TOTAL (Sum of all line items)
+    // =====================================================
+    function calculateBaseTotal() {
+        let baseTotal = 0;
+        
+        $('#lineItemsBody tr').each(function() {
+            const amount = parseFloat($(this).find('.amount-input').val()) || 0;
+            baseTotal += amount;
+        });
+        
+        $('#baseTotal').val(baseTotal.toFixed(2));
+        calculateTotals();
+    }
+
+    // =====================================================
+    // CALCULATE TOTALS (GST, TDS, Net Payable)
+    // =====================================================
+    function calculateTotals() {
+        const baseTotal = parseFloat($('#baseTotal').val()) || 0;
+        const gstPercent = parseFloat($('#gstPercent').val()) || 0;
+        const tdsPercent = parseFloat($('#tdsPercent').val()) || 0;
+
+        // GST on Base Total
+        const gstAmount = (baseTotal * gstPercent) / 100;
+        
+        // Grand Total = Base + GST
+        const grandTotal = baseTotal + gstAmount;
+        
+        // TDS on Base Total (not Grand Total)
+        const tdsAmount = (baseTotal * tdsPercent) / 100;
+        
+        // Net Payable = Grand Total - TDS
+        const netPayable = grandTotal - tdsAmount;
+
+        // Update fields
+        $('#gstTotal').val(gstAmount.toFixed(2));
+        $('#grandTotal').val(grandTotal.toFixed(2));
+        $('#tdsAmount').val(tdsAmount.toFixed(2));
+        $('#netPayable').val(netPayable.toFixed(2));
+
+        updateSummary();
+    }
+
+    // =====================================================
+    // UPDATE SUMMARY
+    // =====================================================
+    function updateSummary() {
+        const itemCount = $('#lineItemsBody tr').length;
+        const baseTotal = parseFloat($('#baseTotal').val()) || 0;
+        const gstPercent = parseFloat($('#gstPercent').val()) || 0;
+        const gstAmount = parseFloat($('#gstTotal').val()) || 0;
+        const grandTotal = parseFloat($('#grandTotal').val()) || 0;
+        const tdsPercent = parseFloat($('#tdsPercent').val()) || 0;
+        const tdsAmount = parseFloat($('#tdsAmount').val()) || 0;
+        const netPayable = parseFloat($('#netPayable').val()) || 0;
+
+        $('#summaryItems').text(itemCount);
+        $('#summaryBase').text('₹' + formatNumber(baseTotal));
+        $('#summaryGstPercent').text(gstPercent);
+        $('#summaryGst').text('₹' + formatNumber(gstAmount));
+        $('#summaryGrandTotal').text('₹' + formatNumber(grandTotal));
+        $('#summaryTdsPercent').text(tdsPercent);
+        $('#summaryTds').text('-₹' + formatNumber(tdsAmount));
+        $('#summaryNetPayable').text('₹' + formatNumber(netPayable));
+    }
+
+    // =====================================================
+    // REMOVE LINE ITEM
     // =====================================================
     function removeLineItem(rowId) {
         if ($('#lineItemsBody tr').length > 1) {
             $(`#${rowId}`).remove();
             updateRowNumbers();
-            updateSummary();
+            calculateBaseTotal();
         } else {
             showAlert('warning', 'At least one line item is required');
         }
@@ -509,41 +606,57 @@
     }
 
     // =====================================================
-    // UPDATE SUMMARY
+    // HANDLE TIMESHEET UPLOAD
     // =====================================================
-    function updateSummary() {
-        const itemCount = $('#lineItemsBody tr').length;
-        const baseTotal = parseFloat($('#baseTotal').val()) || 0;
-        const gstTotal = parseFloat($('#gstTotal').val()) || 0;
-        const grandTotal = parseFloat($('#grandTotal').val()) || 0;
+    function handleTimesheetUpload() {
+        const file = this.files[0];
+        const statusEl = $('#timesheetStatus');
+        
+        if (!file) {
+            statusEl.html('');
+            return;
+        }
 
-        $('#summaryItems').text(itemCount);
-        $('#summaryBase').text('₹' + formatNumber(baseTotal));
-        $('#summaryGst').text('₹' + formatNumber(gstTotal));
-        $('#summaryTotal').text('₹' + formatNumber(grandTotal));
+        // Check extension
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (!['xlsx', 'xls'].includes(ext)) {
+            showAlert('danger', 'Only Excel files (.xlsx, .xls) allowed');
+            $(this).val('');
+            statusEl.html('');
+            return;
+        }
+
+        // Check file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            showAlert('danger', 'File size must be less than 5MB');
+            $(this).val('');
+            statusEl.html('');
+            return;
+        }
+
+        // Show success
+        const fileSize = (file.size / 1024).toFixed(2) + ' KB';
+        statusEl.html(`
+            <span class="text-success">
+                <i class="bi bi-check-circle me-1"></i>${file.name} (${fileSize})
+            </span>
+        `);
     }
 
     // =====================================================
-    // LOAD INVOICE DATA (for edit/show)
+    // LOAD INVOICE DATA (Edit Mode)
     // =====================================================
     function loadInvoiceData() {
         axios.get(`${API_BASE}/${INVOICE_ID}`)
             .then(response => {
                 if (response.data.success) {
                     const invoice = response.data.data;
-                    
-                    if (MODE === 'show') {
-                        populateShowMode(invoice);
-                    } else {
-                        populateEditMode(invoice);
-                    }
-
+                    if (MODE === 'edit') populateEditMode(invoice);
                     $('#loadingSpinner').hide();
                     $('#mainContent').show();
                 }
             })
             .catch(error => {
-                console.error('Failed to load invoice:', error);
                 showAlert('danger', 'Failed to load invoice details.');
                 $('#loadingSpinner').html('<p class="text-danger">Failed to load invoice.</p>');
             });
@@ -553,26 +666,20 @@
     // POPULATE EDIT MODE
     // =====================================================
     function populateEditMode(invoice) {
-        // Wait for contracts to load
         const checkContracts = setInterval(() => {
             if ($('#contractId option').length > 1) {
                 clearInterval(checkContracts);
                 
                 $('#contractId').val(invoice.contract_id);
                 
-                // Load contract items then populate line items
                 if (invoice.contract_id) {
                     axios.get(`${CONTRACT_API}/${invoice.contract_id}/items`)
                         .then(response => {
                             if (response.data.success) {
                                 contractItems = response.data.data;
-                                
-                                // Clear default row and add invoice items
                                 $('#lineItemsBody').empty();
                                 if (invoice.items && invoice.items.length > 0) {
-                                    invoice.items.forEach(item => {
-                                        addLineItem(item);
-                                    });
+                                    invoice.items.forEach(item => addLineItem(item));
                                 } else {
                                     addLineItem();
                                 }
@@ -585,9 +692,8 @@
         $('#invoiceNumber').val(invoice.invoice_number);
         $('#invoiceDate').val(invoice.invoice_date);
         $('#dueDate').val(invoice.due_date || '');
-        $('#baseTotal').val(invoice.base_total || invoice.amount);
-        $('#gstTotal').val(invoice.gst_total || invoice.gst_amount);
-        $('#grandTotal').val(invoice.grand_total || invoice.total_amount);
+        $('#gstPercent').val(invoice.gst_percent || 18);
+        $('#tdsPercent').val(invoice.tds_percent || 5);
         $('#description').val(invoice.description || '');
 
         // Show rejection notice
@@ -600,19 +706,10 @@
         if (invoice.attachments && invoice.attachments.length > 0) {
             const att = invoice.attachments.find(a => a.attachment_type === 'invoice');
             if (att) {
-                $('#currentInvoiceAttachment').html(`<small><i class="bi bi-file-earmark-pdf me-1"></i>Current: ${att.file_name}</small>`).show();
+                $('#currentInvoiceAttachment').html(`<small class="text-muted"><i class="bi bi-file-earmark me-1"></i>${att.file_name}</small>`).show();
                 $('#invoiceAttachment').removeAttr('required');
             }
         }
-
-        updateSummary();
-    }
-
-    // =====================================================
-    // POPULATE SHOW MODE
-    // =====================================================
-    function populateShowMode(invoice) {
-        // This will be handled by the partial view
     }
 
     // =====================================================
@@ -621,7 +718,7 @@
     function handleFormSubmit(e) {
         e.preventDefault();
         
-        // Validate at least one line item
+        // Validate line items
         if ($('#lineItemsBody tr').length === 0) {
             showAlert('danger', 'Please add at least one line item');
             return;
@@ -633,27 +730,22 @@
 
         $('#lineItemsBody tr').each(function() {
             const categoryId = $(this).find('.category-select').val();
-            const particulars = $(this).find('.particulars-input').val();
-            const sac = $(this).find('.sac-input').val();
             const quantity = $(this).find('.qty-input').val();
-            const unit = $(this).find('.uom-input').val();
             const rate = $(this).find('.rate-input').val();
-            const taxPercent = $(this).find('.tax-input').val();
             const amount = $(this).find('.amount-input').val();
 
-            if (!categoryId || !quantity || !rate || !amount) {
+            if (!categoryId || !quantity || !rate) {
                 hasError = true;
                 return false;
             }
 
             items.push({
                 contract_item_id: categoryId,
-                particulars: particulars || null,
-                sac: sac || null,
+                particulars: $(this).find('.particulars-input').val() || null,
+                sac: $(this).find('.sac-input').val() || null,
                 quantity: parseFloat(quantity),
-                unit: unit || null,
+                unit: $(this).find('.uom-input').val() || null,
                 rate: parseFloat(rate),
-                tax_percent: taxPercent ? parseFloat(taxPercent) : null,
                 amount: parseFloat(amount)
             });
         });
@@ -667,53 +759,44 @@
         const formData = new FormData(document.getElementById('invoiceForm'));
         formData.append('items', JSON.stringify(items));
 
+        // Add Zoho GST Tax ID
+        const selectedGstOption = $('#gstPercent option:selected');
+        if (selectedGstOption.data('tax-id')) {
+            formData.append('zoho_gst_tax_id', selectedGstOption.data('tax-id'));
+        }
+
+        // Show loading
         const submitBtn = $('#submitBtn');
         const originalText = submitBtn.html();
         submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Submitting...');
 
-        let url = API_BASE;
-        if (MODE === 'edit') {
-            url = `${API_BASE}/${INVOICE_ID}/update`;
-        }
+        // Submit
+        let url = MODE === 'edit' ? `${API_BASE}/${INVOICE_ID}/update` : API_BASE;
 
-        axios.post(url, formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        })
-        .then(response => {
-            if (response.data.success) {
-                // Auto-submit after create
-                if (MODE === 'create') {
-                    const invoiceId = response.data.data.id;
-                    return axios.post(`${API_BASE}/${invoiceId}/submit`);
+        axios.post(url, formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+            .then(response => {
+                if (response.data.success && MODE === 'create') {
+                    return axios.post(`${API_BASE}/${response.data.data.id}/submit`);
                 }
                 return response;
-            }
-        })
-        .then(response => {
-            showAlert('success', MODE === 'edit' ? 'Invoice resubmitted successfully!' : 'Invoice submitted successfully!');
-            setTimeout(() => {
-                window.location.href = '{{ route("vendor.invoices.index") }}';
-            }, 1500);
-        })
-        .catch(error => {
-            submitBtn.prop('disabled', false).html(originalText);
-            
-            if (error.response && error.response.data) {
-                const data = error.response.data;
-                showAlert('danger', data.message || 'Failed to submit invoice.');
-            } else {
-                showAlert('danger', 'Something went wrong. Please try again.');
-            }
-        });
+            })
+            .then(response => {
+                showAlert('success', MODE === 'edit' ? 'Invoice resubmitted successfully!' : 'Invoice submitted successfully!');
+                setTimeout(() => window.location.href = '{{ route("vendor.invoices.index") }}', 1500);
+            })
+            .catch(error => {
+                submitBtn.prop('disabled', false).html(originalText);
+                showAlert('danger', error.response?.data?.message || 'Failed to submit invoice.');
+            });
     }
 
     // =====================================================
     // HELPER FUNCTIONS
     // =====================================================
     function formatNumber(num) {
-        return parseFloat(num || 0).toLocaleString('en-IN', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
+        return parseFloat(num || 0).toLocaleString('en-IN', { 
+            minimumFractionDigits: 2, 
+            maximumFractionDigits: 2 
         });
     }
 

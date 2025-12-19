@@ -253,64 +253,72 @@ class ContractController extends Controller
     // Only 6 placeholders - All stored in contracts table
     // =====================================================
 
-    public function downloadWord($id)
-    {
-        try {
-            $contract = Contract::findOrFail($id);
-            
-            $templateFile = $contract->template_file;
-            
-            if (!$templateFile) {
-                return back()->with('error', 'No template file selected.');
-            }
-            
-            $templatePath = public_path('agreements/' . $templateFile);
-            
-            if (!File::exists($templatePath)) {
-                return back()->with('error', 'Template file not found.');
-            }
-
-            $ext = strtolower(pathinfo($templateFile, PATHINFO_EXTENSION));
-            if ($ext !== 'docx') {
-                return back()->with('error', 'Template must be a .docx file.');
-            }
-            
-            // Load template
-            $templateProcessor = new TemplateProcessor($templatePath);
-            
-            // Only 6 placeholders - Direct from contracts table
-            $templateProcessor->setValue('VENDOR_NAME', $contract->vendor_name ?? '');
-            $templateProcessor->setValue('VENDOR_CIN', $contract->vendor_cin ?? '');
-            $templateProcessor->setValue('VENDOR_ADDRESS', $contract->vendor_address ?? '');
-            $templateProcessor->setValue('COMPANY_NAME', $contract->company_name ?? '');
-            $templateProcessor->setValue('COMPANY_CIN', $contract->company_cin ?? '');
-            $templateProcessor->setValue('COMPANY_ADDRESS', $contract->company_address ?? '');
-            
-            // Save output file
-            $outputDir = storage_path('app/contracts/generated');
-            if (!File::exists($outputDir)) {
-                File::makeDirectory($outputDir, 0777, true);
-            }
-            
-            $outputFileName = $contract->contract_number . '.docx';
-            $outputPath = $outputDir . DIRECTORY_SEPARATOR . $outputFileName;
-            
-            // Save the document
-            $templateProcessor->saveAs($outputPath);
-            
-            // Clear output buffer
-            if (ob_get_level()) {
-                ob_end_clean();
-            }
-            
-            // Download file
-            return response()->download($outputPath, $outputFileName, [
-                'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            ]);
-            
-        } catch (\Exception $e) {
-            Log::error('Download Contract Word Error: ' . $e->getMessage());
-            return back()->with('error', 'Failed to generate Word document.');
+   // =====================================================
+// DOWNLOAD WORD FILE (Auto-download after create)
+// Now 7 placeholders - Including EFFECTIVE_DATE
+// =====================================================
+public function downloadWord($id, Request $request)  // ADD Request $request
+{
+    try {
+        $contract = Contract::findOrFail($id);
+        
+        $templateFile = $contract->template_file;
+        
+        if (!$templateFile) {
+            return back()->with('error', 'No template file selected.');
         }
+        
+        $templatePath = public_path('agreements/' . $templateFile);
+        
+        if (!File::exists($templatePath)) {
+            return back()->with('error', 'Template file not found.');
+        }
+
+        $ext = strtolower(pathinfo($templateFile, PATHINFO_EXTENSION));
+        if ($ext !== 'docx') {
+            return back()->with('error', 'Template must be a .docx file.');
+        }
+        
+        // Load template
+        $templateProcessor = new TemplateProcessor($templatePath);
+        
+        // Existing 6 placeholders (from DB)
+        $templateProcessor->setValue('VENDOR_NAME', $contract->vendor_name ?? '');
+        $templateProcessor->setValue('VENDOR_CIN', $contract->vendor_cin ?? '');
+        $templateProcessor->setValue('VENDOR_ADDRESS', $contract->vendor_address ?? '');
+        $templateProcessor->setValue('COMPANY_NAME', $contract->company_name ?? '');
+        $templateProcessor->setValue('COMPANY_CIN', $contract->company_cin ?? '');
+        $templateProcessor->setValue('COMPANY_ADDRESS', $contract->company_address ?? '');
+        
+        // NEW: Effective Date from URL (not DB)
+        $effectiveDate = $request->query('effective_date');
+        if ($effectiveDate) {
+            $effectiveDate = \Carbon\Carbon::parse($effectiveDate)->format('d-m-Y');
+        }
+        $templateProcessor->setValue('EFFECTIVE_DATE', $effectiveDate ?? '');
+        
+        // Save output file
+        $outputDir = storage_path('app/contracts/generated');
+        if (!File::exists($outputDir)) {
+            File::makeDirectory($outputDir, 0777, true);
+        }
+        
+        $outputFileName = $contract->contract_number . '.docx';
+        $outputPath = $outputDir . DIRECTORY_SEPARATOR . $outputFileName;
+        
+        $templateProcessor->saveAs($outputPath);
+        
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+        
+        return response()->download($outputPath, $outputFileName, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ]);
+        
+    } catch (\Exception $e) {
+        Log::error('Download Contract Word Error: ' . $e->getMessage());
+        return back()->with('error', 'Failed to generate Word document.');
     }
+}
 }

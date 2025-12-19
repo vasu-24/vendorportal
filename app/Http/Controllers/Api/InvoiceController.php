@@ -593,7 +593,75 @@ class InvoiceController extends Controller
                 'message' => $e->getMessage()
             ], 500);
         }
+    }// =====================================================
+// UPDATE TAX RATES (Admin Edit GST/TDS)
+// =====================================================
+
+/**
+ * Update tax rates for an invoice
+ */
+public function updateTaxes(Request $request, $id)
+{
+    try {
+        $validator = Validator::make($request->all(), [
+            'gst_percent' => 'required|numeric|min:0|max:100',
+            'gst_total' => 'required|numeric|min:0',
+            'tds_percent' => 'required|numeric|min:0|max:100',
+            'tds_amount' => 'required|numeric|min:0',
+            'grand_total' => 'required|numeric|min:0',
+            'net_payable' => 'required|numeric|min:0',
+            'zoho_gst_tax_id' => 'nullable|string',
+            'zoho_tds_tax_id' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $invoice = Invoice::findOrFail($id);
+
+        // Update tax fields
+        $invoice->update([
+            'gst_percent' => $request->gst_percent,
+            'gst_total' => $request->gst_total,
+            'zoho_gst_tax_id' => $request->zoho_gst_tax_id,
+            'tds_percent' => $request->tds_percent,
+            'tds_amount' => $request->tds_amount,
+            'zoho_tds_tax_id' => $request->zoho_tds_tax_id,
+            'grand_total' => $request->grand_total,
+            'net_payable' => $request->net_payable,
+        ]);
+
+        Log::info('Invoice tax rates updated', [
+            'invoice_id' => $invoice->id,
+            'gst_percent' => $request->gst_percent,
+            'tds_percent' => $request->tds_percent,
+            'updated_by' => Auth::id() ?? 1,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Tax rates updated successfully.',
+            'data' => $invoice->fresh()
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Update Tax Rates Error: ' . $e->getMessage());
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Something went wrong.'
+        ], 500);
     }
+}
+
+
+
+
 
     /**
      * Sync all pending invoices from Zoho

@@ -97,17 +97,22 @@
                             </div>
                         </div>
 
-                        {{-- Contract Dates --}}
-                        <div class="row g-2 mb-2">
-                            <div class="col-6">
-                                <label class="form-label mb-1"><strong>Start Date</strong></label>
-                                <input type="date" id="start_date" name="start_date" class="form-control form-control-sm">
-                            </div>
-                            <div class="col-6">
-                                <label class="form-label mb-1"><strong>End Date</strong></label>
-                                <input type="date" id="end_date" name="end_date" class="form-control form-control-sm">
-                            </div>
-                        </div>
+                    {{-- Contract Dates --}}
+{{-- Contract Dates --}}
+<div class="row g-2 mb-2">
+    <div class="col-4">
+        <label class="form-label mb-1"><strong>Effective Date</strong></label>
+        <input type="date" id="effective_date" name="effective_date" class="form-control form-control-sm">
+    </div>
+    <div class="col-4">
+        <label class="form-label mb-1"><strong>Start Date</strong></label>
+        <input type="date" id="start_date" name="start_date" class="form-control form-control-sm">
+    </div>
+    <div class="col-4">
+        <label class="form-label mb-1"><strong>End Date</strong></label>
+        <input type="date" id="end_date" name="end_date" class="form-control form-control-sm">
+    </div>
+</div>
 
                         <hr class="my-2">
 
@@ -350,21 +355,22 @@
             return;
         }
 
-        // Prepare data
-        const data = {
-            template_file: $('#agreementTemplate').val(),
-            company_id: $('#company_id').val() || null,
-            company_cin: $('#company_cin').val(),
-            company_address: $('#company_address').val(),
-            vendor_id: $('#vendor_id').val(),
-            vendor_name: $('#vendor_name').val(),
-            vendor_cin: $('#vendor_cin').val(),
-            vendor_address: $('#vendor_address').val(),
-            start_date: $('#start_date').val() || null,
-            end_date: $('#end_date').val() || null,
-            contract_value: parseFloat(contractValue),
-            items: items
-        };
+      // Prepare data
+const data = {
+    template_file: $('#agreementTemplate').val(),
+    company_id: $('#company_id').val() || null,
+    company_cin: $('#company_cin').val(),
+    company_address: $('#company_address').val(),
+    vendor_id: $('#vendor_id').val(),
+    vendor_name: $('#vendor_name').val(),
+    vendor_cin: $('#vendor_cin').val(),
+    vendor_address: $('#vendor_address').val(),
+    effective_date: $('#effective_date').val() || null,  // NEW
+    start_date: $('#start_date').val() || null,
+    end_date: $('#end_date').val() || null,
+    contract_value: parseFloat(contractValue),
+    items: items
+};
 
         // Disable button
         const btn = $('#saveBtn');
@@ -377,11 +383,27 @@
                     const contract = response.data.data;
                     
                     showAlert('success', 'Contract created! Downloading Word file...');
+
+
+
+
                     
-                    // Auto-download Word file
-                    setTimeout(() => {
-                        window.location.href = `/contracts/${contract.id}/download-word`;
-                    }, 500);
+                 // Auto-download Word file with effective_date
+setTimeout(() => {
+    const effectiveDate = $('#effective_date').val();
+    let downloadUrl = `/contracts/${contract.id}/download-word`;
+    if (effectiveDate) {
+        downloadUrl += `?effective_date=${effectiveDate}`;
+    }
+    window.location.href = downloadUrl;
+}, 500);
+
+
+
+
+
+
+
                     
                     // Redirect to index after download starts
                     setTimeout(() => {

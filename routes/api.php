@@ -10,6 +10,8 @@ use App\Http\Controllers\Api\VendorInvoiceController;
 use App\Http\Controllers\Api\VendorApprovalController;
 use App\Http\Controllers\Api\VendorContractController;
 use App\Http\Controllers\Api\VendorRegistrationController;
+use App\Http\Controllers\Api\ZohoDataController;
+use App\Http\Controllers\Api\TimesheetController;
 
 // =====================================================
 // VENDOR REGISTRATION (Public - No Auth)
@@ -240,6 +242,16 @@ Route::post('/invoices/{id}/push-to-zoho', [InvoiceController::class, 'pushToZoh
 
 
 
+// Zoho Data Routes (for dropdowns)
+Route::middleware('auth:sanctum')->prefix('zoho')->group(function () {
+    Route::get('/chart-of-accounts', [ZohoDataController::class, 'getChartOfAccounts']);
+    Route::get('/expense-accounts', [ZohoDataController::class, 'getExpenseAccounts']);
+    Route::get('/taxes', [ZohoDataController::class, 'getTaxes']);
+    Route::get('/tax-groups', [ZohoDataController::class, 'getTaxGroups']);
+});
+
+
+
 });
 
 
@@ -319,10 +331,26 @@ Route::prefix('vendor/contracts')->middleware(['web', 'auth:vendor'])->group(fun
 
 
 
+// =====================================================
+// ZOHO DATA API ROUTES (for dropdowns)
+// =====================================================
+
+Route::prefix('zoho')->middleware(['web', 'auth'])->group(function () {
+    Route::get('/chart-of-accounts', [ZohoDataController::class, 'getChartOfAccounts']);
+    Route::get('/expense-accounts', [ZohoDataController::class, 'getExpenseAccounts']);
+    Route::get('/taxes', [ZohoDataController::class, 'getTaxes']);
+    Route::get('/tax-groups', [ZohoDataController::class, 'getTaxGroups']);
+});
 
 
 
 
+// Timesheet validation
+Route::post('/timesheet/validate', [TimesheetController::class, 'validateTimesheet']);
+
+
+// Inside admin invoices group
+Route::post('/admin/invoices/{id}/update-taxes', [InvoiceController::class, 'updateTaxes']);
 
 
 

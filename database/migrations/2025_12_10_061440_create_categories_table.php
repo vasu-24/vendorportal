@@ -18,6 +18,11 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->string('hsn_sac_code')->nullable();
             $table->enum('status', ['active', 'inactive'])->default('active');
+            
+            // Zoho COA Mapping
+            $table->string('zoho_account_id')->nullable();
+            $table->string('zoho_account_name')->nullable();
+            
             $table->timestamps();
             
             $table->index('status');

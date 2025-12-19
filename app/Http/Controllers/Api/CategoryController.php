@@ -23,6 +23,15 @@ class CategoryController extends Controller
                 $query->where('status', $request->status);
             }
 
+            // Filter by Zoho mapping
+            if ($request->has('zoho_mapped')) {
+                if ($request->zoho_mapped === 'yes') {
+                    $query->zohoMapped();
+                } elseif ($request->zoho_mapped === 'no') {
+                    $query->zohoUnmapped();
+                }
+            }
+
             // Search
             if ($request->has('search') && $request->search) {
                 $search = $request->search;
@@ -30,7 +39,8 @@ class CategoryController extends Controller
                     $q->where('name', 'like', "%{$search}%")
                       ->orWhere('code', 'like', "%{$search}%")
                       ->orWhere('description', 'like', "%{$search}%")
-                      ->orWhere('hsn_sac_code', 'like', "%{$search}%");
+                      ->orWhere('hsn_sac_code', 'like', "%{$search}%")
+                      ->orWhere('zoho_account_name', 'like', "%{$search}%");
                 });
             }
 
@@ -67,7 +77,7 @@ class CategoryController extends Controller
         try {
             $categories = Category::active()
                 ->orderBy('name', 'asc')
-                ->get(['id', 'name', 'code', 'hsn_sac_code']);
+                ->get(['id', 'name', 'code', 'hsn_sac_code', 'zoho_account_id', 'zoho_account_name']);
 
             return response()->json([
                 'success' => true,
@@ -117,6 +127,8 @@ class CategoryController extends Controller
                 'description' => 'nullable|string|max:500',
                 'hsn_sac_code' => 'nullable|string|max:20',
                 'status' => 'nullable|in:active,inactive',
+                'zoho_account_id' => 'nullable|string|max:100',      // 👈 NEW
+                'zoho_account_name' => 'nullable|string|max:255',    // 👈 NEW
             ]);
 
             if ($validator->fails()) {
@@ -133,6 +145,8 @@ class CategoryController extends Controller
                 'description' => $request->description,
                 'hsn_sac_code' => $request->hsn_sac_code,
                 'status' => $request->status ?? 'active',
+                'zoho_account_id' => $request->zoho_account_id,      // 👈 NEW
+                'zoho_account_name' => $request->zoho_account_name,  // 👈 NEW
             ]);
 
             return response()->json([
@@ -165,6 +179,8 @@ class CategoryController extends Controller
                 'description' => 'nullable|string|max:500',
                 'hsn_sac_code' => 'nullable|string|max:20',
                 'status' => 'nullable|in:active,inactive',
+                'zoho_account_id' => 'nullable|string|max:100',      // 👈 NEW
+                'zoho_account_name' => 'nullable|string|max:255',    // 👈 NEW
             ]);
 
             if ($validator->fails()) {
@@ -181,6 +197,8 @@ class CategoryController extends Controller
                 'description' => $request->description,
                 'hsn_sac_code' => $request->hsn_sac_code,
                 'status' => $request->status ?? $category->status,
+                'zoho_account_id' => $request->zoho_account_id,      // 👈 NEW
+                'zoho_account_name' => $request->zoho_account_name,  // 👈 NEW
             ]);
 
             return response()->json([
@@ -261,25 +279,41 @@ class CategoryController extends Controller
     // GET STATISTICS
     // =====================================================
 
-    public function getStatistics()
-    {
+  // =====================================================
+// GET STATISTICS
+// =====================================================
+
+public function getStatistics()
+{
+    try {
+        $stats = [
+            'total' => Category::count(),
+            'active' => Category::active()->count(),
+            'inactive' => Category::inactive()->count(),
+        ];
+
+        // Only add zoho stats if columns exist
         try {
-            $stats = [
-                'total' => Category::count(),
-                'active' => Category::active()->count(),
-                'inactive' => Category::inactive()->count(),
-            ];
-
-            return response()->json([
-                'success' => true,
-                'data' => $stats
-            ]);
-
+            $stats['zoho_mapped'] = Category::whereNotNull('zoho_account_id')->count();
+            $stats['zoho_unmapped'] = Category::whereNull('zoho_account_id')->count();
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to load statistics'
-            ], 500);
+            $stats['zoho_mapped'] = 0;
+            $stats['zoho_unmapped'] = 0;
         }
+
+        return response()->json([
+            'success' => true,
+            'data' => $stats
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to load statistics',
+            'error' => $e->getMessage()
+        ], 500);
     }
-}
+
+
+
+}}
