@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Vendor;
 use App\Models\MailTemplate;
+use App\Services\VendorImportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\VendorMail;
@@ -127,6 +128,57 @@ class VendorController extends Controller
             ], 500);
         }
     }
+
+    // =====================================================
+    // 🔥 IMPORT VENDORS
+    // =====================================================
+    
+    /**
+     * Download import template
+     */
+    public function downloadImportTemplate()
+    {
+        $templatePath = storage_path('app/templates/vendor_import_template.xlsx');
+        
+        if (!file_exists($templatePath)) {
+            abort(404, 'Template file not found');
+        }
+
+        return response()->download($templatePath, 'vendor_import_template.xlsx');
+    }
+
+   /**
+ * Import vendors from Excel
+ */
+public function import(Request $request, VendorImportService $importService)
+{
+    $request->validate([
+        'file' => 'required|file|mimes:xlsx,xls|max:5120', // Max 5MB
+    ]);
+
+    try {
+        $file = $request->file('file');
+        
+        // Use getRealPath() - directly use the temp uploaded file
+        $fullPath = $file->getRealPath();
+
+        if (!$fullPath || !file_exists($fullPath)) {
+            throw new \Exception('Failed to save uploaded file');
+        }
+
+        $result = $importService->import($fullPath);
+
+        return response()->json($result);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Import failed: ' . $e->getMessage(),
+        ], 500);
+    }
+}
+
+
 
     // =====================================================
     // 🔥 HANDLE VENDOR ACCEPTANCE

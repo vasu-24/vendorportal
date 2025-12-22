@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\VendorContractController;
 use App\Http\Controllers\Api\VendorRegistrationController;
 use App\Http\Controllers\Api\ZohoDataController;
 use App\Http\Controllers\Api\TimesheetController;
+use App\Http\Controllers\Api\DashboardController;
 
 // =====================================================
 // VENDOR REGISTRATION (Public - No Auth)
@@ -355,6 +356,23 @@ Route::post('/admin/invoices/{id}/update-taxes', [InvoiceController::class, 'upd
 
 
 
+// Zoho Reporting Tags
+Route::get('/zoho/reporting-tags', function() {
+    try {
+        $zohoService = new \App\Services\ZohoService();
+        $tags = $zohoService->getReportingTags();
+        
+        return response()->json([
+            'success' => true,
+            'data' => array_values($tags) // Reset array keys
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ], 500);
+    }
+});
 
 
 
@@ -379,61 +397,15 @@ Route::post('/admin/invoices/{id}/update-taxes', [InvoiceController::class, 'upd
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+Route::prefix('dashboard')->middleware(['web', 'auth'])->group(function () {
+    Route::get('/summary', [DashboardController::class, 'summary']);
+    Route::get('/focus-items', [DashboardController::class, 'focusItems']);
+    Route::get('/recent-activity', [DashboardController::class, 'recentActivity']);
+    Route::get('/sync-status', [DashboardController::class, 'syncStatus']);
+    Route::post('/sync-all', [DashboardController::class, 'syncAll']);
+    Route::post('/sync-vendors', [DashboardController::class, 'syncVendors']);
+    Route::post('/import-from-zoho', [DashboardController::class, 'importFromZoho']);
+});
 
 
 

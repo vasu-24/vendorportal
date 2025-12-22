@@ -54,6 +54,24 @@
         margin: 0;
     }
 
+    /* Header Stats */
+    .header-stats {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+    .header-stat {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 13px;
+        color: #6b7280;
+    }
+    .header-stat .count {
+        font-weight: 600;
+        color: #1f2937;
+    }
+
     /* Clean Tabs with Curved Underline */
     .nav-tabs {
         border-bottom: none;
@@ -99,32 +117,43 @@
         color: #495057;
     }
 
-    /* Small Stats */
-    .stat-item {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.4rem 0.75rem;
-        background: #f8f9fa;
-        border-radius: 6px;
-        font-size: 12px;
-        margin-right: 0.5rem;
-        margin-bottom: 0.5rem;
-    }
-    .stat-item .stat-count {
-        font-weight: 600;
-        margin-left: 0.4rem;
-    }
-
     .table th {
         color: var(--primary-blue) !important;
         font-size: 13px;
         font-weight: 600;
     }
+
+    /* Import Dropzone */
+    .import-dropzone {
+        border: 2px dashed #dee2e6;
+        border-radius: 8px;
+        padding: 2rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background: #f8f9fa;
+    }
+    .import-dropzone:hover, .import-dropzone.dragover {
+        border-color: #0d6efd;
+        background: #eef4ff;
+    }
+    .import-dropzone i {
+        font-size: 2.5rem;
+        color: #6c757d;
+    }
+    .import-dropzone.dragover i {
+        color: #0d6efd;
+    }
+    .import-dropzone .file-name {
+        margin-top: 0.5rem;
+        font-weight: 500;
+        color: #198754;
+    }
 </style>
 
 <div class="container-fluid py-3">
 
-    {{-- Page Header - Same Style as Invoice Management --}}
+    {{-- Page Header with Stats --}}
     <div class="d-flex justify-content-between align-items-start mb-4">
         <div class="d-flex align-items-start gap-3">
             <div class="page-icon">
@@ -132,41 +161,38 @@
             </div>
             <div>
                 <h2 class="page-title">Vendor Management</h2>
-                <p class="page-subtitle">Manage vendor onboarding, approvals and communication</p>
+                <div class="header-stats mt-1">
+                    <span class="header-stat">
+                        <i class="bi bi-send text-secondary"></i>
+                        <span class="count" id="statInvited">0</span> Invited
+                    </span>
+                    <span class="header-stat">
+                        <i class="bi bi-clock text-warning"></i>
+                        <span class="count" id="statPending">0</span> Pending
+                    </span>
+                    <span class="header-stat">
+                        <i class="bi bi-check-circle text-success"></i>
+                        <span class="count" id="statApproved">0</span> Approved
+                    </span>
+                    <span class="header-stat">
+                        <i class="bi bi-x-circle text-danger"></i>
+                        <span class="count" id="statRejected">0</span> Rejected
+                    </span>
+                    <span class="header-stat">
+                        <i class="bi bi-arrow-repeat text-primary"></i>
+                        <span class="count" id="statRevision">0</span> Revision
+                    </span>
+                </div>
             </div>
         </div>
-        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addVendorModal">
-            <i class="bi bi-plus-lg me-1"></i>Invite Vendor
-        </button>
-    </div>
-
-    {{-- Small Stats --}}
-    <div class="mb-3">
-        <span class="stat-item">
-            <i class="bi bi-send text-muted"></i>
-            <span class="text-muted">Invited</span>
-            <span class="stat-count" id="statInvited">0</span>
-        </span>
-        <span class="stat-item">
-            <i class="bi bi-clock text-warning"></i>
-            <span class="text-muted">Pending</span>
-            <span class="stat-count" id="statPending">0</span>
-        </span>
-        <span class="stat-item">
-            <i class="bi bi-check-circle text-success"></i>
-            <span class="text-muted">Approved</span>
-            <span class="stat-count" id="statApproved">0</span>
-        </span>
-        <span class="stat-item">
-            <i class="bi bi-x-circle text-danger"></i>
-            <span class="text-muted">Rejected</span>
-            <span class="stat-count" id="statRejected">0</span>
-        </span>
-        <span class="stat-item">
-            <i class="bi bi-arrow-repeat text-primary"></i>
-            <span class="text-muted">Revision</span>
-            <span class="stat-count" id="statRevision">0</span>
-        </span>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#importVendorModal">
+                <i class="bi bi-upload me-1"></i>Import
+            </button>
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addVendorModal">
+                <i class="bi bi-plus-lg me-1"></i>Invite Vendor
+            </button>
+        </div>
     </div>
 
     {{-- Main Card --}}
@@ -254,6 +280,69 @@
     </div>
 </div>
 
+{{-- IMPORT VENDOR MODAL --}}
+<div class="modal fade" id="importVendorModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header py-2 bg-light">
+                <h6 class="modal-title fw-semibold">Import Vendors</h6>
+                <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                {{-- Download Template --}}
+                <div class="mb-3">
+                  {{-- Change this line in Import Modal --}}
+<a href="{{ asset('templates/vendor_import_template.xlsx') }}" class="btn btn-outline-success btn-sm">
+    <i class="bi bi-download me-1"></i>Download Excel Template
+</a>
+                    <small class="text-muted d-block mt-1">Fill the template and upload below</small>
+                </div>
+
+                <hr>
+
+                {{-- Upload Area --}}
+                <div class="import-dropzone" id="importDropzone">
+                    <input type="file" id="importFile" accept=".xlsx,.xls" hidden>
+                    <i class="bi bi-cloud-upload"></i>
+                    <p class="mb-1 mt-2">Drag & drop Excel file here</p>
+                    <small class="text-muted">or click to browse</small>
+                    <div class="file-name" id="selectedFileName" style="display: none;"></div>
+                </div>
+
+                {{-- Import Progress --}}
+                <div id="importProgress" style="display: none;" class="mt-3">
+                    <div class="d-flex align-items-center">
+                        <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+                        <span>Importing vendors...</span>
+                    </div>
+                    <div class="progress mt-2" style="height: 6px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div>
+                    </div>
+                </div>
+
+                {{-- Import Results --}}
+                <div id="importResults" style="display: none;" class="mt-3">
+                    <div class="alert alert-success mb-2 py-2" id="importSuccessAlert" style="display: none;">
+                        <i class="bi bi-check-circle me-1"></i>
+                        <span id="importSuccessMsg"></span>
+                    </div>
+                    <div class="alert alert-danger mb-2 py-2" id="importErrorAlert" style="display: none;">
+                        <i class="bi bi-x-circle me-1"></i>
+                        <span id="importErrorMsg"></span>
+                    </div>
+                    <div id="importDetails" class="small"></div>
+                </div>
+            </div>
+            <div class="modal-footer py-2 bg-light">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary btn-sm" id="importBtn" disabled>
+                    <i class="bi bi-upload me-1"></i>Import Vendors
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {{-- SEND MAIL MODAL --}}
 <div class="modal fade" id="sendMailModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -324,6 +413,7 @@
     let currentTab = 'invited';
     let invitedVendors = @json($vendors ?? []);
     let templates = @json($templates ?? []);
+    let selectedImportFile = null;
 
     // =====================================================
     // INIT
@@ -332,6 +422,7 @@
         loadStatistics();
         loadVendors();
         bindEvents();
+        bindImportEvents();
     });
 
     // =====================================================
@@ -370,6 +461,148 @@
 
         // Send Mail button
         $('#sendMailBtn').on('click', sendMail);
+    }
+
+    // =====================================================
+    // IMPORT EVENTS
+    // =====================================================
+    function bindImportEvents() {
+        const dropzone = document.getElementById('importDropzone');
+        const fileInput = document.getElementById('importFile');
+
+        // Click to browse
+        dropzone.addEventListener('click', () => fileInput.click());
+
+        // File selected
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        // Drag & Drop
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.classList.add('dragover');
+        });
+
+        dropzone.addEventListener('dragleave', () => {
+            dropzone.classList.remove('dragover');
+        });
+
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                handleFileSelect(e.dataTransfer.files[0]);
+            }
+        });
+
+        // Import button
+        $('#importBtn').on('click', importVendors);
+
+        // Reset on modal close
+        $('#importVendorModal').on('hidden.bs.modal', resetImportModal);
+    }
+
+    function handleFileSelect(file) {
+        const validTypes = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'];
+        
+        if (!validTypes.includes(file.type) && !file.name.match(/\.(xlsx|xls)$/i)) {
+            Toast.error('Please upload an Excel file (.xlsx or .xls)');
+            return;
+        }
+
+        selectedImportFile = file;
+        $('#selectedFileName').text(file.name).show();
+        $('#importBtn').prop('disabled', false);
+    }
+
+    function resetImportModal() {
+        selectedImportFile = null;
+        $('#importFile').val('');
+        $('#selectedFileName').hide().text('');
+        $('#importBtn').prop('disabled', true);
+        $('#importProgress').hide();
+        $('#importResults').hide();
+        $('#importSuccessAlert').hide();
+        $('#importErrorAlert').hide();
+        $('#importDetails').html('');
+    }
+
+    function importVendors() {
+        if (!selectedImportFile) {
+            Toast.warning('Please select a file first');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', selectedImportFile);
+
+        $('#importBtn').prop('disabled', true);
+        $('#importProgress').show();
+        $('#importResults').hide();
+
+        axios.post('{{ route("vendors.import") }}', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        })
+        .then(res => {
+            $('#importProgress').hide();
+            $('#importResults').show();
+
+            if (res.data.success) {
+                $('#importSuccessAlert').show();
+                $('#importSuccessMsg').text(res.data.message);
+
+                // Show details
+                const data = res.data.data;
+                let detailsHtml = `
+                    <div class="row text-center mt-2">
+                        <div class="col">
+                            <div class="fw-bold text-success">${data.imported || 0}</div>
+                            <small class="text-muted">Imported</small>
+                        </div>
+                        <div class="col">
+                            <div class="fw-bold text-primary">${data.zoho_synced || 0}</div>
+                            <small class="text-muted">Zoho Synced</small>
+                        </div>
+                        <div class="col">
+                            <div class="fw-bold text-warning">${data.zoho_failed || 0}</div>
+                            <small class="text-muted">Zoho Failed</small>
+                        </div>
+                        <div class="col">
+                            <div class="fw-bold text-info">${data.emails_sent || 0}</div>
+                            <small class="text-muted">Emails Sent</small>
+                        </div>
+                    </div>
+                `;
+
+                // Show errors if any
+                if (data.errors && data.errors.length > 0) {
+                    detailsHtml += `<div class="mt-3"><strong class="text-danger">Errors:</strong><ul class="mb-0 small">`;
+                    data.errors.forEach(err => {
+                        detailsHtml += `<li>${err}</li>`;
+                    });
+                    detailsHtml += `</ul></div>`;
+                }
+
+                $('#importDetails').html(detailsHtml);
+
+                // Reload after 2 seconds
+                setTimeout(() => {
+                    location.reload();
+                }, 2000);
+            } else {
+                $('#importErrorAlert').show();
+                $('#importErrorMsg').text(res.data.message || 'Import failed');
+            }
+        })
+        .catch(err => {
+            $('#importProgress').hide();
+            $('#importResults').show();
+            $('#importErrorAlert').show();
+            $('#importErrorMsg').text(err.response?.data?.message || 'Import failed. Please try again.');
+        });
     }
 
     // =====================================================
@@ -559,7 +792,17 @@
         $('#sendMailVendorId').val(vendorId);
         $('#sendMailVendorName').val(vendorName);
         $('#sendMailVendorEmail').val(vendorEmail);
-        $('#sendMailTemplate').val(templateId || '').trigger('change');
+        
+        // Auto-select template
+        if (templateId) {
+            $('#sendMailTemplate').val(templateId).trigger('change');
+        } else {
+            const firstTemplateId = $('#sendMailTemplate option:eq(1)').val();
+            if (firstTemplateId) {
+                $('#sendMailTemplate').val(firstTemplateId).trigger('change');
+            }
+        }
+        
         new bootstrap.Modal('#sendMailModal').show();
     }
 

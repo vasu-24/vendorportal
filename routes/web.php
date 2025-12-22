@@ -51,14 +51,27 @@ Route::middleware(['auth'])->group(function () {
     // VENDOR MODULE ROUTES
     // =====================================================
     
-    Route::prefix('vendors')->name('vendors.')->group(function () {
+// =====================================================
+// VENDOR MODULE ROUTES
+// =====================================================
+
+Route::prefix('vendors')->name('vendors.')->group(function () {
+    
+    // ✅ IMPORT ROUTES FIRST (No {id} conflict) - Inside auth middleware
+    Route::middleware(['auth'])->group(function () {
         
-        // View vendors list - requires view-vendors permission
+        // Import Routes - MUST BE BEFORE ANY {id} ROUTES
+        Route::get('/import/template', [VendorController::class, 'downloadImportTemplate'])
+            ->name('import.template');
+        Route::post('/import', [VendorController::class, 'import'])
+            ->name('import');
+        
+        // View vendors list
         Route::get('/', [VendorController::class, 'index'])
             ->name('index')
             ->middleware('permission:view-vendors');
         
-        // Create vendor - requires create-vendors permission
+        // Create vendor
         Route::get('/create', [VendorController::class, 'create'])
             ->name('create')
             ->middleware('permission:create-vendors');
@@ -67,7 +80,12 @@ Route::middleware(['auth'])->group(function () {
             ->name('store')
             ->middleware('permission:create-vendors');
         
-        // Edit vendor - requires edit-vendors permission
+        // Approvals
+        Route::get('/approvals', function () {
+            return "Vendor Approval Page Coming Soon";
+        })->name('approvals')->middleware('permission:view-vendors');
+        
+        // ✅ {id} ROUTES LAST
         Route::post('/{id}/update-template', [VendorController::class, 'updateTemplate'])
             ->name('updateTemplate')
             ->middleware('permission:edit-vendors');
@@ -75,13 +93,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{id}/send-email', [VendorController::class, 'sendEmail'])
             ->name('sendEmail')
             ->middleware('permission:edit-vendors');
-        
-        // Vendor Approvals - requires view-vendors permission (for viewing)
-        Route::get('/approvals', function () {
-            return "Vendor Approval Page Coming Soon";
-        })->name('approvals')->middleware('permission:view-vendors');
     });
-
+});
     // =====================================================
     // VENDOR APPROVAL ROUTES (Internal Team)
     // =====================================================
@@ -316,25 +329,9 @@ Route::prefix('contracts')->middleware(['auth'])->name('contracts.')->group(func
     // Preview uploaded document
     Route::get('/preview-document', [App\Http\Controllers\ContractController::class, 'previewDocument'])->name('preview.document');
     
-    // Download Word file (auto-download after create)
-    Route::get('/{id}/download-word', [App\Http\Controllers\ContractController::class, 'downloadWord'])->name('download-word');
+    // Download Word file - Accept GET and POST
+    Route::match(['get', 'post'], '/{id}/download-word', [App\Http\Controllers\ContractController::class, 'downloadWord'])->name('download-word');
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

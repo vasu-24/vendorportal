@@ -1005,4 +1005,44 @@ class ZohoService
             'all' => $taxes,
         ];
     }
+
+
+/**
+ * Get Reporting Tags from Zoho Books
+ */
+public function getReportingTags(): array
+{
+    $accessToken = $this->getValidToken();
+    $organizationId = $this->getOrganizationId();
+
+    if (!$accessToken) {
+        throw new Exception('Not connected to Zoho');
+    }
+
+    if (!$organizationId) {
+        throw new Exception('Organization ID not set');
+    }
+
+    $response = Http::withHeaders([
+        'Authorization' => "Zoho-oauthtoken {$accessToken}",
+    ])->get("{$this->apiUrl}/books/v3/reportingtags?organization_id={$organizationId}");
+
+    if ($response->failed()) {
+        Log::error('Zoho Get Reporting Tags Error', ['response' => $response->json()]);
+        throw new Exception('Failed to get reporting tags from Zoho');
+    }
+
+    $result = $response->json();
+
+    Log::info('Fetched Reporting Tags from Zoho', [
+        'count' => count($result['tags'] ?? []),
+    ]);
+
+    // Return only active tags
+    $tags = $result['tags'] ?? [];
+    
+    return array_filter($tags, function($tag) {
+        return $tag['is_active'] ?? false;
+    });
+}
 }
