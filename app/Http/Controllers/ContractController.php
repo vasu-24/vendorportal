@@ -45,16 +45,16 @@ class ContractController extends Controller
         $defaultFile = $files->first();
     }
 
-    // Fetch Reporting Tags from Zoho
-    $reportingTags = [];
-    try {
-        $zohoService = new \App\Services\ZohoService();
-        if ($zohoService->isConnected()) {
-            $reportingTags = $zohoService->getReportingTags();
-        }
-    } catch (\Exception $e) {
-        \Log::error('Failed to fetch reporting tags: ' . $e->getMessage());
-    }
+    // Fetch ONLY tags that are linked to managers (NOT from Zoho)
+    $reportingTags = \App\Models\ManagerTag::select('tag_id', 'tag_name')
+        ->distinct()
+        ->orderBy('tag_name')
+        ->get()
+        ->map(fn($t) => [
+            'tag_id' => $t->tag_id,
+            'tag_name' => $t->tag_name,
+        ])
+        ->toArray();
 
     return view('pages.contracts.create', [
         'agreementFiles' => $files,
@@ -66,14 +66,13 @@ class ContractController extends Controller
                                 ->orderBy('vendor_name')
                                 ->get(),
         'categories'     => Category::where('status', 'active')->orderBy('name')->get(),
-        'reportingTags'  => $reportingTags, // NEW
+        'reportingTags'  => $reportingTags,
     ]);
 }
 
-    // =====================================================
-    // EDIT PAGE
-    // =====================================================
-   public function edit($id)
+
+
+public function edit($id)
 {
     $contract = Contract::with(['items.category'])->findOrFail($id);
 
@@ -87,16 +86,16 @@ class ContractController extends Controller
         ->map(fn($file) => $file->getFilename())
         ->values();
 
-    // Fetch Reporting Tags from Zoho
-    $reportingTags = [];
-    try {
-        $zohoService = new \App\Services\ZohoService();
-        if ($zohoService->isConnected()) {
-            $reportingTags = $zohoService->getReportingTags();
-        }
-    } catch (\Exception $e) {
-        \Log::error('Failed to fetch reporting tags: ' . $e->getMessage());
-    }
+    // Fetch ONLY tags that are linked to managers (NOT from Zoho)
+    $reportingTags = \App\Models\ManagerTag::select('tag_id', 'tag_name')
+        ->distinct()
+        ->orderBy('tag_name')
+        ->get()
+        ->map(fn($t) => [
+            'tag_id' => $t->tag_id,
+            'tag_name' => $t->tag_name,
+        ])
+        ->toArray();
 
     return view('pages.contracts.edit', [
         'contract'       => $contract,
@@ -111,6 +110,9 @@ class ContractController extends Controller
         'reportingTags'  => $reportingTags,
     ]);
 }
+
+
+
 
 
     // =====================================================

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Contract;
 use App\Models\ContractItem;
+use App\Models\ManagerTag;
 use App\Models\Category;
 use App\Models\Organisation;
 use App\Models\Vendor;
@@ -144,6 +145,7 @@ class ContractController extends Controller
                 'items.*.quantity' => 'required|numeric|min:0',
                 'items.*.unit' => 'required|string',
                 'items.*.rate' => 'required|numeric|min:0',
+                'items.*.tags' => 'nullable|array',
             ]);
 
             if ($validator->fails()) {
@@ -165,7 +167,7 @@ class ContractController extends Controller
             // Get vendor details
             $vendor = Vendor::with(['companyInfo', 'statutoryInfo'])->find($request->vendor_id);
 
-            // Create contract with MANUAL contract_value (no calculation)
+            // Create contract
             $contract = Contract::create([
                 'contract_number' => Contract::generateContractNumber(),
                 'template_file' => $request->template_file,
@@ -180,15 +182,24 @@ class ContractController extends Controller
                 'vendor_address' => $vendor->companyInfo->registered_address ?? null,
                 'start_date' => $request->start_date,
                 'end_date' => $request->end_date,
-                'contract_value' => $request->contract_value, // MANUAL - No calculation!
+                'contract_value' => $request->contract_value,
                 'status' => 'draft',
-                'is_visible_to_vendor' => true, // Always visible to vendor
+                'is_visible_to_vendor' => true,
                 'notes' => $request->notes,
                 'created_by' => Auth::id(),
             ]);
 
-            // Create contract items (reference only - no amount field)
+            // Create contract items with tag (stored in same table)
             foreach ($request->items as $item) {
+                // Get tag info (single tag)
+                $tagId = $item['tags'][0] ?? null;
+                $tagName = null;
+                
+                if ($tagId) {
+                    $managerTag = ManagerTag::where('tag_id', $tagId)->first();
+                    $tagName = $managerTag->tag_name ?? null;
+                }
+
                 ContractItem::create([
                     'contract_id' => $contract->id,
                     'category_id' => $item['category_id'],
@@ -196,7 +207,8 @@ class ContractController extends Controller
                     'quantity' => $item['quantity'],
                     'unit' => $item['unit'],
                     'rate' => $item['rate'],
-                    // NO amount field - removed!
+                    'tag_id' => $tagId,
+                    'tag_name' => $tagName,
                 ]);
             }
 
@@ -249,6 +261,7 @@ class ContractController extends Controller
                 'items.*.quantity' => 'required|numeric|min:0',
                 'items.*.unit' => 'required|string',
                 'items.*.rate' => 'required|numeric|min:0',
+                'items.*.tags' => 'nullable|array',
             ]);
 
             if ($validator->fails()) {
@@ -283,15 +296,24 @@ class ContractController extends Controller
                 'vendor_address' => $vendor->companyInfo->registered_address ?? null,
                 'start_date' => $request->start_date,
                 'end_date' => $request->end_date,
-                'contract_value' => $request->contract_value, // MANUAL
+                'contract_value' => $request->contract_value,
                 'notes' => $request->notes,
             ]);
 
-            // Delete existing items and recreate
+            // Delete existing items
             $contract->items()->delete();
 
-            // Create contract items (no amount)
+            // Create new contract items with tag
             foreach ($request->items as $item) {
+                // Get tag info (single tag)
+                $tagId = $item['tags'][0] ?? null;
+                $tagName = null;
+                
+                if ($tagId) {
+                    $managerTag = ManagerTag::where('tag_id', $tagId)->first();
+                    $tagName = $managerTag->tag_name ?? null;
+                }
+
                 ContractItem::create([
                     'contract_id' => $contract->id,
                     'category_id' => $item['category_id'],
@@ -299,6 +321,8 @@ class ContractController extends Controller
                     'quantity' => $item['quantity'],
                     'unit' => $item['unit'],
                     'rate' => $item['rate'],
+                    'tag_id' => $tagId,
+                    'tag_name' => $tagName,
                 ]);
             }
 
@@ -389,7 +413,7 @@ class ContractController extends Controller
             }
 
             $contract->status = $request->status;
-            $contract->is_visible_to_vendor = true; // Always visible to vendor
+            $contract->is_visible_to_vendor = true;
             $contract->save();
 
             return response()->json([
@@ -409,7 +433,6 @@ class ContractController extends Controller
 
     // =====================================================
     // UPLOAD CONTRACT DOCUMENT
-    // Upload signed/edited contract to ANY contract
     // =====================================================
 
     public function uploadDocument(Request $request)
@@ -431,7 +454,6 @@ class ContractController extends Controller
             $file = $request->file('contract_file');
             $extension = strtolower($file->getClientOriginalExtension());
             
-            // Validate file type
             $allowedExtensions = ['doc', 'docx', 'pdf'];
             if (!in_array($extension, $allowedExtensions)) {
                 return response()->json([
@@ -442,18 +464,13 @@ class ContractController extends Controller
 
             $contract = Contract::findOrFail($request->contract_id);
             
-            // Delete old document if exists
             if ($contract->document_path && Storage::disk('public')->exists($contract->document_path)) {
                 Storage::disk('public')->delete($contract->document_path);
             }
             
-            // Generate filename: CON-2025-0001_1234567890.pdf
             $fileName = $contract->contract_number . '_' . time() . '.' . $extension;
-            
-            // Store new document
             $filePath = $file->storeAs('contracts/documents', $fileName, 'public');
             
-            // Update contract
             $contract->update([
                 'document_path' => $filePath,
             ]);
@@ -479,7 +496,82 @@ class ContractController extends Controller
     }
 
     // =====================================================
-    // GET VENDORS (for dropdown)
+    // GET CONTRACT ITEMS WITH TAGS (For Invoice Comparison)
+    // =====================================================
+
+    public function getContractItemsWithTags($id)
+    {
+        try {
+            $contract = Contract::with(['items.category'])->findOrFail($id);
+
+            $items = $contract->items->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'category_id' => $item->category_id,
+                    'category_name' => $item->category->name ?? '',
+                    'quantity' => $item->quantity,
+                    'unit' => $item->unit,
+                    'rate' => $item->rate,
+                    'tag_id' => $item->tag_id,
+                    'tag_name' => $item->tag_name,
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'contract' => [
+                        'id' => $contract->id,
+                        'contract_number' => $contract->contract_number,
+                        'contract_value' => $contract->contract_value,
+                        'vendor_name' => $contract->vendor_name,
+                    ],
+                    'items' => $items,
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Contract Items Error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Contract not found'
+            ], 404);
+        }
+    }
+
+    // =====================================================
+    // GET REPORTING TAGS (Only Manager-Linked Tags)
+    // =====================================================
+
+    public function getReportingTags()
+    {
+        try {
+            $tags = ManagerTag::select('tag_id', 'tag_name')
+                ->distinct()
+                ->orderBy('tag_name')
+                ->get()
+                ->map(fn($t) => [
+                    'tag_id' => $t->tag_id,
+                    'tag_name' => $t->tag_name,
+                ])
+                ->toArray();
+
+            return response()->json([
+                'success' => true,
+                'data' => $tags
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Reporting Tags Error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load tags'
+            ], 500);
+        }
+    }
+
+    // =====================================================
+    // GET VENDORS
     // =====================================================
 
     public function getVendors()
@@ -513,7 +605,7 @@ class ContractController extends Controller
     }
 
     // =====================================================
-    // GET ORGANISATIONS (for dropdown)
+    // GET ORGANISATIONS
     // =====================================================
 
     public function getOrganisations()
@@ -536,7 +628,7 @@ class ContractController extends Controller
     }
 
     // =====================================================
-    // GET CATEGORIES (for dropdown)
+    // GET CATEGORIES
     // =====================================================
 
     public function getCategories()
@@ -560,7 +652,7 @@ class ContractController extends Controller
     }
 
     // =====================================================
-    // GET TEMPLATES (from public/agreements)
+    // GET TEMPLATES
     // =====================================================
 
     public function getTemplates()
@@ -589,7 +681,7 @@ class ContractController extends Controller
     }
 
     // =====================================================
-    // GET UNITS (for dropdown)
+    // GET UNITS
     // =====================================================
 
     public function getUnits()

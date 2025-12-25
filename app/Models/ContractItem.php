@@ -19,6 +19,8 @@ class ContractItem extends Model
         'amount',
         'invoiced_quantity',
         'invoiced_amount',
+         'tag_id',      // Add this
+    'tag_name',
     ];
 
     protected $casts = [

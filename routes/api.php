@@ -3,426 +3,237 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\UserController;
-use App\Http\Controllers\ContractController;
 use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\ZohoDataController;
+use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\TimesheetController;
+use App\Http\Controllers\Api\ManagerTagController;
+use App\Http\Controllers\Api\ContractController;
 use App\Http\Controllers\Api\VendorInvoiceController;
 use App\Http\Controllers\Api\VendorApprovalController;
 use App\Http\Controllers\Api\VendorContractController;
 use App\Http\Controllers\Api\VendorRegistrationController;
-use App\Http\Controllers\Api\ZohoDataController;
-use App\Http\Controllers\Api\TimesheetController;
-use App\Http\Controllers\Api\DashboardController;
 
 // =====================================================
 // VENDOR REGISTRATION (Public - No Auth)
 // =====================================================
 
 Route::prefix('vendor/registration')->group(function () {
-
-    // Get full vendor registration data
     Route::get('/data/{token}', [VendorRegistrationController::class, 'getRegistrationData']);
-
-    // Step 1 - Company Info + Contact Details
     Route::post('/step1/{token}', [VendorRegistrationController::class, 'saveStep1']);
-
-    // Step 2 - Statutory Info + Bank Details
     Route::post('/step2/{token}', [VendorRegistrationController::class, 'saveStep2']);
-
-    // Step 3 - Tax Info + Business Profile
     Route::post('/step3/{token}', [VendorRegistrationController::class, 'saveStep3']);
-
-    // Step 4 - KYC Documents + Final Submit
     Route::post('/step4/{token}', [VendorRegistrationController::class, 'saveStep4']);
 });
 
-
 // =====================================================
-// USER MANAGEMENT API (Requires Auth + Permissions)
+// ADMIN API ROUTES (Requires Auth + Permissions)
 // =====================================================
 
-Route::prefix('admin/users')->middleware(['web', 'auth'])->group(function () {
+Route::middleware(['web', 'auth'])->group(function () {
+
+    // =====================================================
+    // USER API
+    // =====================================================
     
-    // View users - requires view-users permission
-    Route::get('/', [UserController::class, 'index'])
-        ->middleware('permission:view-users');
+    Route::prefix('admin/users')->group(function () {
+        Route::get('/', [UserController::class, 'index'])->middleware('permission:view-users');
+        Route::get('/roles', [UserController::class, 'getRoles'])->middleware('permission:view-users');
+        Route::get('/{id}', [UserController::class, 'show'])->middleware('permission:view-users');
+        Route::post('/', [UserController::class, 'store'])->middleware('permission:create-users');
+        Route::put('/{id}', [UserController::class, 'update'])->middleware('permission:edit-users');
+        Route::delete('/{id}', [UserController::class, 'destroy'])->middleware('permission:delete-users');
+    });
+
+    // =====================================================
+    // ROLE API
+    // =====================================================
     
-    Route::get('/roles', [UserController::class, 'getRoles'])
-        ->middleware('permission:view-users');
+    Route::prefix('admin/roles')->group(function () {
+        Route::get('/', [RoleController::class, 'index'])->middleware('permission:view-roles');
+        Route::get('/permissions', [RoleController::class, 'getPermissions'])->middleware('permission:view-roles');
+        Route::get('/{id}', [RoleController::class, 'show'])->middleware('permission:view-roles');
+        Route::post('/', [RoleController::class, 'store'])->middleware('permission:create-roles');
+        Route::put('/{id}', [RoleController::class, 'update'])->middleware('permission:edit-roles');
+        Route::delete('/{id}', [RoleController::class, 'destroy'])->middleware('permission:delete-roles');
+    });
+
+    // =====================================================
+    // VENDOR APPROVAL API
+    // =====================================================
     
-    Route::get('/{id}', [UserController::class, 'show'])
-        ->middleware('permission:view-users');
+    Route::prefix('vendor/approval')->group(function () {
+        Route::get('/pending', [VendorApprovalController::class, 'getPendingVendors'])->middleware('permission:view-vendors');
+        Route::get('/status/{status}', [VendorApprovalController::class, 'getVendorsByStatus'])->middleware('permission:view-vendors');
+        Route::get('/statistics', [VendorApprovalController::class, 'getStatistics'])->middleware('permission:view-vendors');
+        Route::get('/{id}/details', [VendorApprovalController::class, 'getVendorDetails'])->middleware('permission:view-vendors');
+        Route::get('/{id}/history', [VendorApprovalController::class, 'getVendorHistory'])->middleware('permission:view-vendors');
+        Route::post('/{id}/approve', [VendorApprovalController::class, 'approveVendor'])->middleware('permission:approve-vendors');
+        Route::post('/{id}/reject', [VendorApprovalController::class, 'rejectVendor'])->middleware('permission:reject-vendors');
+        Route::post('/{id}/request-revision', [VendorApprovalController::class, 'requestRevision'])->middleware('permission:edit-vendors');
+        Route::put('/{id}/company-info', [VendorApprovalController::class, 'updateCompanyInfo'])->middleware('permission:edit-vendors');
+        Route::put('/{id}/contact', [VendorApprovalController::class, 'updateContact'])->middleware('permission:edit-vendors');
+        Route::put('/{id}/statutory-info', [VendorApprovalController::class, 'updateStatutoryInfo'])->middleware('permission:edit-vendors');
+        Route::put('/{id}/bank-details', [VendorApprovalController::class, 'updateBankDetails'])->middleware('permission:edit-vendors');
+        Route::put('/{id}/tax-info', [VendorApprovalController::class, 'updateTaxInfo'])->middleware('permission:edit-vendors');
+        Route::put('/{id}/business-profile', [VendorApprovalController::class, 'updateBusinessProfile'])->middleware('permission:edit-vendors');
+    });
     
-    // Create user - requires create-users permission
-    Route::post('/', [UserController::class, 'store'])
-        ->middleware('permission:create-users');
+    Route::post('/vendors/{id}/sync-zoho', [VendorApprovalController::class, 'syncToZoho'])->middleware('permission:sync-vendors');
+
+    // =====================================================
+    // INVOICE API
+    // =====================================================
     
-    // Edit user - requires edit-users permission
-    Route::put('/{id}', [UserController::class, 'update'])
-        ->middleware('permission:edit-users');
+    Route::prefix('admin/invoices')->group(function () {
+        Route::get('/statistics', [InvoiceController::class, 'getStatistics'])->middleware('permission:view-invoices');
+        Route::get('/pending', [InvoiceController::class, 'getPending'])->middleware('permission:view-invoices');
+        Route::get('/status/{status}', [InvoiceController::class, 'getByStatus'])->middleware('permission:view-invoices');
+        Route::get('/vendors', [InvoiceController::class, 'getVendors'])->middleware('permission:view-invoices');
+        Route::get('/', [InvoiceController::class, 'index'])->middleware('permission:view-invoices');
+        Route::get('/{id}', [InvoiceController::class, 'show'])->middleware('permission:view-invoices');
+        Route::get('/{invoiceId}/attachment/{attachmentId}/download', [InvoiceController::class, 'downloadAttachment'])->middleware('permission:view-invoices');
+        Route::post('/{id}/start-review', [InvoiceController::class, 'startReview'])->middleware('permission:review-invoices');
+        Route::post('/{id}/approve', [InvoiceController::class, 'approve'])->middleware('permission:approve-invoices');
+        Route::post('/{id}/reject', [InvoiceController::class, 'reject'])->middleware('permission:reject-invoices');
+        Route::post('/{id}/mark-paid', [InvoiceController::class, 'markAsPaid'])->middleware('permission:pay-invoices');
+        Route::post('/{id}/update-taxes', [InvoiceController::class, 'updateTaxes'])->middleware('permission:edit-invoices');
+        Route::post('/{id}/push-to-zoho', [InvoiceController::class, 'pushToZoho'])->middleware('permission:sync-invoices');
+        Route::post('/{id}/sync-from-zoho', [InvoiceController::class, 'syncFromZoho'])->middleware('permission:sync-invoices');
+        Route::post('/sync-all-from-zoho', [InvoiceController::class, 'syncAllFromZoho'])->middleware('permission:sync-invoices');
+
+        // Change Tag (RM can reassign)
+Route::post('/{id}/change-tag', [InvoiceController::class, 'changeTag'])->middleware('permission:approve-invoices');
+
+// Update Invoice (Finance can edit)
+Route::put('/{id}/update', [InvoiceController::class, 'updateInvoice'])->middleware('permission:edit-invoices');
+    });
+
+    // =====================================================
+    // CONTRACT API
+    // =====================================================
     
-    // Delete user - requires delete-users permission
-    Route::delete('/{id}', [UserController::class, 'destroy'])
-        ->middleware('permission:delete-users');
+    Route::prefix('admin/contracts')->group(function () {
+        Route::get('/statistics', [ContractController::class, 'getStatistics'])->middleware('permission:view-contracts');
+        Route::get('/vendors', [ContractController::class, 'getVendors'])->middleware('permission:view-contracts');
+        Route::get('/organisations', [ContractController::class, 'getOrganisations'])->middleware('permission:view-contracts');
+        Route::get('/categories', [ContractController::class, 'getCategories'])->middleware('permission:view-contracts');
+        Route::get('/templates', [ContractController::class, 'getTemplates'])->middleware('permission:view-contracts');
+        Route::get('/units', [ContractController::class, 'getUnits'])->middleware('permission:view-contracts');
+        Route::post('/upload-document', [ContractController::class, 'uploadDocument'])->middleware('permission:edit-contracts');
+        Route::get('/', [ContractController::class, 'index'])->middleware('permission:view-contracts');
+        Route::post('/', [ContractController::class, 'store'])->middleware('permission:create-contracts');
+        Route::get('/{id}', [ContractController::class, 'show'])->middleware('permission:view-contracts');
+        Route::put('/{id}', [ContractController::class, 'update'])->middleware('permission:edit-contracts');
+        Route::delete('/{id}', [ContractController::class, 'destroy'])->middleware('permission:delete-contracts');
+        Route::patch('/{id}/status', [ContractController::class, 'updateStatus'])->middleware('permission:edit-contracts');
+    });
+
+    // =====================================================
+    // CATEGORY API
+    // =====================================================
+    
+    Route::prefix('admin/categories')->group(function () {
+        Route::get('/statistics', [CategoryController::class, 'getStatistics'])->middleware('permission:view-categories');
+        Route::get('/active', [CategoryController::class, 'getActive'])->middleware('permission:view-categories');
+        Route::get('/', [CategoryController::class, 'index'])->middleware('permission:view-categories');
+        Route::get('/{id}', [CategoryController::class, 'show'])->middleware('permission:view-categories');
+        Route::post('/', [CategoryController::class, 'store'])->middleware('permission:create-categories');
+        Route::put('/{id}', [CategoryController::class, 'update'])->middleware('permission:edit-categories');
+        Route::delete('/{id}', [CategoryController::class, 'destroy'])->middleware('permission:delete-categories');
+        Route::post('/{id}/toggle-status', [CategoryController::class, 'toggleStatus'])->middleware('permission:edit-categories');
+    });
+
+    // =====================================================
+    // MANAGER TAGS API
+    // =====================================================
+    
+  Route::prefix('admin/manager-tags')->group(function () {
+    Route::get('/', [ManagerTagController::class, 'index'])->middleware('permission:view-manager-tags');
+    Route::get('/managers-dropdown', [ManagerTagController::class, 'managersDropdown'])->middleware('permission:view-manager-tags');
+    Route::get('/tags-dropdown', [ManagerTagController::class, 'tagsDropdown'])->middleware('permission:view-invoices');
+    Route::get('/assigned-tags-dropdown', [ManagerTagController::class, 'assignedTagsDropdown'])->middleware('permission:view-invoices');
+    Route::post('/', [ManagerTagController::class, 'store'])->middleware('permission:create-manager-tags');
+    Route::delete('/{userId}', [ManagerTagController::class, 'destroy'])->middleware('permission:delete-manager-tags');
+});
+
+    // =====================================================
+    // ZOHO DATA API
+    // =====================================================
+    
+    Route::prefix('zoho')->group(function () {
+        Route::get('/chart-of-accounts', [ZohoDataController::class, 'getChartOfAccounts'])->middleware('permission:view-zoho-data');
+        Route::get('/expense-accounts', [ZohoDataController::class, 'getExpenseAccounts'])->middleware('permission:view-zoho-data');
+        Route::get('/taxes', [ZohoDataController::class, 'getTaxes'])->middleware('permission:view-zoho-data');
+        Route::get('/tax-groups', [ZohoDataController::class, 'getTaxGroups'])->middleware('permission:view-zoho-data');
+        Route::get('/reporting-tags', function() {
+            try {
+                $zohoService = new \App\Services\ZohoService();
+                $tags = $zohoService->getReportingTags();
+                return response()->json(['success' => true, 'data' => array_values($tags)]);
+            } catch (\Exception $e) {
+                return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+            }
+        })->middleware('permission:view-zoho-data');
+    });
+
+    // =====================================================
+    // DASHBOARD API
+    // =====================================================
+    
+    Route::prefix('dashboard')->group(function () {
+        Route::get('/summary', [DashboardController::class, 'summary'])->middleware('permission:view-dashboard');
+        Route::get('/focus-items', [DashboardController::class, 'focusItems'])->middleware('permission:view-dashboard');
+        Route::get('/recent-activity', [DashboardController::class, 'recentActivity'])->middleware('permission:view-dashboard');
+        Route::get('/sync-status', [DashboardController::class, 'syncStatus'])->middleware('permission:view-dashboard');
+        Route::post('/sync-all', [DashboardController::class, 'syncAll'])->middleware('permission:sync-dashboard');
+        Route::post('/sync-vendors', [DashboardController::class, 'syncVendors'])->middleware('permission:sync-dashboard');
+        Route::post('/import-from-zoho', [DashboardController::class, 'importFromZoho'])->middleware('permission:sync-dashboard');
+    });
+
+    // =====================================================
+    // TIMESHEET API
+    // =====================================================
+    
+    Route::post('/timesheet/validate', [TimesheetController::class, 'validateTimesheet'])->middleware('permission:view-invoices');
+
 });
 
 // =====================================================
-// ROLE MANAGEMENT API (Requires Auth + Permissions)
+// VENDOR PORTAL API (Requires Vendor Auth)
 // =====================================================
 
-Route::prefix('admin/roles')->middleware(['web', 'auth'])->group(function () {
-    
-    // View roles - requires view-roles permission
-    Route::get('/', [RoleController::class, 'index'])
-        ->middleware('permission:view-roles');
-    
-    Route::get('/permissions', [RoleController::class, 'getPermissions'])
-        ->middleware('permission:view-roles');
-    
-    Route::get('/{id}', [RoleController::class, 'show'])
-        ->middleware('permission:view-roles');
-    
-    // Create role - requires create-roles permission
-    Route::post('/', [RoleController::class, 'store'])
-        ->middleware('permission:create-roles');
-    
-    // Edit role - requires edit-roles permission
-    Route::put('/{id}', [RoleController::class, 'update'])
-        ->middleware('permission:edit-roles');
-    
-    // Delete role - requires delete-roles permission
-    Route::delete('/{id}', [RoleController::class, 'destroy'])
-        ->middleware('permission:delete-roles');
-});
+Route::middleware(['web', 'auth:vendor'])->group(function () {
 
-// =====================================================
-// VENDOR APPROVAL API (Requires Auth + Permissions)
-// =====================================================
+    // =====================================================
+    // VENDOR INVOICE API
+    // =====================================================
+    
+    Route::prefix('vendor/invoices')->group(function () {
+        Route::get('/statistics', [VendorInvoiceController::class, 'getStatistics']);
+        Route::get('/contracts', [VendorInvoiceController::class, 'getContracts']);
+        Route::get('/status/{status}', [VendorInvoiceController::class, 'getByStatus']);
+        Route::get('/', [VendorInvoiceController::class, 'index']);
+        Route::post('/', [VendorInvoiceController::class, 'store']);
+        Route::get('/{id}', [VendorInvoiceController::class, 'show']);
+        Route::post('/{id}/update', [VendorInvoiceController::class, 'update']);
+        Route::post('/{id}/submit', [VendorInvoiceController::class, 'submit']);
+        Route::delete('/{id}', [VendorInvoiceController::class, 'destroy']);
+        Route::get('/{invoiceId}/attachment/{attachmentId}/download', [VendorInvoiceController::class, 'downloadAttachment']);
+    });
 
-Route::prefix('vendor/approval')->middleware(['web', 'auth'])->group(function () {
+    // =====================================================
+    // VENDOR CONTRACT API
+    // =====================================================
     
-    // View vendor approvals - requires view-vendors permission
-    Route::get('/pending', [VendorApprovalController::class, 'getPendingVendors'])
-        ->middleware('permission:view-vendors');
-    
-    Route::get('/status/{status}', [VendorApprovalController::class, 'getVendorsByStatus'])
-        ->middleware('permission:view-vendors');
-    
-    Route::get('/statistics', [VendorApprovalController::class, 'getStatistics'])
-        ->middleware('permission:view-vendors');
-    
-    Route::get('/{id}/details', [VendorApprovalController::class, 'getVendorDetails'])
-        ->middleware('permission:view-vendors');
-    
-    Route::get('/{id}/history', [VendorApprovalController::class, 'getVendorHistory'])
-        ->middleware('permission:view-vendors');
-    
-    // Approve vendor - requires approve-vendors permission
-    Route::post('/{id}/approve', [VendorApprovalController::class, 'approveVendor'])
-        ->middleware('permission:approve-vendors');
-    
-    // Reject vendor - requires reject-vendors permission
-    Route::post('/{id}/reject', [VendorApprovalController::class, 'rejectVendor'])
-        ->middleware('permission:reject-vendors');
-    
-    // Edit vendor info - requires edit-vendors permission
-    Route::post('/{id}/request-revision', [VendorApprovalController::class, 'requestRevision'])
-        ->middleware('permission:edit-vendors');
-    
-    Route::put('/{id}/company-info', [VendorApprovalController::class, 'updateCompanyInfo'])
-        ->middleware('permission:edit-vendors');
-    
-    Route::put('/{id}/contact', [VendorApprovalController::class, 'updateContact'])
-        ->middleware('permission:edit-vendors');
-    
-    Route::put('/{id}/statutory-info', [VendorApprovalController::class, 'updateStatutoryInfo'])
-        ->middleware('permission:edit-vendors');
-    
-    Route::put('/{id}/bank-details', [VendorApprovalController::class, 'updateBankDetails'])
-        ->middleware('permission:edit-vendors');
-    
-    Route::put('/{id}/tax-info', [VendorApprovalController::class, 'updateTaxInfo'])
-        ->middleware('permission:edit-vendors');
-    
-    Route::put('/{id}/business-profile', [VendorApprovalController::class, 'updateBusinessProfile'])
-        ->middleware('permission:edit-vendors');
-});
-
-// ZHOO API ROUTE FOR MANULA SYNCING
-Route::post('/vendors/{id}/sync-zoho', [VendorApprovalController::class, 'syncToZoho']);
-
-
-// =====================================================
-// VENDOR INVOICE API (Vendor Portal - Requires Vendor Auth)
-// =====================================================
-
-Route::prefix('vendor/invoices')->middleware(['web', 'auth:vendor'])->group(function () {
-    
-    // Get statistics
-    Route::get('/statistics', [VendorInvoiceController::class, 'getStatistics']);
-    
-    // Get contracts for dropdown
-    Route::get('/contracts', [VendorInvoiceController::class, 'getContracts']);
-    
-    // Get invoices by status
-    Route::get('/status/{status}', [VendorInvoiceController::class, 'getByStatus']);
-    
-    // List all invoices
-    Route::get('/', [VendorInvoiceController::class, 'index']);
-    
-    // Create new invoice
-    Route::post('/', [VendorInvoiceController::class, 'store']);
-    
-    // Get invoice details
-    Route::get('/{id}', [VendorInvoiceController::class, 'show']);
-    
-    // Update invoice (POST for file upload)
-    Route::post('/{id}/update', [VendorInvoiceController::class, 'update']);
-    
-    // Submit invoice for approval
-    Route::post('/{id}/submit', [VendorInvoiceController::class, 'submit']);
-    
-    // Delete draft invoice
-    Route::delete('/{id}', [VendorInvoiceController::class, 'destroy']);
-    
-    // Download attachment
-    Route::get('/{invoiceId}/attachment/{attachmentId}/download', [VendorInvoiceController::class, 'downloadAttachment']);
+    Route::prefix('vendor/contracts')->group(function () {
+        Route::get('/statistics', [VendorContractController::class, 'getStatistics']);
+        Route::get('/dropdown', [VendorContractController::class, 'getContractsDropdown']);
+        Route::get('/{id}/items', [VendorContractController::class, 'getContractItems']);
+        Route::get('/', [VendorContractController::class, 'index']);
+        Route::get('/{id}', [VendorContractController::class, 'show']);
+    });
 
 });
-
-
-// =====================================================
-// ADMIN INVOICE API (Internal Portal - Requires Auth + Permissions)
-// =====================================================
-
-Route::prefix('admin/invoices')->middleware(['web', 'auth'])->group(function () {
-    
-    // View invoices - requires view-invoices permission
-    Route::get('/statistics', [InvoiceController::class, 'getStatistics'])
-        ->middleware('permission:view-invoices');
-    
-    Route::get('/pending', [InvoiceController::class, 'getPending'])
-        ->middleware('permission:view-invoices');
-    
-    Route::get('/status/{status}', [InvoiceController::class, 'getByStatus'])
-        ->middleware('permission:view-invoices');
-    
-    Route::get('/vendors', [InvoiceController::class, 'getVendors'])
-        ->middleware('permission:view-invoices');
-    
-    Route::get('/', [InvoiceController::class, 'index'])
-        ->middleware('permission:view-invoices');
-    
-    Route::get('/{id}', [InvoiceController::class, 'show'])
-        ->middleware('permission:view-invoices');
-    
-    Route::get('/{invoiceId}/attachment/{attachmentId}/download', [InvoiceController::class, 'downloadAttachment'])
-        ->middleware('permission:view-invoices');
-    
-    // Review invoices - requires review-invoices permission
-    Route::post('/{id}/start-review', [InvoiceController::class, 'startReview'])
-        ->middleware('permission:review-invoices');
-    
-    // Approve invoices - requires approve-invoices permission
-    Route::post('/{id}/approve', [InvoiceController::class, 'approve'])
-        ->middleware('permission:approve-invoices');
-    
-    // Reject invoices - requires reject-invoices permission
-    Route::post('/{id}/reject', [InvoiceController::class, 'reject'])
-        ->middleware('permission:reject-invoices');
-    
-    // Mark paid - requires pay-invoices permission
-    Route::post('/{id}/mark-paid', [InvoiceController::class, 'markAsPaid'])
-        ->middleware('permission:pay-invoices');
-
-Route::post('/invoices/{id}/push-to-zoho', [InvoiceController::class, 'pushToZoho']);
-    Route::post('/invoices/{id}/sync-from-zoho', [InvoiceController::class, 'syncFromZoho']);
-    Route::post('/invoices/sync-all-from-zoho', [InvoiceController::class, 'syncAllFromZoho']);
-    
-
-
-
-
-// Zoho Data Routes (for dropdowns)
-Route::middleware('auth:sanctum')->prefix('zoho')->group(function () {
-    Route::get('/chart-of-accounts', [ZohoDataController::class, 'getChartOfAccounts']);
-    Route::get('/expense-accounts', [ZohoDataController::class, 'getExpenseAccounts']);
-    Route::get('/taxes', [ZohoDataController::class, 'getTaxes']);
-    Route::get('/tax-groups', [ZohoDataController::class, 'getTaxGroups']);
-});
-
-
-
-});
-
-
-
-Route::prefix('admin/categories')->middleware(['web', 'auth'])->group(function () {
-    
-    Route::get('/statistics', [CategoryController::class, 'getStatistics']);
-    Route::get('/active', [CategoryController::class, 'getActive']); // For dropdowns
-    Route::get('/', [CategoryController::class, 'index']);
-    Route::get('/{id}', [CategoryController::class, 'show']);
-    Route::post('/', [CategoryController::class, 'store']);
-    Route::put('/{id}', [CategoryController::class, 'update']);
-    Route::delete('/{id}', [CategoryController::class, 'destroy']);
-    Route::post('/{id}/toggle-status', [CategoryController::class, 'toggleStatus']);
-
-});
-
-
-
-// =====================================================
-// CONTRACT API (Admin - Requires Auth)
-// =====================================================
-
-Route::prefix('admin/contracts')->middleware(['web', 'auth'])->group(function () {
-    
-    // Statistics
-    Route::get('/statistics', [App\Http\Controllers\Api\ContractController::class, 'getStatistics']);
-    
-    // Dropdowns
-    Route::get('/vendors', [App\Http\Controllers\Api\ContractController::class, 'getVendors']);
-    Route::get('/organisations', [App\Http\Controllers\Api\ContractController::class, 'getOrganisations']);
-    Route::get('/categories', [App\Http\Controllers\Api\ContractController::class, 'getCategories']);
-    Route::get('/templates', [App\Http\Controllers\Api\ContractController::class, 'getTemplates']);
-    Route::get('/units', [App\Http\Controllers\Api\ContractController::class, 'getUnits']);
-    
-    // Upload Document (to any contract from Index page)
-    Route::post('/upload-document', [App\Http\Controllers\Api\ContractController::class, 'uploadDocument']);
-
-    // CRUD
-    Route::get('/', [App\Http\Controllers\Api\ContractController::class, 'index']);
-    Route::post('/', [App\Http\Controllers\Api\ContractController::class, 'store']);
-    Route::get('/{id}', [App\Http\Controllers\Api\ContractController::class, 'show']);
-    Route::put('/{id}', [App\Http\Controllers\Api\ContractController::class, 'update']);
-    Route::delete('/{id}', [App\Http\Controllers\Api\ContractController::class, 'destroy']);
-    
-    // Status Update
-    Route::patch('/{id}/status', [App\Http\Controllers\Api\ContractController::class, 'updateStatus']);
-});
-
-
-
-
-
-
-// =====================================================
-// VENDOR CONTRACT API ROUTES
-// =====================================================
-
-Route::prefix('vendor/contracts')->middleware(['web', 'auth:vendor'])->group(function () {
-    
-    // Statistics
-    Route::get('/statistics', [VendorContractController::class, 'getStatistics']);
-    
-    // Contracts dropdown (for invoice form)
-    Route::get('/dropdown', [VendorContractController::class, 'getContractsDropdown']);
-    
-    // Contract items (for invoice form)
-    Route::get('/{id}/items', [VendorContractController::class, 'getContractItems']);
-    
-    // List & View
-    Route::get('/', [VendorContractController::class, 'index']);
-    Route::get('/{id}', [VendorContractController::class, 'show']);
-});
-
-
-
-
-
-
-// =====================================================
-// ZOHO DATA API ROUTES (for dropdowns)
-// =====================================================
-
-Route::prefix('zoho')->middleware(['web', 'auth'])->group(function () {
-    Route::get('/chart-of-accounts', [ZohoDataController::class, 'getChartOfAccounts']);
-    Route::get('/expense-accounts', [ZohoDataController::class, 'getExpenseAccounts']);
-    Route::get('/taxes', [ZohoDataController::class, 'getTaxes']);
-    Route::get('/tax-groups', [ZohoDataController::class, 'getTaxGroups']);
-});
-
-
-
-
-// Timesheet validation
-Route::post('/timesheet/validate', [TimesheetController::class, 'validateTimesheet']);
-
-
-// Inside admin invoices group
-Route::post('/admin/invoices/{id}/update-taxes', [InvoiceController::class, 'updateTaxes']);
-
-
-
-
-// Zoho Reporting Tags
-Route::get('/zoho/reporting-tags', function() {
-    try {
-        $zohoService = new \App\Services\ZohoService();
-        $tags = $zohoService->getReportingTags();
-        
-        return response()->json([
-            'success' => true,
-            'data' => array_values($tags) // Reset array keys
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'error' => $e->getMessage()
-        ], 500);
-    }
-});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Route::prefix('dashboard')->middleware(['web', 'auth'])->group(function () {
-    Route::get('/summary', [DashboardController::class, 'summary']);
-    Route::get('/focus-items', [DashboardController::class, 'focusItems']);
-    Route::get('/recent-activity', [DashboardController::class, 'recentActivity']);
-    Route::get('/sync-status', [DashboardController::class, 'syncStatus']);
-    Route::post('/sync-all', [DashboardController::class, 'syncAll']);
-    Route::post('/sync-vendors', [DashboardController::class, 'syncVendors']);
-    Route::post('/import-from-zoho', [DashboardController::class, 'importFromZoho']);
-});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

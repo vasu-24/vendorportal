@@ -26,6 +26,145 @@ class InvoiceController extends Controller
     /**
      * Get invoice statistics for dashboard
      */
+
+
+
+
+
+
+
+
+// =====================================================
+// UPDATE INVOICE (Finance can edit full invoice)
+// =====================================================
+
+/**
+ * Finance can edit the full invoice
+ */
+public function updateInvoice(Request $request, $id)
+{
+    try {
+        $user = Auth::user();
+        $userRole = $user->role->slug ?? 'viewer';
+        
+        // Only Finance or Super Admin can edit
+        if (!in_array($userRole, ['finance', 'super-admin'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Only Finance team can edit invoices.'
+            ], 403);
+        }
+
+        $invoice = Invoice::with('items')->findOrFail($id);
+
+        // Can only edit when status is pending_finance
+        if (!in_array($invoice->status, ['pending_finance']) && $userRole !== 'super-admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invoice can only be edited at Finance stage.'
+            ], 400);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'invoice_number' => 'sometimes|string|max:50',
+            'invoice_date' => 'sometimes|date',
+            'due_date' => 'sometimes|nullable|date',
+            'description' => 'sometimes|nullable|string|max:1000',
+            'base_total' => 'sometimes|numeric|min:0',
+            'gst_percent' => 'sometimes|numeric|min:0|max:100',
+            'gst_total' => 'sometimes|numeric|min:0',
+            'tds_percent' => 'sometimes|numeric|min:0|max:100',
+            'tds_amount' => 'sometimes|numeric|min:0',
+            'grand_total' => 'sometimes|numeric|min:0',
+            'net_payable' => 'sometimes|numeric|min:0',
+            'remarks' => 'sometimes|nullable|string|max:1000',
+            'items' => 'sometimes|array',
+            'items.*.id' => 'sometimes|exists:invoice_items,id',
+            'items.*.particulars' => 'sometimes|string|max:255',
+            'items.*.quantity' => 'sometimes|numeric|min:0',
+            'items.*.rate' => 'sometimes|numeric|min:0',
+            'items.*.amount' => 'sometimes|numeric|min:0',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // Update invoice fields
+        $invoiceData = $request->only([
+            'invoice_number',
+            'invoice_date',
+            'due_date',
+            'description',
+            'base_total',
+            'gst_percent',
+            'gst_total',
+            'tds_percent',
+            'tds_amount',
+            'grand_total',
+            'net_payable',
+            'remarks',
+            'zoho_gst_tax_id',
+            'zoho_tds_tax_id',
+        ]);
+
+        if (!empty($invoiceData)) {
+            $invoice->update($invoiceData);
+        }
+
+        // Update line items if provided
+        if ($request->has('items') && is_array($request->items)) {
+            foreach ($request->items as $itemData) {
+                if (isset($itemData['id'])) {
+                    $item = \App\Models\InvoiceItem::find($itemData['id']);
+                    if ($item && $item->invoice_id === $invoice->id) {
+                        $item->update([
+                            'particulars' => $itemData['particulars'] ?? $item->particulars,
+                            'quantity' => $itemData['quantity'] ?? $item->quantity,
+                            'rate' => $itemData['rate'] ?? $item->rate,
+                            'amount' => $itemData['amount'] ?? $item->amount,
+                        ]);
+                    }
+                }
+            }
+        }
+
+        Log::info('Invoice updated by Finance', [
+            'invoice_id' => $invoice->id,
+            'updated_by' => $user->id,
+            'updated_fields' => array_keys($invoiceData),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Invoice updated successfully.',
+            'data' => $invoice->fresh()->load(['items', 'vendor', 'contract']),
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Update Invoice Error: ' . $e->getMessage());
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Something went wrong.'
+        ], 500);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
     public function getStatistics()
     {
         try {
@@ -66,74 +205,160 @@ class InvoiceController extends Controller
     /**
      * Get all invoices with filters
      */
-    public function index(Request $request)
-    {
-        try {
-            $query = Invoice::with([
-                    'vendor', 
-                    'vendor.companyInfo', 
-                    'attachments', 
-                    'contract', 
-                    'items', 
-                    'items.category'
-                ])
-                ->orderBy('created_at', 'desc');
+public function index(Request $request)
+{
+    try {
+        $user = Auth::user();
+        $userId = $user->id;
+        $userRole = $user->role->slug ?? 'viewer';
+        
+        $query = Invoice::with([
+            'vendor', 
+            'vendor.companyInfo', 
+            'attachments', 
+            'contract', 
+            'items', 
+            'items.contractItem',
+            'items.contractItem.category'
+        ]);
 
-            // Filter by status
-            if ($request->has('status') && $request->status !== 'all') {
-                if ($request->status === 'pending') {
-                    $query->whereIn('status', ['submitted', 'under_review', 'resubmitted']);
-                } else {
-                    $query->where('status', $request->status);
-                }
-            }
-
-            // Filter by type
-            if ($request->has('type') && $request->type !== 'all') {
-                $query->where('invoice_type', $request->type);
-            }
-
-            // Filter by vendor
-            if ($request->has('vendor_id') && $request->vendor_id) {
-                $query->where('vendor_id', $request->vendor_id);
-            }
-
-            // Filter by date range
-            if ($request->has('from_date') && $request->from_date) {
-                $query->whereDate('invoice_date', '>=', $request->from_date);
-            }
-            if ($request->has('to_date') && $request->to_date) {
-                $query->whereDate('invoice_date', '<=', $request->to_date);
-            }
-
-            // Search
-            if ($request->has('search') && $request->search) {
-                $search = $request->search;
-                $query->where(function ($q) use ($search) {
-                    $q->where('invoice_number', 'like', "%{$search}%")
-                      ->orWhere('description', 'like', "%{$search}%")
-                      ->orWhereHas('vendor', function ($q2) use ($search) {
-                          $q2->where('vendor_name', 'like', "%{$search}%");
-                      });
-                });
-            }
-
-            $invoices = $query->paginate($request->get('per_page', 15));
-
-            return response()->json([
-                'success' => true,
-                'data' => $invoices
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Get Invoices Error: ' . $e->getMessage());
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Something went wrong.'
-            ], 500);
+        // =====================================================
+        // ROLE-BASED FILTERING
+        // =====================================================
+        
+        if ($userRole === 'super-admin') {
+            // Super Admin sees ALL invoices - NO RESTRICTIONS
+            // No filter needed
+            
+        } elseif ($userRole === 'manager') {
+            // RM sees:
+            // 1. Invoices assigned to them (any status including rejected)
+            // 2. Unassigned submitted/resubmitted invoices with their tag
+            $userTagIds = \App\Models\ManagerTag::where('user_id', $userId)->pluck('tag_id')->toArray();
+            
+            $query->where(function($q) use ($userId, $userTagIds) {
+                // Assigned to this RM (includes rejected)
+                $q->where('assigned_rm_id', $userId)
+                  // OR unassigned submitted/resubmitted with matching tag
+                  ->orWhere(function($q2) use ($userTagIds) {
+                      $q2->whereIn('status', ['submitted', 'resubmitted'])
+                         ->where(function($q3) use ($userTagIds) {
+                             $q3->whereIn('assigned_tag_id', $userTagIds)
+                                ->orWhereNull('assigned_rm_id');
+                         });
+                  });
+            });
+            
+        } elseif ($userRole === 'vp') {
+            // VOO sees:
+            // 1. pending_vp (need to approve)
+            // 2. pending_ceo, pending_finance, approved, paid (already passed VOO)
+            // 3. rejected at VOO level or AFTER (VOO, CEO, Finance, Super Admin)
+            $query->where(function($q) {
+                $q->where('status', 'pending_vp')
+                  ->orWhereIn('status', ['pending_ceo', 'pending_finance', 'approved', 'paid'])
+                  ->orWhere(function($q2) {
+                      $q2->where('status', 'rejected')
+                         ->whereIn('rejected_by_role', ['VOO', 'CEO', 'Finance', 'Super Admin']);
+                  });
+            });
+            
+        } elseif ($userRole === 'ceo') {
+            // CEO sees:
+            // 1. pending_ceo (need to approve)
+            // 2. pending_finance, approved, paid (already passed CEO)
+            // 3. rejected at CEO level or AFTER (CEO, Finance, Super Admin)
+            $query->where(function($q) {
+                $q->where('status', 'pending_ceo')
+                  ->orWhereIn('status', ['pending_finance', 'approved', 'paid'])
+                  ->orWhere(function($q2) {
+                      $q2->where('status', 'rejected')
+                         ->whereIn('rejected_by_role', ['CEO', 'Finance', 'Super Admin']);
+                  });
+            });
+            
+        } elseif ($userRole === 'finance') {
+            // Finance sees:
+            // 1. pending_finance (need to approve)
+            // 2. approved, paid (history)
+            // 3. rejected at Finance level or AFTER (Finance, Super Admin)
+            $query->where(function($q) {
+                $q->whereIn('status', ['pending_finance', 'approved', 'paid'])
+                  ->orWhere(function($q2) {
+                      $q2->where('status', 'rejected')
+                         ->whereIn('rejected_by_role', ['Finance', 'Super Admin']);
+                  });
+            });
+            
+        } elseif ($userRole === 'viewer') {
+            // Viewer sees only approved + paid
+            $query->whereIn('status', ['approved', 'paid']);
+            
+        } else {
+            // Unknown role - see nothing
+            $query->whereRaw('1 = 0');
         }
+
+        // =====================================================
+        // ADDITIONAL FILTERS (from request)
+        // =====================================================
+
+        // Filter by status
+        if ($request->has('status') && $request->status !== 'all') {
+            if ($request->status === 'pending') {
+                $query->whereIn('status', ['submitted', 'under_review', 'resubmitted', 'pending_rm', 'pending_vp', 'pending_ceo', 'pending_finance']);
+            } else {
+                $query->where('status', $request->status);
+            }
+        }
+
+        // Filter by type
+        if ($request->has('type') && $request->type !== 'all') {
+            $query->where('invoice_type', $request->type);
+        }
+
+        // Filter by vendor
+        if ($request->has('vendor_id') && $request->vendor_id) {
+            $query->where('vendor_id', $request->vendor_id);
+        }
+
+        // Filter by date range
+        if ($request->has('from_date') && $request->from_date) {
+            $query->whereDate('invoice_date', '>=', $request->from_date);
+        }
+        if ($request->has('to_date') && $request->to_date) {
+            $query->whereDate('invoice_date', '<=', $request->to_date);
+        }
+
+        // Search
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('invoice_number', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhereHas('vendor', function ($q2) use ($search) {
+                      $q2->where('vendor_name', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $invoices = $query->orderBy('created_at', 'desc')->paginate($request->get('per_page', 15));
+
+        return response()->json([
+            'success' => true,
+            'data' => $invoices,
+            'user_role' => $userRole
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Get Invoices Error: ' . $e->getMessage());
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Something went wrong.'
+        ], 500);
     }
+}
 
     // =====================================================
     // GET PENDING INVOICES
@@ -218,78 +443,323 @@ class InvoiceController extends Controller
     /**
      * Get single invoice details
      */
-    public function show($id)
-    {
-        try {
-            $invoice = Invoice::with([
-                'vendor',
-                'vendor.companyInfo',
-                'contract',
-                'attachments',
-                'items',
-                'items.category',
-                'reviewedByUser',
-                'approvedByUser',
-                'rejectedByUser'
-            ])->findOrFail($id);
+  public function show($id)
+{
+    try {
+        $user = Auth::user();
+        $userId = $user->id;
+        $userRole = $user->role->slug ?? 'viewer';
+        
+        $invoice = Invoice::with([
+            'vendor',
+            'vendor.companyInfo',
+            'vendor.contact',
+            'vendor.statutoryInfo',
+            'contract',
+            'contract.items',
+            'contract.items.category',
+            'attachments',
+            'items',
+            'items.contractItem',
+            'items.contractItem.category',
+            'reviewedByUser',
+            'approvedByUser',
+            'rejectedByUser',
+            'assignedRm'
+        ])->findOrFail($id);
 
-            return response()->json([
-                'success' => true,
-                'data' => $invoice
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Get Invoice Details Error: ' . $e->getMessage());
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Invoice not found.'
-            ], 404);
-        }
-    }
-
-    // =====================================================
-    // START REVIEW
-    // =====================================================
-
-    /**
-     * Mark invoice as under review
-     */
-    public function startReview($id)
-    {
-        try {
-            $invoice = Invoice::findOrFail($id);
-
-            if (!in_array($invoice->status, ['submitted', 'resubmitted'])) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'This invoice cannot be reviewed.'
-                ], 400);
+        // =====================================================
+        // ACCESS CONTROL - Check if user can view this invoice
+        // =====================================================
+        
+        $canView = false;
+        
+        if ($userRole === 'super-admin') {
+            // Super Admin can view ALL - NO RESTRICTIONS
+            $canView = true;
+            
+        } elseif ($userRole === 'manager') {
+            // RM can view if assigned to them OR has matching tag
+            $userTagIds = \App\Models\ManagerTag::where('user_id', $userId)->pluck('tag_id')->toArray();
+            
+            if ($invoice->assigned_rm_id === $userId) {
+                $canView = true;
+            } elseif (in_array($invoice->assigned_tag_id, $userTagIds)) {
+                $canView = true;
             }
-
-            $userId = Auth::id() ?? 1;
-
-            $invoice->update([
-                'status' => 'under_review',
-                'reviewed_by' => $userId,
-                'reviewed_at' => now(),
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Invoice is now under review.',
-                'data' => $invoice->fresh()
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Start Review Error: ' . $e->getMessage());
-
+            
+        } elseif ($userRole === 'vp') {
+            // VOO can view:
+            // 1. pending_vp
+            // 2. Later stages (pending_ceo, pending_finance, approved, paid)
+            // 3. Rejected at VOO level or after
+            if ($invoice->status === 'pending_vp') {
+                $canView = true;
+            } elseif (in_array($invoice->status, ['pending_ceo', 'pending_finance', 'approved', 'paid'])) {
+                $canView = true;
+            } elseif ($invoice->status === 'rejected' && in_array($invoice->rejected_by_role, ['VOO', 'CEO', 'Finance', 'Super Admin'])) {
+                $canView = true;
+            }
+            
+        } elseif ($userRole === 'ceo') {
+            // CEO can view:
+            // 1. pending_ceo
+            // 2. Later stages (pending_finance, approved, paid)
+            // 3. Rejected at CEO level or after
+            if ($invoice->status === 'pending_ceo') {
+                $canView = true;
+            } elseif (in_array($invoice->status, ['pending_finance', 'approved', 'paid'])) {
+                $canView = true;
+            } elseif ($invoice->status === 'rejected' && in_array($invoice->rejected_by_role, ['CEO', 'Finance', 'Super Admin'])) {
+                $canView = true;
+            }
+            
+        } elseif ($userRole === 'finance') {
+            // Finance can view:
+            // 1. pending_finance, approved, paid
+            // 2. Rejected at Finance level or after
+            if (in_array($invoice->status, ['pending_finance', 'approved', 'paid'])) {
+                $canView = true;
+            } elseif ($invoice->status === 'rejected' && in_array($invoice->rejected_by_role, ['Finance', 'Super Admin'])) {
+                $canView = true;
+            }
+            
+        } elseif ($userRole === 'viewer') {
+            // Viewer can view approved + paid only
+            if (in_array($invoice->status, ['approved', 'paid'])) {
+                $canView = true;
+            }
+        }
+        
+        if (!$canView) {
             return response()->json([
                 'success' => false,
-                'message' => 'Something went wrong.'
-            ], 500);
+                'message' => 'You do not have permission to view this invoice.'
+            ], 403);
         }
+
+        return response()->json([
+            'success' => true,
+            'data' => $invoice,
+            'user_role' => $userRole,
+            'can_edit' => ($userRole === 'finance' && $invoice->status === 'pending_finance') || $userRole === 'super-admin'
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Get Invoice Details Error: ' . $e->getMessage());
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Invoice not found.'
+        ], 404);
     }
+}
+
+
+
+
+
+// =====================================================
+// CHANGE TAG (RM can reassign to another RM)
+// =====================================================
+
+/**
+ * RM can change tag - Invoice moves to new RM
+ */
+public function changeTag(Request $request, $id)
+{
+    try {
+        $validator = Validator::make($request->all(), [
+            'tag_id' => 'required|string',
+            'tag_name' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tag is required.',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $user = Auth::user();
+        $userId = $user->id;
+        $userRole = $user->role->slug ?? 'viewer';
+        
+        $invoice = Invoice::findOrFail($id);
+
+        // Only RM or Super Admin can change tag
+        if (!in_array($userRole, ['manager', 'super-admin'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Only RM can change tag.'
+            ], 403);
+        }
+
+        // Can only change tag when status is pending_rm
+        if (!in_array($invoice->status, ['submitted', 'resubmitted', 'pending_rm'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tag can only be changed before VP approval.'
+            ], 400);
+        }
+
+        // Find new RM based on new tag
+        $newTagId = $request->tag_id;
+        $newTagName = $request->tag_name;
+        $newRmId = null;
+        
+        $managerTag = \App\Models\ManagerTag::where('tag_id', $newTagId)->first();
+        if ($managerTag) {
+            $newRmId = $managerTag->user_id;
+        }
+
+     
+      // Update invoice with new tag and new RM
+$invoice->update([
+    'assigned_tag_id' => $newTagId,
+    'assigned_tag_name' => $newTagName,
+    'assigned_rm_id' => $newRmId,
+]);
+
+// ALSO UPDATE ALL LINE ITEMS WITH NEW TAG
+foreach ($invoice->items as $item) {
+    $item->update([
+        'tag_id' => $newTagId,
+        'tag_name' => $newTagName,
+    ]);
+}
+
+        // Get new RM name for message
+        $newRmName = 'Unassigned';
+        if ($newRmId) {
+            $rmUser = \App\Models\User::find($newRmId);
+            $newRmName = $rmUser ? $rmUser->name : 'RM';
+        }
+
+        Log::info('Invoice tag changed', [
+            'invoice_id' => $invoice->id,
+            'old_tag' => $invoice->getOriginal('assigned_tag_name'),
+            'new_tag' => $newTagName,
+            'new_rm_id' => $newRmId,
+            'changed_by' => $userId,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Tag changed to {$newTagName}. Invoice assigned to {$newRmName}.",
+            'data' => $invoice->fresh(),
+            'new_rm' => $newRmName,
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Change Tag Error: ' . $e->getMessage());
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Something went wrong.'
+        ], 500);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+  // =====================================================
+// START REVIEW (Initiates Approval Flow)
+// =====================================================
+
+/**
+ * Start review - moves to pending_rm
+ */
+
+public function startReview($id)
+{
+    try {
+        $invoice = Invoice::with(['contract', 'items.contractItem'])->findOrFail($id);
+
+        if (!in_array($invoice->status, ['submitted', 'resubmitted'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This invoice cannot be reviewed.'
+            ], 400);
+        }
+
+        $userId = Auth::id() ?? 1;
+        
+        // Check if exceeds contract
+        $exceedsContract = $invoice->checkExceedsContract();
+        
+        // =====================================================
+        // AUTO-ASSIGN RM BASED ON TAG
+        // =====================================================
+        
+        $assignedRmId = null;
+        $assignedTagId = null;
+        $assignedTagName = null;
+        
+        // Get tag from first invoice item's contract_item
+        $firstItem = $invoice->items->first();
+        if ($firstItem && $firstItem->contractItem) {
+            $assignedTagId = $firstItem->contractItem->tag_id;
+            $assignedTagName = $firstItem->contractItem->tag_name;
+            
+            // Find manager assigned to this tag
+            if ($assignedTagId) {
+                $managerTag = \App\Models\ManagerTag::where('tag_id', $assignedTagId)->first();
+                if ($managerTag) {
+                    $assignedRmId = $managerTag->user_id;
+                }
+            }
+        }
+
+        $invoice->update([
+            'status' => 'pending_rm',
+            'current_approver_role' => 'rm',
+            'exceeds_contract' => $exceedsContract,
+            'assigned_rm_id' => $assignedRmId,
+            'assigned_tag_id' => $assignedTagId,
+            'assigned_tag_name' => $assignedTagName,
+            'reviewed_by' => $userId,
+            'reviewed_at' => now(),
+        ]);
+
+        // Get RM name for message
+        $rmName = 'RM';
+        if ($assignedRmId) {
+            $rmUser = \App\Models\User::find($assignedRmId);
+            $rmName = $rmUser ? $rmUser->name : 'RM';
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Invoice sent to {$rmName} for approval.",
+            'data' => $invoice->fresh(),
+            'assigned_rm' => $rmName,
+            'assigned_tag' => $assignedTagName,
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Start Review Error: ' . $e->getMessage());
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Something went wrong.'
+        ], 500);
+    }
+}
+
+
+
 
     // =====================================================
     // APPROVE INVOICE (WITH ZOHO INTEGRATION)
@@ -298,34 +768,163 @@ class InvoiceController extends Controller
     /**
      * Approve invoice and push to Zoho
      */
-    public function approve(Request $request, $id)
-    {
-        try {
-            $invoice = Invoice::findOrFail($id);
+  // =====================================================
+// APPROVE INVOICE (MULTI-LEVEL APPROVAL FLOW)
+// =====================================================
 
-            if (!$invoice->canReview()) {
+/**
+ * Approve invoice - Multi-level flow
+ * Flow: RM → VP → CEO (if exceeds contract) → Finance → Approved
+ */
+public function approve(Request $request, $id)
+{
+    try {
+        $invoice = Invoice::with('contract')->findOrFail($id);
+        $user = Auth::user();
+        $userId = $user->id ?? 1;
+        $userRole = $user->role->slug ?? 'admin';
+        
+        // Check if invoice can be approved
+        $allowedStatuses = ['submitted', 'resubmitted', 'pending_rm', 'pending_vp', 'pending_ceo', 'pending_finance'];
+        if (!in_array($invoice->status, $allowedStatuses)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This invoice cannot be approved.'
+            ], 400);
+        }
+        
+        // Check if invoice exceeds contract value
+        $exceedsContract = $invoice->checkExceedsContract();
+        
+        // Determine current status and next status
+        $currentStatus = $invoice->status;
+        $nextStatus = null;
+        $updateData = [];
+        
+        // =====================================================
+        // APPROVAL FLOW LOGIC
+        // =====================================================
+        
+        switch ($currentStatus) {
+            // STEP 1: Submitted/Resubmitted → Pending RM
+            case 'submitted':
+            case 'resubmitted':
+                // Move to RM approval
+                $nextStatus = 'pending_rm';
+                $updateData = [
+                    'status' => $nextStatus,
+                    'current_approver_role' => 'rm',
+                    'exceeds_contract' => $exceedsContract,
+                    'rejection_reason' => null,
+                ];
+                break;
+                
+            // STEP 2: RM Approves → Pending VP
+            case 'pending_rm':
+                // Check if user is RM or Admin
+            if (!in_array($userRole, ['manager', 'super-admin', 'super-admin'])) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Only RM can approve at this stage.'
+                    ], 403);
+                }
+                
+                $nextStatus = 'pending_vp';
+                $updateData = [
+                    'status' => $nextStatus,
+                    'current_approver_role' => 'vp',
+                    'rm_approved_by' => $userId,
+                    'rm_approved_at' => now(),
+                ];
+                break;
+                
+            // STEP 3: VP Approves → Pending CEO (if exceeds) OR Pending Finance
+            case 'pending_vp':
+                // Check if user is VP or Admin
+                if (!in_array($userRole, ['vp', 'super-admin', 'super-admin'])) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Only VP can approve at this stage.'
+                    ], 403);
+                }
+                
+                // If exceeds contract, go to CEO, else go to Finance
+                if ($invoice->exceeds_contract) {
+                    $nextStatus = 'pending_ceo';
+                    $updateData = [
+                        'status' => $nextStatus,
+                        'current_approver_role' => 'ceo',
+                        'vp_approved_by' => $userId,
+                        'vp_approved_at' => now(),
+                    ];
+                } else {
+                    $nextStatus = 'pending_finance';
+                    $updateData = [
+                        'status' => $nextStatus,
+                        'current_approver_role' => 'finance',
+                        'vp_approved_by' => $userId,
+                        'vp_approved_at' => now(),
+                    ];
+                }
+                break;
+                
+            // STEP 4: CEO Approves → Pending Finance
+            case 'pending_ceo':
+                // Check if user is CEO or Admin
+                if (!in_array($userRole, ['ceo', 'super-admin', 'super-admin'])) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Only CEO can approve at this stage.'
+                    ], 403);
+                }
+                
+                $nextStatus = 'pending_finance';
+                $updateData = [
+                    'status' => $nextStatus,
+                    'current_approver_role' => 'finance',
+                    'ceo_approved_by' => $userId,
+                    'ceo_approved_at' => now(),
+                ];
+                break;
+                
+            // STEP 5: Finance Approves → Approved (Final)
+            case 'pending_finance':
+                // Check if user is Finance or Admin
+                if (!in_array($userRole, ['finance', 'super-admin', 'super-admin'])) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Only Finance can approve at this stage.'
+                    ], 403);
+                }
+                
+                $nextStatus = 'approved';
+                $updateData = [
+                    'status' => $nextStatus,
+                    'current_approver_role' => null,
+                    'finance_approved_by' => $userId,
+                    'finance_approved_at' => now(),
+                    'approved_by' => $userId,
+                    'approved_at' => now(),
+                ];
+                break;
+                
+            default:
                 return response()->json([
                     'success' => false,
-                    'message' => 'This invoice cannot be approved.'
+                    'message' => 'Invalid invoice status for approval.'
                 ], 400);
-            }
-
-            $userId = Auth::id() ?? 1;
-
-            // Update invoice status to approved
-            $invoice->update([
-                'status' => 'approved',
-                'approved_by' => $userId,
-                'approved_at' => now(),
-                'rejection_reason' => null,
-                'rejected_by' => null,
-                'rejected_at' => null,
-            ]);
-
-            // 🔥 Push to Zoho Books
-            $zohoError = null;
-            $zohoSynced = false;
-            
+        }
+        
+        // Update invoice
+        $invoice->update($updateData);
+        
+        // =====================================================
+        // ZOHO SYNC (Only when finally approved)
+        // =====================================================
+        $zohoError = null;
+        $zohoSynced = false;
+        
+        if ($nextStatus === 'approved') {
             try {
                 $zohoService = app(ZohoService::class);
                 
@@ -344,113 +943,163 @@ class InvoiceController extends Controller
                     $zohoError = 'Zoho not connected';
                 }
             } catch (\Exception $e) {
-                // Log error but don't fail the approval
                 Log::error('Failed to push invoice to Zoho', [
                     'invoice_id' => $invoice->id,
                     'error' => $e->getMessage(),
                 ]);
                 $zohoError = $e->getMessage();
             }
+        }
+        
+        // Build response message
+        $statusMessages = [
+            'pending_rm' => 'Invoice sent to RM for approval.',
+            'pending_vp' => 'RM approved. Invoice sent to VP for approval.',
+            'pending_ceo' => 'VP approved. Invoice sent to CEO for approval (exceeds contract).',
+            'pending_finance' => 'Invoice sent to Finance for final approval.',
+            'approved' => 'Invoice approved successfully.',
+        ];
+        
+        $message = $statusMessages[$nextStatus] ?? 'Invoice status updated.';
+        
+        if ($zohoError && $nextStatus === 'approved') {
+            $message .= ' (Zoho sync failed: ' . $zohoError . ')';
+        } elseif ($zohoSynced) {
+            $message .= ' Bill created in Zoho.';
+        }
+        
+        Log::info('Invoice approval flow', [
+            'invoice_id' => $invoice->id,
+            'from_status' => $currentStatus,
+            'to_status' => $nextStatus,
+            'approved_by' => $userId,
+            'user_role' => $userRole,
+            'exceeds_contract' => $exceedsContract,
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'data' => $invoice->fresh(),
+            'zoho_synced' => $zohoSynced,
+        ]);
 
-            // Send email notification to vendor (uncomment when mail is ready)
-            // try {
-            //     Mail::to($invoice->vendor->vendor_email)->send(
-            //         new InvoiceApprovedMail($invoice)
-            //     );
-            // } catch (\Exception $e) {
-            //     Log::error('Invoice Approved Email Error: ' . $e->getMessage());
-            // }
+    } catch (\Exception $e) {
+        Log::error('Approve Invoice Error: ' . $e->getMessage());
 
-            $message = 'Invoice approved successfully.';
-            if ($zohoError) {
-                $message .= ' (Zoho sync failed: ' . $zohoError . ')';
-            } elseif ($zohoSynced) {
-                $message .= ' Bill created in Zoho.';
-            }
+        return response()->json([
+            'success' => false,
+            'message' => 'Something went wrong.'
+        ], 500);
+    }
+}public function reject(Request $request, $id)
+{
+    try {
+        $validator = Validator::make($request->all(), [
+            'rejection_reason' => 'required|string|max:1000',
+        ]);
 
-            return response()->json([
-                'success' => true,
-                'message' => $message,
-                'data' => $invoice->fresh(),
-                'zoho_synced' => $zohoSynced,
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Approve Invoice Error: ' . $e->getMessage());
-
+        if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Something went wrong.'
-            ], 500);
+                'message' => 'Please provide rejection reason.',
+                'errors' => $validator->errors()
+            ], 422);
         }
-    }
 
-    // =====================================================
-    // REJECT INVOICE
-    // =====================================================
+        $invoice = Invoice::findOrFail($id);
+        $user = Auth::user();
+        $userId = $user->id ?? 1;
+        $userRole = $user->role->slug ?? 'viewer';
 
-    /**
-     * Reject invoice
-     */
-    public function reject(Request $request, $id)
-    {
-        try {
-            $validator = Validator::make($request->all(), [
-                'rejection_reason' => 'required|string|max:1000',
-            ]);
+        // =====================================================
+        // CHECK IF USER CAN REJECT AT THIS STAGE
+        // =====================================================
+        
+        $canReject = false;
+        $currentStatus = $invoice->status;
+        $rejectedByRole = null;
 
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Please provide rejection reason.',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
+        if ($userRole === 'super-admin') {
+            // Super Admin can reject at ANY stage - NO RESTRICTIONS
+            $canReject = true;
+            $rejectedByRole = 'Super Admin';
+        } elseif ($userRole === 'manager' && $currentStatus === 'pending_rm') {
+            $canReject = true;
+            $rejectedByRole = 'RM';
+        } elseif ($userRole === 'vp' && $currentStatus === 'pending_vp') {
+            $canReject = true;
+            $rejectedByRole = 'VOO';
+        } elseif ($userRole === 'ceo' && $currentStatus === 'pending_ceo') {
+            $canReject = true;
+            $rejectedByRole = 'CEO';
+        } elseif ($userRole === 'finance' && $currentStatus === 'pending_finance') {
+            $canReject = true;
+            $rejectedByRole = 'Finance';
+        }
 
-            $invoice = Invoice::findOrFail($id);
-
-            if (!$invoice->canReview()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'This invoice cannot be rejected.'
-                ], 400);
-            }
-
-            $userId = Auth::id() ?? 1;
-
-            $invoice->update([
-                'status' => 'rejected',
-                'rejected_by' => $userId,
-                'rejected_at' => now(),
-                'rejection_reason' => $request->rejection_reason,
-                'approved_by' => null,
-                'approved_at' => null,
-            ]);
-
-            // Send email notification to vendor (uncomment when mail is ready)
-            // try {
-            //     Mail::to($invoice->vendor->vendor_email)->send(
-            //         new InvoiceRejectedMail($invoice, $request->rejection_reason)
-            //     );
-            // } catch (\Exception $e) {
-            //     Log::error('Invoice Rejected Email Error: ' . $e->getMessage());
-            // }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Invoice rejected successfully.',
-                'data' => $invoice->fresh()
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Reject Invoice Error: ' . $e->getMessage());
-
+        if (!$canReject) {
             return response()->json([
                 'success' => false,
-                'message' => 'Something went wrong.'
-            ], 500);
+                'message' => 'You cannot reject this invoice at this stage.'
+            ], 403);
         }
+
+        // Check if invoice is in rejectable status
+        $rejectableStatuses = ['submitted', 'resubmitted', 'pending_rm', 'pending_vp', 'pending_ceo', 'pending_finance'];
+        
+        if (!in_array($currentStatus, $rejectableStatuses)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This invoice cannot be rejected.'
+            ], 400);
+        }
+
+        // Update invoice - Goes back to VENDOR
+        $invoice->update([
+            'status' => 'rejected',
+            'rejected_by' => $userId,
+            'rejected_at' => now(),
+            'rejection_reason' => $request->rejection_reason,
+            'rejected_by_role' => $rejectedByRole,
+            'current_approver_role' => null,
+            // Clear previous approvals so flow starts fresh on resubmit
+            'rm_approved_by' => null,
+            'rm_approved_at' => null,
+            'vp_approved_by' => null,
+            'vp_approved_at' => null,
+            'ceo_approved_by' => null,
+            'ceo_approved_at' => null,
+            'finance_approved_by' => null,
+            'finance_approved_at' => null,
+            'approved_by' => null,
+            'approved_at' => null,
+        ]);
+
+        Log::info('Invoice rejected', [
+            'invoice_id' => $invoice->id,
+            'rejected_by' => $userId,
+            'user_role' => $userRole,
+            'rejected_by_role' => $rejectedByRole,
+            'previous_status' => $currentStatus,
+            'reason' => $request->rejection_reason,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Invoice rejected by {$rejectedByRole}. Sent back to vendor.",
+            'data' => $invoice->fresh()
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Reject Invoice Error: ' . $e->getMessage());
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Something went wrong.'
+        ], 500);
     }
+}
 
     // =====================================================
     // MARK AS PAID

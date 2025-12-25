@@ -235,6 +235,10 @@ class VendorInvoiceController extends Controller
                 'grand_total' => 'required|numeric|min:0',
                 'items' => 'required|string', // JSON string of line items
                 'invoice_attachment' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240', // 10MB
+                'timesheet_attachment' => 'nullable|file|mimes:xlsx,xls|max:5120', // 5MB
+'include_timesheet' => 'nullable|boolean',
+'gst_percent' => 'nullable|numeric',
+'tds_percent' => 'nullable|numeric',
             ]);
 
             // Custom validation for unique invoice number per vendor
@@ -267,20 +271,48 @@ class VendorInvoiceController extends Controller
 
             DB::beginTransaction();
 
-            // Create invoice
-            $invoice = Invoice::create([
-                'vendor_id' => $vendor->id,
-                'contract_id' => $request->contract_id,
-                'invoice_type' => 'normal', // Default to normal
-                'invoice_number' => $request->invoice_number,
-                'invoice_date' => $request->invoice_date,
-                'due_date' => $request->due_date,
-                'description' => $request->description,
-                'base_total' => $request->base_total,
-                'gst_total' => $request->gst_total,
-                'grand_total' => $request->grand_total,
-                'status' => 'draft',
-            ]);
+        // 🔥 Calculate amounts
+$baseTotal = floatval($request->base_total);
+$gstPercent = floatval($request->gst_percent ?? 18);
+$tdsPercent = floatval($request->tds_percent ?? 5);
+
+$gstAmount = ($baseTotal * $gstPercent) / 100;
+$grandTotal = $baseTotal + $gstAmount;
+$tdsAmount = ($baseTotal * $tdsPercent) / 100;
+$netPayable = $grandTotal - $tdsAmount;
+
+// 🔥 Handle Timesheet Upload
+$timesheetPath = null;
+$timesheetFilename = null;
+if ($request->include_timesheet && $request->hasFile('timesheet_attachment')) {
+    $tsFile = $request->file('timesheet_attachment');
+    $timesheetFilename = $tsFile->getClientOriginalName();
+    $timesheetPath = $tsFile->storeAs('invoices/' . $vendor->id . '/timesheets', 'timesheet_' . time() . '.' . $tsFile->getClientOriginalExtension(), 'public');
+}
+
+// Create invoice
+$invoice = Invoice::create([
+    'vendor_id' => $vendor->id,
+    'contract_id' => $request->contract_id,
+    'invoice_type' => 'normal',
+    'invoice_number' => $request->invoice_number,
+    'invoice_date' => $request->invoice_date,
+    'due_date' => $request->due_date,
+    'description' => $request->description,
+    'base_total' => $baseTotal,
+    'gst_percent' => $gstPercent,
+    'gst_amount' => $gstAmount,
+    'gst_total' => $gstAmount,
+    'grand_total' => $grandTotal,
+    'tds_percent' => $tdsPercent,
+    'tds_amount' => $tdsAmount,
+    'net_payable' => $netPayable,
+    'include_timesheet' => $request->include_timesheet ? true : false,
+    'timesheet_path' => $timesheetPath,
+    'timesheet_filename' => $timesheetFilename,
+    'zoho_gst_tax_id' => $request->zoho_gst_tax_id,
+    'status' => 'draft',
+]);
 
             // Create line items
             foreach ($items as $item) {
@@ -403,6 +435,10 @@ class VendorInvoiceController extends Controller
                 'grand_total' => 'required|numeric|min:0',
                 'items' => 'required|string', // JSON string of line items
                 'invoice_attachment' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+               'timesheet_attachment' => 'nullable|file|mimes:xlsx,xls|max:5120',
+'include_timesheet' => 'nullable|boolean',
+'gst_percent' => 'nullable|numeric',
+'tds_percent' => 'nullable|numeric',
             ]);
 
             // Check unique invoice number (excluding current)
@@ -443,18 +479,51 @@ class VendorInvoiceController extends Controller
             }
 
             // Update invoice
-            $invoice->update([
-                'contract_id' => $request->contract_id,
-                'invoice_number' => $request->invoice_number,
-                'invoice_date' => $request->invoice_date,
-                'due_date' => $request->due_date,
-                'description' => $request->description,
-                'base_total' => $request->base_total,
-                'gst_total' => $request->gst_total,
-                'grand_total' => $request->grand_total,
-                'status' => $newStatus,
-                'rejection_reason' => null, // Clear rejection reason on edit
-            ]);
+          // 🔥 Calculate amounts
+$baseTotal = floatval($request->base_total);
+$gstPercent = floatval($request->gst_percent ?? 18);
+$tdsPercent = floatval($request->tds_percent ?? 5);
+
+$gstAmount = ($baseTotal * $gstPercent) / 100;
+$grandTotal = $baseTotal + $gstAmount;
+$tdsAmount = ($baseTotal * $tdsPercent) / 100;
+$netPayable = $grandTotal - $tdsAmount;
+
+// 🔥 Handle Timesheet Upload
+$timesheetPath = $invoice->timesheet_path;
+$timesheetFilename = $invoice->timesheet_filename;
+if ($request->include_timesheet && $request->hasFile('timesheet_attachment')) {
+    // Delete old timesheet if exists
+    if ($invoice->timesheet_path) {
+        Storage::disk('public')->delete($invoice->timesheet_path);
+    }
+    $tsFile = $request->file('timesheet_attachment');
+    $timesheetFilename = $tsFile->getClientOriginalName();
+    $timesheetPath = $tsFile->storeAs('invoices/' . $vendor->id . '/timesheets', 'timesheet_' . time() . '.' . $tsFile->getClientOriginalExtension(), 'public');
+}
+
+// Update invoice
+$invoice->update([
+    'contract_id' => $request->contract_id,
+    'invoice_number' => $request->invoice_number,
+    'invoice_date' => $request->invoice_date,
+    'due_date' => $request->due_date,
+    'description' => $request->description,
+    'base_total' => $baseTotal,
+    'gst_percent' => $gstPercent,
+    'gst_amount' => $gstAmount,
+    'gst_total' => $gstAmount,
+    'grand_total' => $grandTotal,
+    'tds_percent' => $tdsPercent,
+    'tds_amount' => $tdsAmount,
+    'net_payable' => $netPayable,
+    'include_timesheet' => $request->include_timesheet ? true : false,
+    'timesheet_path' => $timesheetPath,
+    'timesheet_filename' => $timesheetFilename,
+    'zoho_gst_tax_id' => $request->zoho_gst_tax_id,
+    'status' => $newStatus,
+    'rejection_reason' => null,
+]);
 
             // Delete old line items and create new ones
             $invoice->items()->delete();

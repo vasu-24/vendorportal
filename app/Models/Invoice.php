@@ -44,7 +44,22 @@ class Invoice extends Model
         'rejected_by',
         'zoho_invoice_id',
         'zoho_synced_at',
-    ];
+          'current_approver_role',
+    'exceeds_contract',
+    'rm_approved_by',
+    'rm_approved_at',
+    'vp_approved_by',
+    'vp_approved_at',
+    'ceo_approved_by',
+    'ceo_approved_at',
+    'finance_approved_by',
+    'finance_approved_at',
+    'assigned_rm_id',
+'assigned_tag_id',
+'assigned_tag_name',
+  'rejected_by_role'
+];
+    
 
     protected $casts = [
         'invoice_date' => 'date',
@@ -63,6 +78,11 @@ class Invoice extends Model
         'rejected_at' => 'datetime',
         'paid_at' => 'datetime',
         'zoho_synced_at' => 'datetime',
+        'exceeds_contract' => 'boolean',
+    'rm_approved_at' => 'datetime',
+    'vp_approved_at' => 'datetime',
+    'ceo_approved_at' => 'datetime',
+    'finance_approved_at' => 'datetime',
     ];
 
     // =====================================================
@@ -79,6 +99,11 @@ class Invoice extends Model
     const STATUS_REJECTED = 'rejected';
     const STATUS_RESUBMITTED = 'resubmitted';
     const STATUS_PAID = 'paid';
+    // 🔥 ADD NEW STATUS CONSTANTS
+const STATUS_PENDING_RM = 'pending_rm';
+const STATUS_PENDING_VP = 'pending_vp';
+const STATUS_PENDING_CEO = 'pending_ceo';
+const STATUS_PENDING_FINANCE = 'pending_finance';
 
     // =====================================================
     // RELATIONSHIPS
@@ -124,6 +149,14 @@ class Invoice extends Model
         return $this->hasOne(InvoiceAttachment::class)->where('attachment_type', 'timesheet');
     }
 
+
+public function assignedRm()
+{
+    return $this->belongsTo(User::class, 'assigned_rm_id');
+}
+
+
+
     public function reviewedByUser()
     {
         return $this->belongsTo(User::class, 'reviewed_by');
@@ -138,6 +171,26 @@ class Invoice extends Model
     {
         return $this->belongsTo(User::class, 'rejected_by');
     }
+    // 🔥 ADD THESE RELATIONSHIPS
+public function rmApprovedByUser()
+{
+    return $this->belongsTo(User::class, 'rm_approved_by');
+}
+
+public function vpApprovedByUser()
+{
+    return $this->belongsTo(User::class, 'vp_approved_by');
+}
+
+public function ceoApprovedByUser()
+{
+    return $this->belongsTo(User::class, 'ceo_approved_by');
+}
+
+public function financeApprovedByUser()
+{
+    return $this->belongsTo(User::class, 'finance_approved_by');
+}
 
     // =====================================================
     // SCOPES
@@ -235,6 +288,17 @@ class Invoice extends Model
             self::STATUS_RESUBMITTED
         ]);
     }
+
+
+    // 🔥 ADD THIS METHOD
+public function checkExceedsContract()
+{
+    if (!$this->contract) {
+        return false;
+    }
+    
+    return floatval($this->grand_total) > floatval($this->contract->contract_value);
+}
 
     public function isTravel()
     {

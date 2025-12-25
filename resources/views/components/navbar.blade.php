@@ -77,6 +77,8 @@
             <i class="bi bi-gear me-1"></i>Settings
           </a>
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="settingsDropdown">
+
+
             
           <!-- Master Section -->
 <li><h6 class="dropdown-header">Master</h6></li>
@@ -95,13 +97,21 @@
   </a>
 </li>
 
-<!-- ADD THIS -->
 <li>
   <a class="dropdown-item {{ request()->routeIs('categories.index') ? 'active' : '' }}"
      href="{{ route('categories.index') }}" style="padding-left: 2rem;">
      <i class="bi bi-tags me-2"></i>Categories
   </a>
 </li>
+
+<!-- Manager Tags Master -->
+<li>
+  <a class="dropdown-item {{ request()->routeIs('master.manager-tags') ? 'active' : '' }}"
+     href="{{ route('master.manager-tags') }}" style="padding-left: 2rem;">
+     <i class="bi bi-person-badge me-2"></i>Manager Tags
+  </a>
+</li>
+
 
 <li><hr class="dropdown-divider"></li>
             

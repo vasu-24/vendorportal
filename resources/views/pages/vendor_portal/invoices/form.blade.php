@@ -7,117 +7,6 @@
     <!-- Alert Container -->
     <div id="alertContainer"></div>
 
-    <style>
-        /* Tag dropdown - looks EXACTLY like normal select */
-        .tag-dropdown {
-            position: relative;
-            width: 100%;
-        }
-        
-        .tag-dropdown-btn {
-            width: 100%;
-            text-align: left;
-            background: #fff url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e") no-repeat right 0.5rem center/12px 12px;
-            border: 1px solid #ced4da;
-            border-radius: 0.25rem;
-            padding: 0.25rem 1.75rem 0.25rem 0.5rem;
-            font-size: 11px;
-            color: #212529;
-            cursor: pointer;
-            height: 28px;
-            line-height: 1.5;
-        }
-        
-        .tag-dropdown-btn:hover,
-        .tag-dropdown-btn:focus {
-            border-color: #86b7fe;
-            outline: 0;
-            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
-        }
-        
-        .tag-dropdown-btn.readonly {
-            background-color: #e9ecef;
-            cursor: default;
-        }
-        
-        .tag-dropdown-menu {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            z-index: 9999;
-            background: #fff;
-            border: 1px solid #ced4da;
-            border-radius: 0.25rem;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            max-height: 150px;
-            overflow-y: auto;
-            display: none;
-            margin-top: 2px;
-        }
-        
-        .tag-dropdown-menu.show {
-            display: block;
-        }
-        
-        .tag-dropdown-item {
-            padding: 0.4rem 0.6rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            font-size: 11px;
-            transition: background 0.15s;
-        }
-        
-        .tag-dropdown-item:hover {
-            background: #f0f7ff;
-        }
-        
-        .tag-dropdown-item input[type="checkbox"] {
-            margin-right: 8px;
-            cursor: pointer;
-            width: 14px;
-            height: 14px;
-        }
-        
-        .tag-dropdown-item label {
-            cursor: pointer;
-            margin: 0;
-            flex: 1;
-            user-select: none;
-        }
-        
-        .tag-text {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            color: #6c757d;
-            font-size: 11px;
-        }
-        
-        .tag-text.has-value {
-            color: #212529;
-        }
-        
-        /* Fix table overflow */
-        .table-responsive {
-            overflow: visible !important;
-        }
-        
-        #lineItemsTable {
-            overflow: visible;
-        }
-        
-        #lineItemsTable td {
-            overflow: visible;
-            position: relative;
-        }
-        
-        #lineItemsTable tbody {
-            overflow: visible;
-        }
-    </style>
-
     <!-- Page Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -166,9 +55,10 @@
             </div>
         </div>
 
-        @if($mode == 'show')
-            @include('pages.vendor_portal.invoices.partials.show')
-        @else
+     
+{{-- Vendor can only create/edit, not show --}}
+
+
             <form id="invoiceForm" enctype="multipart/form-data">
                 <div class="row">
                     <div class="col-lg-8">
@@ -210,9 +100,6 @@
                                 <h6 class="mb-0 fw-bold">
                                     <i class="bi bi-list-ul me-2"></i>Line Items
                                 </h6>
-                                <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" onclick="addLineItem()">
-                                    <i class="bi bi-plus"></i> Add Row
-                                </button>
                             </div>
                             <div class="card-body p-0">
                                 <div class="table-responsive">
@@ -220,23 +107,19 @@
                                         <thead class="bg-light">
                                             <tr>
                                                 <th style="width: 35px; font-size: 11px;">#</th>
-                                                <th style="width: 130px; font-size: 11px;">Category <span class="text-danger">*</span></th>
-                                                <th style="width: 110px; font-size: 11px;">Tags</th>
+                                                <th style="width: 150px; font-size: 11px;">Category</th>
                                                 <th style="font-size: 11px;">Particulars</th>
                                                 <th style="width: 70px; font-size: 11px;">SAC</th>
-                                                <th style="width: 60px; font-size: 11px;">Qty <span class="text-danger">*</span></th>
-                                                <th style="width: 60px; font-size: 11px;">UOM</th>
-                                            
-                                                <th style="width: 80px; font-size: 11px;">Rate <span class="text-danger">*</span></th>
-                                                <th style="width: 90px; font-size: 11px;">Amount</th>
+                                                <th style="width: 70px; font-size: 11px;">Qty <span class="text-danger">*</span></th>
+                                                <th style="width: 70px; font-size: 11px;">UOM</th>
+                                                <th style="width: 90px; font-size: 11px;">Rate <span class="text-danger">*</span></th>
+                                                <th style="width: 100px; font-size: 11px;">Amount</th>
                                                 <th style="width: 30px;"></th>
                                             </tr>
                                         </thead>
                                         <tbody id="lineItemsBody"></tbody>
                                     </table>
                                 </div>
-                                <!-- Spacer for dropdown visibility -->
-                                <div style="min-height: 100px;"></div>
                             </div>
                         </div>
 
@@ -416,7 +299,7 @@
                     </div>
                 </div>
             </form>
-        @endif
+        
     </div>
 
 </div>
@@ -460,13 +343,6 @@
 
         // Timesheet file validation
         $('#timesheetFile').on('change', handleTimesheetUpload);
-        
-        // Close tag dropdown on outside click
-        $(document).on('click', function(e) {
-            if (!$(e.target).closest('.tag-dropdown').length) {
-                $('.tag-dropdown-menu').removeClass('show');
-            }
-        });
     });
 
     // =====================================================
@@ -531,13 +407,11 @@
             .then(response => {
                 if (response.data.success) {
                     contractItems = response.data.data;
-                    console.log('Contract Items with Tags:', contractItems);
+                    console.log('Contract Items:', contractItems);
                     $('#lineItemsBody').empty();
                     
                     if (contractItems.length > 0) {
                         contractItems.forEach(item => addLineItemFromContract(item));
-                    } else {
-                        addLineItem();
                     }
                     calculateBaseTotal();
                 }
@@ -549,218 +423,119 @@
     }
 
     // =====================================================
-    // ADD LINE ITEM FROM CONTRACT (with Tags)
+    // ADD LINE ITEM FROM CONTRACT (Category Locked, No Tags Visible)
     // =====================================================
     function addLineItemFromContract(contractItem) {
         rowCounter++;
         const rowId = `row_${rowCounter}`;
 
-        // Category options
-        let categoryOptions = '<option value="">Select</option>';
-        contractItems.forEach(item => {
-            const selected = (item.id == contractItem.id) ? 'selected' : '';
-            categoryOptions += `<option value="${item.id}" ${selected}>${item.category_name}</option>`;
-        });
-
-        // Get tags from contract item
-        const itemTags = contractItem.tags || [];
-        let tagCheckboxes = '';
-        let tagDisplayText = '-- No Tags --';
-        let tagDisplayClass = '';
-        
-        if (itemTags.length > 0) {
-            const tagNames = [];
-            itemTags.forEach(t => {
-                tagCheckboxes += `
-                    <div class="tag-dropdown-item">
-                        <input type="checkbox" class="form-check-input tag-checkbox" 
-                               value="${t.tag_id}" 
-                               data-name="${t.tag_name}"
-                               id="tag_${rowCounter}_${t.tag_id}"
-                               checked disabled>
-                        <label for="tag_${rowCounter}_${t.tag_id}">${t.tag_name}</label>
-                    </div>
-                `;
-                tagNames.push(t.tag_name);
-            });
-            tagDisplayText = tagNames.join(', ');
-            tagDisplayClass = 'has-value';
-        } else {
-            tagCheckboxes = '<div class="p-2 text-muted small">No tags assigned</div>';
-        }
-
         const row = `
-            <tr id="${rowId}" data-tags='${JSON.stringify(itemTags.map(t => t.tag_id))}'>
-                <td class="text-center align-middle" style="font-size: 11px;"><span class="row-number">${$('#lineItemsBody tr').length + 1}</span></td>
-                <td><select class="form-select form-select-sm category-select" style="font-size: 11px;" required>${categoryOptions}</select></td>
-                <td>
-                    <div class="tag-dropdown" id="tagDropdown_${rowCounter}">
-                        <div class="tag-dropdown-btn readonly" onclick="toggleTagDropdown(${rowCounter})">
-                            <span class="tag-text ${tagDisplayClass}" id="tagText_${rowCounter}">${tagDisplayText}</span>
-                        </div>
-                        <div class="tag-dropdown-menu" id="tagMenu_${rowCounter}">
-                            ${tagCheckboxes}
-                        </div>
-                    </div>
+            <tr id="${rowId}" 
+                data-contract-item-id="${contractItem.id}" 
+                data-tag-id="${contractItem.tag_id || ''}" 
+                data-tag-name="${contractItem.tag_name || ''}">
+                <td class="text-center align-middle" style="font-size: 11px;">
+                    <span class="row-number">${$('#lineItemsBody tr').length + 1}</span>
                 </td>
-                <td><input type="text" class="form-control form-control-sm particulars-input" style="font-size: 11px;"></td>
-                <td><input type="text" class="form-control form-control-sm sac-input" style="font-size: 11px;"></td>
-                <td><input type="number" class="form-control form-control-sm qty-input" style="font-size: 11px;" step="0.01" required></td>
-                <td><input type="text" class="form-control form-control-sm uom-input" style="font-size: 11px;"></td>
-                <td><input type="number" class="form-control form-control-sm rate-input" style="font-size: 11px;" step="0.01" required></td>
-                <td><input type="number" class="form-control form-control-sm amount-input bg-light" style="font-size: 11px;" step="0.01" readonly></td>
+                <td>
+                    <input type="text" class="form-control form-control-sm bg-light category-display" 
+                           style="font-size: 11px;" value="${contractItem.category_name}" readonly>
+                    <input type="hidden" class="contract-item-id" value="${contractItem.id}">
+                </td>
+                <td>
+                    <input type="text" class="form-control form-control-sm particulars-input" style="font-size: 11px;">
+                </td>
+                <td>
+                    <input type="text" class="form-control form-control-sm sac-input" style="font-size: 11px;">
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm qty-input" style="font-size: 11px;" step="0.01" required>
+                </td>
+                <td>
+                    <input type="text" class="form-control form-control-sm uom-input" style="font-size: 11px;">
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm rate-input" style="font-size: 11px;" step="0.01" required>
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm amount-input bg-light" style="font-size: 11px;" step="0.01" readonly>
+                </td>
                 <td class="text-center align-middle">
-                    <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1" onclick="removeLineItem('${rowId}')"><i class="bi bi-x"></i></button>
+                    <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1" onclick="removeLineItem('${rowId}')">
+                        <i class="bi bi-x"></i>
+                    </button>
                 </td>
             </tr>
         `;
 
         $('#lineItemsBody').append(row);
         bindLineItemEvents(rowId);
-        bindCategoryChangeEvent(rowId);
         updateRowNumbers();
     }
 
     // =====================================================
-    // ADD EMPTY LINE ITEM (with Tags)
+    // ADD LINE ITEM (For Edit Mode)
     // =====================================================
     function addLineItem(data = null) {
         rowCounter++;
         const rowId = `row_${rowCounter}`;
 
-        // Category options
-        let categoryOptions = '<option value="">Select</option>';
-        contractItems.forEach(item => {
-            const selected = (data && data.contract_item_id == item.id) ? 'selected' : '';
-            categoryOptions += `<option value="${item.id}" ${selected}>${item.category_name}</option>`;
-        });
-
-        // Get tags from data or empty
-        const itemTags = data?.tags || [];
-        let tagCheckboxes = '';
-        let tagDisplayText = '-- Select Category --';
-        let tagDisplayClass = '';
+        // Find contract item to get category name
+        let categoryName = '';
+        let tagId = '';
+        let tagName = '';
         
-        if (itemTags.length > 0) {
-            const tagNames = [];
-            itemTags.forEach(t => {
-                const tagId = t.tag_id || t;
-                const tagName = t.tag_name || tagId;
-                tagCheckboxes += `
-                    <div class="tag-dropdown-item">
-                        <input type="checkbox" class="form-check-input tag-checkbox" 
-                               value="${tagId}" 
-                               data-name="${tagName}"
-                               id="tag_${rowCounter}_${tagId}"
-                               checked disabled>
-                        <label for="tag_${rowCounter}_${tagId}">${tagName}</label>
-                    </div>
-                `;
-                tagNames.push(tagName);
-            });
-            tagDisplayText = tagNames.join(', ');
-            tagDisplayClass = 'has-value';
-        } else {
-            tagCheckboxes = '<div class="p-2 text-muted small">Select category first</div>';
+        if (data && data.contract_item_id) {
+            const contractItem = contractItems.find(item => item.id == data.contract_item_id);
+            if (contractItem) {
+                categoryName = contractItem.category_name;
+                tagId = contractItem.tag_id || '';
+                tagName = contractItem.tag_name || '';
+            }
         }
 
         const row = `
-            <tr id="${rowId}" data-tags='${JSON.stringify(itemTags.map(t => t.tag_id || t))}'>
-                <td class="text-center align-middle" style="font-size: 11px;"><span class="row-number">${$('#lineItemsBody tr').length + 1}</span></td>
-                <td><select class="form-select form-select-sm category-select" style="font-size: 11px;" required>${categoryOptions}</select></td>
-                <td>
-                    <div class="tag-dropdown" id="tagDropdown_${rowCounter}">
-                        <div class="tag-dropdown-btn readonly">
-                            <span class="tag-text ${tagDisplayClass}" id="tagText_${rowCounter}">${tagDisplayText}</span>
-                        </div>
-                        <div class="tag-dropdown-menu" id="tagMenu_${rowCounter}">
-                            ${tagCheckboxes}
-                        </div>
-                    </div>
+            <tr id="${rowId}" 
+                data-contract-item-id="${data?.contract_item_id || ''}" 
+                data-tag-id="${tagId}" 
+                data-tag-name="${tagName}">
+                <td class="text-center align-middle" style="font-size: 11px;">
+                    <span class="row-number">${$('#lineItemsBody tr').length + 1}</span>
                 </td>
-                <td><input type="text" class="form-control form-control-sm particulars-input" style="font-size: 11px;" value="${data?.particulars || ''}"></td>
-                <td><input type="text" class="form-control form-control-sm sac-input" style="font-size: 11px;" value="${data?.sac || ''}"></td>
-                <td><input type="number" class="form-control form-control-sm qty-input" style="font-size: 11px;" step="0.01" value="${data?.quantity || ''}" required></td>
-                <td><input type="text" class="form-control form-control-sm uom-input" style="font-size: 11px;" value="${data?.unit || ''}"></td>
-                <td><input type="number" class="form-control form-control-sm rate-input" style="font-size: 11px;" step="0.01" value="${data?.rate || ''}" required></td>
-                <td><input type="number" class="form-control form-control-sm amount-input bg-light" style="font-size: 11px;" step="0.01" value="${data?.amount || ''}" readonly></td>
+                <td>
+                    <input type="text" class="form-control form-control-sm bg-light category-display" 
+                           style="font-size: 11px;" value="${categoryName}" readonly>
+                    <input type="hidden" class="contract-item-id" value="${data?.contract_item_id || ''}">
+                </td>
+                <td>
+                    <input type="text" class="form-control form-control-sm particulars-input" style="font-size: 11px;" value="${data?.particulars || ''}">
+                </td>
+                <td>
+                    <input type="text" class="form-control form-control-sm sac-input" style="font-size: 11px;" value="${data?.sac || ''}">
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm qty-input" style="font-size: 11px;" step="0.01" value="${data?.quantity || ''}" required>
+                </td>
+                <td>
+                    <input type="text" class="form-control form-control-sm uom-input" style="font-size: 11px;" value="${data?.unit || ''}">
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm rate-input" style="font-size: 11px;" step="0.01" value="${data?.rate || ''}" required>
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm amount-input bg-light" style="font-size: 11px;" step="0.01" value="${data?.amount || ''}" readonly>
+                </td>
                 <td class="text-center align-middle">
-                    <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1" onclick="removeLineItem('${rowId}')"><i class="bi bi-x"></i></button>
+                    <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1" onclick="removeLineItem('${rowId}')">
+                        <i class="bi bi-x"></i>
+                    </button>
                 </td>
             </tr>
         `;
-    }
 
-    // =====================================================
-    // TOGGLE TAG DROPDOWN (View Only)
-    // =====================================================
-    function toggleTagDropdown(rowId) {
-        const menu = $(`#tagMenu_${rowId}`);
-        
-        // Close all other dropdowns
-        $('.tag-dropdown-menu').not(menu).removeClass('show');
-        
-        // Toggle current
-        menu.toggleClass('show');
-    }
-
-    // =====================================================
-    // BIND CATEGORY CHANGE EVENT (Update Tags when category changes)
-    // =====================================================
-    function bindCategoryChangeEvent(rowId) {
-        $(`#${rowId} .category-select`).on('change', function() {
-            const categoryId = $(this).val();
-            updateTagsForRow(rowId, categoryId);
-        });
-    }
-
-    // =====================================================
-    // UPDATE TAGS FOR ROW (When category changes)
-    // =====================================================
-    function updateTagsForRow(rowId, categoryId) {
-        const row = $(`#${rowId}`);
-        const tagText = row.find('.tag-text');
-        const tagMenu = row.find('.tag-dropdown-menu');
-        
-        if (!categoryId) {
-            tagText.text('-- Select Category --').removeClass('has-value');
-            tagMenu.html('<div class="p-2 text-muted small">Select category first</div>');
-            row.attr('data-tags', '[]');
-            return;
-        }
-        
-        // Find contract item by ID
-        const contractItem = contractItems.find(item => item.id == categoryId);
-        
-        if (!contractItem || !contractItem.tags || contractItem.tags.length === 0) {
-            tagText.text('-- No Tags --').removeClass('has-value');
-            tagMenu.html('<div class="p-2 text-muted small">No tags assigned</div>');
-            row.attr('data-tags', '[]');
-            return;
-        }
-        
-        // Build tag checkboxes
-        const tagNames = [];
-        const tagIds = [];
-        let tagCheckboxes = '';
-        
-        contractItem.tags.forEach(t => {
-            tagCheckboxes += `
-                <div class="tag-dropdown-item">
-                    <input type="checkbox" class="form-check-input tag-checkbox" 
-                           value="${t.tag_id}" 
-                           data-name="${t.tag_name}"
-                           checked disabled>
-                    <label>${t.tag_name}</label>
-                </div>
-            `;
-            tagNames.push(t.tag_name);
-            tagIds.push(t.tag_id);
-        });
-        
-        tagText.text(tagNames.join(', ')).addClass('has-value');
-        tagMenu.html(tagCheckboxes);
-        row.attr('data-tags', JSON.stringify(tagIds));
+        $('#lineItemsBody').append(row);
+        bindLineItemEvents(rowId);
+        updateRowNumbers();
     }
 
     // =====================================================
@@ -808,19 +583,11 @@
         const gstPercent = parseFloat($('#gstPercent').val()) || 0;
         const tdsPercent = parseFloat($('#tdsPercent').val()) || 0;
 
-        // GST on Base Total
         const gstAmount = (baseTotal * gstPercent) / 100;
-        
-        // Grand Total = Base + GST
         const grandTotal = baseTotal + gstAmount;
-        
-        // TDS on Base Total (not Grand Total)
         const tdsAmount = (baseTotal * tdsPercent) / 100;
-        
-        // Net Payable = Grand Total - TDS
         const netPayable = grandTotal - tdsAmount;
 
-        // Update fields
         $('#gstTotal').val(gstAmount.toFixed(2));
         $('#grandTotal').val(grandTotal.toFixed(2));
         $('#tdsAmount').val(tdsAmount.toFixed(2));
@@ -886,7 +653,6 @@
             return;
         }
 
-        // Check extension
         const ext = file.name.split('.').pop().toLowerCase();
         if (!['xlsx', 'xls'].includes(ext)) {
             showAlert('danger', 'Only Excel files (.xlsx, .xls) allowed');
@@ -895,7 +661,6 @@
             return;
         }
 
-        // Check file size (max 5MB)
         if (file.size > 5 * 1024 * 1024) {
             showAlert('danger', 'File size must be less than 5MB');
             $(this).val('');
@@ -903,7 +668,6 @@
             return;
         }
 
-        // Show success
         const fileSize = (file.size / 1024).toFixed(2) + ' KB';
         statusEl.html(`
             <span class="text-success">
@@ -949,9 +713,8 @@
                                 $('#lineItemsBody').empty();
                                 if (invoice.items && invoice.items.length > 0) {
                                     invoice.items.forEach(item => addLineItem(item));
-                                } else {
-                                    addLineItem();
                                 }
+                                calculateBaseTotal();
                             }
                         });
                 }
@@ -965,13 +728,11 @@
         $('#tdsPercent').val(invoice.tds_percent || 5);
         $('#description').val(invoice.description || '');
 
-        // Show rejection notice
         if (invoice.rejection_reason) {
             $('#rejectionReason').text(invoice.rejection_reason);
             $('#rejectionNotice').removeClass('d-none').addClass('d-flex');
         }
 
-        // Show current attachment
         if (invoice.attachments && invoice.attachments.length > 0) {
             const att = invoice.attachments.find(a => a.attachment_type === 'invoice');
             if (att) {
@@ -982,49 +743,41 @@
     }
 
     // =====================================================
-    // HANDLE FORM SUBMIT (with Tags)
+    // HANDLE FORM SUBMIT (Tags sent to backend, not visible)
     // =====================================================
     function handleFormSubmit(e) {
         e.preventDefault();
         
-        // Validate line items
         if ($('#lineItemsBody tr').length === 0) {
             showAlert('danger', 'Please add at least one line item');
             return;
         }
 
-        // Collect line items with tags
         const items = [];
         let hasError = false;
 
         $('#lineItemsBody tr').each(function() {
-            const categoryId = $(this).find('.category-select').val();
-            const quantity = $(this).find('.qty-input').val();
-            const rate = $(this).find('.rate-input').val();
-            const amount = $(this).find('.amount-input').val();
+            const row = $(this);
+            const contractItemId = row.find('.contract-item-id').val();
+            const quantity = row.find('.qty-input').val();
+            const rate = row.find('.rate-input').val();
+            const amount = row.find('.amount-input').val();
 
-            if (!categoryId || !quantity || !rate) {
+            if (!contractItemId || !quantity || !rate) {
                 hasError = true;
                 return false;
             }
 
-            // Get tags from row data attribute
-            let tags = [];
-            try {
-                tags = JSON.parse($(this).attr('data-tags') || '[]');
-            } catch (e) {
-                tags = [];
-            }
-
             items.push({
-                contract_item_id: categoryId,
-                particulars: $(this).find('.particulars-input').val() || null,
-                sac: $(this).find('.sac-input').val() || null,
+                contract_item_id: contractItemId,
+                particulars: row.find('.particulars-input').val() || null,
+                sac: row.find('.sac-input').val() || null,
                 quantity: parseFloat(quantity),
-                unit: $(this).find('.uom-input').val() || null,
+                unit: row.find('.uom-input').val() || null,
                 rate: parseFloat(rate),
                 amount: parseFloat(amount),
-                tags: tags  // Include tags in submission
+                tag_id: row.data('tag-id') || null,
+                tag_name: row.data('tag-name') || null
             });
         });
 
@@ -1033,24 +786,20 @@
             return;
         }
 
-        console.log('Submitting items with tags:', items);
+        console.log('Submitting items:', items);
 
-        // Build form data
         const formData = new FormData(document.getElementById('invoiceForm'));
         formData.append('items', JSON.stringify(items));
 
-        // Add Zoho GST Tax ID
         const selectedGstOption = $('#gstPercent option:selected');
         if (selectedGstOption.data('tax-id')) {
             formData.append('zoho_gst_tax_id', selectedGstOption.data('tax-id'));
         }
 
-        // Show loading
         const submitBtn = $('#submitBtn');
         const originalText = submitBtn.html();
         submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Submitting...');
 
-        // Submit
         let url = MODE === 'edit' ? `${API_BASE}/${INVOICE_ID}/update` : API_BASE;
 
         axios.post(url, formData, { headers: { 'Content-Type': 'multipart/form-data' } })

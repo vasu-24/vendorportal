@@ -9,9 +9,8 @@ use App\Http\Controllers\OrganisationController;
 use App\Http\Controllers\Auth\VendorAuthController;
 use App\Http\Controllers\Auth\VendorPasswordController;
 use App\Http\Controllers\Api\VendorRegistrationController;
-   use App\Http\Controllers\ZohoController;
-   use App\Http\Controllers\Api\ContractController as ApiContractController;
-
+use App\Http\Controllers\ZohoController;
+use App\Http\Controllers\Api\ContractController as ApiContractController;
 
 // =====================================================
 // INTERNAL TEAM AUTH ROUTES (Login/Logout)
@@ -30,13 +29,28 @@ Route::post('/login', [VendorAuthController::class, 'login'])->name('vendor.logi
 Route::post('/vendor/logout', [VendorAuthController::class, 'logout'])->name('vendor.logout');
 
 // =====================================================
+// PUBLIC ROUTES (No Login Required)
+// =====================================================
+
+Route::get('/vendor/accept/{token}', [VendorController::class, 'accept'])->name('vendors.accept');
+Route::get('/vendor/reject/{token}', [VendorController::class, 'reject'])->name('vendors.reject');
+
+Route::get('/vendor/registration/{token}', [VendorRegistrationController::class, 'showWizard'])->name('vendor.registration');
+Route::get('/vendor/registration/success/{token}', [VendorRegistrationController::class, 'showSuccess'])->name('vendor.registration.success');
+
+Route::get('/vendor/set-password/{token}', [VendorPasswordController::class, 'showSetPasswordForm'])->name('vendor.password.show');
+Route::post('/vendor/set-password/{token}', [VendorPasswordController::class, 'setPassword'])->name('vendor.password.set');
+
+Route::get('/zoho/callback', [ZohoController::class, 'callback'])->name('zoho.callback');
+
+// =====================================================
 // PROTECTED ROUTES (Need Login)
 // =====================================================
 
 Route::middleware(['auth'])->group(function () {
 
     // =====================================================
-    // DASHBOARD (All logged in users can see)
+    // DASHBOARD
     // =====================================================
     
     Route::get('/', function () {
@@ -45,28 +59,24 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/dashboard', function () {
         return view('pages.dashboard');
-    })->name('dashboard');
+    })->name('dashboard')->middleware('permission:view-dashboard');
 
     // =====================================================
-    // VENDOR MODULE ROUTES
+    // VENDOR MODULE
     // =====================================================
     
-// =====================================================
-// VENDOR MODULE ROUTES
-// =====================================================
-
-Route::prefix('vendors')->name('vendors.')->group(function () {
-    
-    // ✅ IMPORT ROUTES FIRST (No {id} conflict) - Inside auth middleware
-    Route::middleware(['auth'])->group(function () {
+    Route::prefix('vendors')->name('vendors.')->group(function () {
         
-        // Import Routes - MUST BE BEFORE ANY {id} ROUTES
+        // Import Routes
         Route::get('/import/template', [VendorController::class, 'downloadImportTemplate'])
-            ->name('import.template');
+            ->name('import.template')
+            ->middleware('permission:import-vendors');
+            
         Route::post('/import', [VendorController::class, 'import'])
-            ->name('import');
+            ->name('import')
+            ->middleware('permission:import-vendors');
         
-        // View vendors list
+        // List vendors
         Route::get('/', [VendorController::class, 'index'])
             ->name('index')
             ->middleware('permission:view-vendors');
@@ -85,7 +95,7 @@ Route::prefix('vendors')->name('vendors.')->group(function () {
             return "Vendor Approval Page Coming Soon";
         })->name('approvals')->middleware('permission:view-vendors');
         
-        // ✅ {id} ROUTES LAST
+        // Edit vendor
         Route::post('/{id}/update-template', [VendorController::class, 'updateTemplate'])
             ->name('updateTemplate')
             ->middleware('permission:edit-vendors');
@@ -94,322 +104,221 @@ Route::prefix('vendors')->name('vendors.')->group(function () {
             ->name('sendEmail')
             ->middleware('permission:edit-vendors');
     });
-});
+    
     // =====================================================
-    // VENDOR APPROVAL ROUTES (Internal Team)
+    // VENDOR APPROVAL ROUTES
     // =====================================================
     
     Route::prefix('vendors/approval')->name('vendors.approval.')->group(function () {
         
-        // View approval queue - requires view-vendors permission
         Route::get('/', function () {
             return view('pages.vendors.approval.queue');
         })->name('queue')->middleware('permission:view-vendors');
         
-        // Review vendor - requires view-vendors permission (approve/reject checked separately)
         Route::get('/review/{id}', function ($id) {
             return view('pages.vendors.approval.review', compact('id'));
         })->name('review')->middleware('permission:view-vendors');
     });
 
     // =====================================================
-    // MASTER MODULE - TEMPLATES
+    // CONTRACT MODULE
     // =====================================================
     
-    Route::prefix('master')->name('master.')->middleware('permission:manage-templates')->group(function () {
-        Route::get('/template', [MailTemplateController::class, 'index'])->name('template');
-        Route::post('/template', [MailTemplateController::class, 'store'])->name('template.store');
-        Route::get('/template/{id}', [MailTemplateController::class, 'show'])->name('template.show');
-        Route::put('/template/{id}', [MailTemplateController::class, 'update'])->name('template.update');
-        Route::delete('/template/{id}', [MailTemplateController::class, 'destroy'])->name('template.destroy');
+    Route::prefix('contracts')->name('contracts.')->group(function () {
+        
+        Route::get('/', [ContractController::class, 'index'])
+            ->name('index')
+            ->middleware('permission:view-contracts');
+            
+        Route::get('/create', [ContractController::class, 'create'])
+            ->name('create')
+            ->middleware('permission:create-contracts');
+            
+        Route::get('/{id}/edit', [ContractController::class, 'edit'])
+            ->name('edit')
+            ->middleware('permission:edit-contracts');
+            
+        Route::get('/preview', [ContractController::class, 'preview'])
+            ->name('preview')
+            ->middleware('permission:view-contracts');
+            
+        Route::post('/download', [ContractController::class, 'download'])
+            ->name('download')
+            ->middleware('permission:view-contracts');
+            
+        Route::get('/preview-uploaded', [ApiContractController::class, 'previewUploadedDocument'])
+            ->name('preview.uploaded')
+            ->middleware('permission:view-contracts');
+            
+        Route::get('/preview-document', [ContractController::class, 'previewDocument'])
+            ->name('preview.document')
+            ->middleware('permission:view-contracts');
+            
+        Route::match(['get', 'post'], '/{id}/download-word', [ContractController::class, 'downloadWord'])
+            ->name('download-word')
+            ->middleware('permission:view-contracts');
     });
 
     // =====================================================
-    // SETTINGS
+    // INVOICE MODULE
     // =====================================================
     
-    Route::get('/settings/general', function () {
-        return "General Settings Page";
-    })->name('settings.general')->middleware('permission:manage-settings');
+    Route::prefix('invoices')->name('invoices.')->group(function () {
+        
+        Route::get('/', function () {
+            return view('pages.invoices.index');
+        })->name('index')->middleware('permission:view-invoices');
+        
+        Route::get('/{id}', function ($id) {
+            return view('pages.invoices.show', ['invoiceId' => $id]);
+        })->name('show')->middleware('permission:view-invoices');
+    });
 
     // =====================================================
-    // ADMIN ROUTES (Users & Roles Management)
+    // CATEGORY MODULE
+    // =====================================================
+    
+    Route::get('/categories', function () {
+        return view('pages.master.categories.index');
+    })->name('categories.index')->middleware('permission:view-categories');
+
+    // =====================================================
+    // TEMPLATE MODULE
+    // =====================================================
+    
+   // =====================================================
+// TEMPLATE MODULE
+// =====================================================
+
+Route::prefix('master')->middleware('permission:manage-templates')->group(function () {
+    Route::get('/template', [MailTemplateController::class, 'index'])->name('master.template');
+    Route::post('/template', [MailTemplateController::class, 'store'])->name('master.template.store');
+    Route::get('/template/{id}', [MailTemplateController::class, 'show'])->name('master.template.show');
+    Route::put('/template/{id}', [MailTemplateController::class, 'update'])->name('master.template.update');
+    Route::delete('/template/{id}', [MailTemplateController::class, 'destroy'])->name('master.template.destroy');
+});
+
+    // =====================================================
+    // ORGANISATION MODULE
+    // =====================================================
+    
+    Route::get('/master/organisation', [OrganisationController::class, 'index'])
+        ->name('master.organisation')
+        ->middleware('permission:view-organisations');
+        
+    Route::post('/master/organisation', [OrganisationController::class, 'store'])
+        ->name('master.organisation.store')
+        ->middleware('permission:create-organisations');
+
+    // =====================================================
+    // MANAGER TAGS MODULE
+    // =====================================================
+    
+    Route::get('/master/manager-tags', function () {
+        return view('pages.master.manager-tags.index');
+    })->name('master.manager-tags')->middleware('permission:view-manager-tags');
+
+    // =====================================================
+    // USER MODULE
     // =====================================================
     
     Route::prefix('admin')->name('admin.')->group(function () {
         
-        // Users page - requires view-users permission
         Route::get('/users', function () {
             return view('pages.admin.users.index');
         })->name('users.index')->middleware('permission:view-users');
 
-        // Roles page - requires view-roles permission
         Route::get('/roles', function () {
             return view('pages.admin.roles.index');
         })->name('roles.index')->middleware('permission:view-roles');
+    });
+
+    // =====================================================
+    // ZOHO SETTINGS MODULE
+    // =====================================================
+    
+    Route::prefix('settings')->group(function () {
         
+        Route::get('/general', function () {
+            return "General Settings Page";
+        })->name('settings.general')->middleware('permission:manage-settings');
+        
+        Route::get('/zoho', [ZohoController::class, 'index'])
+            ->name('settings.zoho')
+            ->middleware('permission:manage-zoho');
+            
+        Route::get('/zoho/connect', [ZohoController::class, 'connect'])
+            ->name('zoho.connect')
+            ->middleware('permission:manage-zoho');
+            
+        Route::post('/zoho/disconnect', [ZohoController::class, 'disconnect'])
+            ->name('zoho.disconnect')
+            ->middleware('permission:manage-zoho');
+            
+        Route::post('/zoho/organization', [ZohoController::class, 'setOrganization'])
+            ->name('zoho.organization')
+            ->middleware('permission:manage-zoho');
+            
+        Route::get('/zoho/test', [ZohoController::class, 'test'])
+            ->name('zoho.test')
+            ->middleware('permission:manage-zoho');
+            
+        Route::get('/zoho/status', [ZohoController::class, 'status'])
+            ->name('zoho.status')
+            ->middleware('permission:manage-zoho');
     });
 
 });
 
 // =====================================================
-// PUBLIC ROUTES (No Login Required)
-// =====================================================
-
-// Vendor Accept/Reject Routes
-Route::get('/vendor/accept/{token}', [VendorController::class, 'accept'])->name('vendors.accept');
-Route::get('/vendor/reject/{token}', [VendorController::class, 'reject'])->name('vendors.reject');
-
-// Vendor Registration Wizard Routes
-Route::get('/vendor/registration/{token}', [VendorRegistrationController::class, 'showWizard'])
-    ->name('vendor.registration');
-
-Route::get('/vendor/registration/success/{token}', [VendorRegistrationController::class, 'showSuccess'])
-    ->name('vendor.registration.success');
-
-// =====================================================
-// VENDOR PROTECTED ROUTES (Need Vendor Login)
+// VENDOR PORTAL ROUTES (Need Vendor Login)
 // =====================================================
 
 Route::middleware(['vendor.auth'])->prefix('vendor')->name('vendor.')->group(function () {
 
-    // Vendor Dashboard
     Route::get('/dashboard', function () {
         return view('pages.vendor_portal.dashboard');
     })->name('dashboard');
 
-    // Vendor Profile
     Route::get('/profile', function () {
         return view('pages.vendor_portal.profile');
     })->name('profile');
 
-    // Vendor Documents
     Route::get('/documents', function () {
         return view('pages.vendor_portal.documents');
     })->name('documents');
 
-  // Vendor Invoices
-Route::get('/invoices', function () {
-    return view('pages.vendor_portal.invoices.index');
-})->name('invoices.index');
+    Route::get('/invoices', function () {
+        return view('pages.vendor_portal.invoices.index');
+    })->name('invoices.index');
 
-Route::get('/invoices/create', function () {
-    return view('pages.vendor_portal.invoices.form', [
-        'mode' => 'create',
-        'invoiceId' => null
-    ]);
-})->name('invoices.create');
+    Route::get('/invoices/create', function () {
+        return view('pages.vendor_portal.invoices.form', [
+            'mode' => 'create',
+            'invoiceId' => null
+        ]);
+    })->name('invoices.create');
 
-Route::get('/invoices/{id}', function ($id) {
-    return view('pages.vendor_portal.invoices.form', [
-        'mode' => 'show',
-        'invoiceId' => $id
-    ]);
-})->name('invoices.show');
+    Route::get('/invoices/{id}', function ($id) {
+        return view('pages.vendor_portal.invoices.form', [
+            'mode' => 'show',
+            'invoiceId' => $id
+        ]);
+    })->name('invoices.show');
 
-Route::get('/invoices/{id}/edit', function ($id) {
-    return view('pages.vendor_portal.invoices.form', [
-        'mode' => 'edit',
-        'invoiceId' => $id
-    ]);
-})->name('invoices.edit');
+    Route::get('/invoices/{id}/edit', function ($id) {
+        return view('pages.vendor_portal.invoices.form', [
+            'mode' => 'edit',
+            'invoiceId' => $id
+        ]);
+    })->name('invoices.edit');
 
-    // Vendor Settings
     Route::get('/settings', function () {
         return view('pages.vendor_portal.settings');
     })->name('settings');
 
-
-     Route::get('/contracts', function () {
+    Route::get('/contracts', function () {
         return view('pages.vendor_portal.contracts.index');
     })->name('contracts.index');
 
 });
-
-
-
-
-// Vendor Set Password Routes (Public)
-Route::get('/vendor/set-password/{token}', [VendorPasswordController::class, 'showSetPasswordForm'])
-    ->name('vendor.password.show');
-
-Route::post('/vendor/set-password/{token}', [VendorPasswordController::class, 'setPassword'])
-    ->name('vendor.password.set');
-
-
- // =====================================================
-// CONTRACT ROUTES (Admin - Requires Auth)
-// =====================================================
-
-Route::prefix('contracts')->middleware(['auth'])->name('contracts.')->group(function () {
-    Route::get('/', [ContractController::class, 'index'])->name('index');
-    Route::get('/create', [ContractController::class, 'create'])->name('create');
-    Route::get('/{id}/edit', [ContractController::class, 'edit'])->name('edit');
-    Route::get('/preview', [ContractController::class, 'preview'])->name('preview');
-    Route::post('/download', [ContractController::class, 'download'])->name('download');
-      // Preview uploaded contract document
-    Route::get('/preview-uploaded', [ApiContractController::class, 'previewUploadedDocument'])->name('preview.uploaded');
-});
-
-
-
-
-
-//   Zoho OAuth Callback (No auth required - Zoho redirects here)
-Route::get('/zoho/callback', [ZohoController::class, 'callback'])->name('zoho.callback');
-
-// Zoho Settings & Integration (Auth required)
-Route::middleware(['auth'])->prefix('settings')->group(function () {
-    
-    // Zoho Settings Page
-    Route::get('/zoho', [ZohoController::class, 'index'])->name('settings.zoho');
-    
-    // Connect to Zoho
-    Route::get('/zoho/connect', [ZohoController::class, 'connect'])->name('zoho.connect');
-    
-    // Disconnect from Zoho
-    Route::post('/zoho/disconnect', [ZohoController::class, 'disconnect'])->name('zoho.disconnect');
-    
-    // Set Organization
-    Route::post('/zoho/organization', [ZohoController::class, 'setOrganization'])->name('zoho.organization');
-    
-    // Test Connection
-    Route::get('/zoho/test', [ZohoController::class, 'test'])->name('zoho.test');
-    
-    // Get Status (API)
-    Route::get('/zoho/status', [ZohoController::class, 'status'])->name('zoho.status');
-});
-
-
-// =====================================================
-// Create Organisation master route
-// =====================================================
-
-Route::get('/master/organisation', [OrganisationController::class, 'index'])
-    ->name('master.organisation');
-
-Route::post('/master/organisation', [OrganisationController::class, 'store'])
-    ->name('master.organisation.store');
-
-
-
-    Route::prefix('invoices')->middleware(['auth'])->group(function () {
-    
-    // Invoice List Page
-    Route::get('/', function () {
-        return view('pages.invoices.index');
-    })->name('invoices.index');
-    
-    // Invoice Details Page
-    Route::get('/{id}', function ($id) {
-        return view('pages.invoices.show', ['invoiceId' => $id]);
-    })->name('invoices.show');
-
-});
-
-
-
-
-Route::get('/categories', function () {
-    return view('pages.master.categories.index');
-})->name('categories.index')->middleware('auth');
-
-
-
-Route::prefix('contracts')->middleware(['auth'])->name('contracts.')->group(function () {
-    
-    // Pages
-    Route::get('/', [App\Http\Controllers\ContractController::class, 'index'])->name('index');
-    Route::get('/create', [App\Http\Controllers\ContractController::class, 'create'])->name('create');
-    Route::get('/{id}/edit', [App\Http\Controllers\ContractController::class, 'edit'])->name('edit');
-    
-    // Preview template (PDF in iframe)
-    Route::get('/preview', [App\Http\Controllers\ContractController::class, 'preview'])->name('preview');
-    
-    // Preview uploaded document
-    Route::get('/preview-document', [App\Http\Controllers\ContractController::class, 'previewDocument'])->name('preview.document');
-    
-    // Download Word file - Accept GET and POST
-    Route::match(['get', 'post'], '/{id}/download-word', [App\Http\Controllers\ContractController::class, 'downloadWord'])->name('download-word');
-});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

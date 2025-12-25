@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use App\Models\ManagerTag; 
 
 class User extends Authenticatable
 {
@@ -57,4 +58,14 @@ class User extends Authenticatable
     {
         return $this->role && $this->role->slug === 'super-admin';
     }
+    
+    
+    public function managerTags()
+{
+    return $this->hasMany(ManagerTag::class);
+}
+
+
+
+
 }
