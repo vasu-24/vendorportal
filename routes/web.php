@@ -11,6 +11,8 @@ use App\Http\Controllers\Auth\VendorPasswordController;
 use App\Http\Controllers\Api\VendorRegistrationController;
 use App\Http\Controllers\ZohoController;
 use App\Http\Controllers\Api\ContractController as ApiContractController;
+use App\Http\Controllers\Auth\VendorForgotPasswordController;
+use App\Http\Controllers\Auth\VendorChangePasswordController;
 
 // =====================================================
 // INTERNAL TEAM AUTH ROUTES (Login/Logout)
@@ -322,3 +324,158 @@ Route::middleware(['vendor.auth'])->prefix('vendor')->name('vendor.')->group(fun
     })->name('contracts.index');
 
 });
+
+
+
+
+
+
+// =====================================================
+// TRAVEL INVOICE WEB ROUTES
+// =====================================================
+// Add these routes to your routes/web.php file
+
+/*
+|--------------------------------------------------------------------------
+| ADMIN PORTAL - Travel Employee Master Routes
+| Path: resources/views/pages/master/travel-employees/
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+
+    // Travel Employee Master
+    Route::get('/master/travel-employees', function () {
+        return view('pages.master.travel-employees.index');
+    })->name('travel-employees.index');
+
+});
+
+
+/*
+|--------------------------------------------------------------------------
+| ADMIN PORTAL - Travel Invoice Routes
+| Path: resources/views/pages/Travelinvoice/
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+
+    // Travel Invoices List
+    Route::get('/travel-invoices', function () {
+        return view('pages.Travelinvoice.index');
+    })->name('travel-invoices.index');
+
+    // Travel Invoice Batch Summary (Show all invoices in a batch)
+    Route::get('/travel-invoices/batch/{batchId}', function ($batchId) {
+        return view('pages.Travelinvoice.batch', ['batchId' => $batchId]);
+    })->name('travel-invoices.batch');
+
+    // Travel Invoice Detail/Show
+    Route::get('/travel-invoices/{id}', function ($id) {
+        return view('pages.Travelinvoice.show', ['id' => $id]);
+    })->name('travel-invoices.show');
+
+});
+
+
+/*
+|--------------------------------------------------------------------------
+| VENDOR PORTAL - Travel Invoice Routes
+| Path: resources/views/pages/vendor_portal/travel-invoices/
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware(['auth:vendor'])->prefix('vendor')->name('vendor.')->group(function () {
+
+    // Travel Invoices List (Batches)
+    Route::get('/travel-invoices', function () {
+        return view('pages.vendor_portal.travel-invoices.index');
+    })->name('travel-invoices.index');
+
+    // Create Travel Invoice
+    Route::get('/travel-invoices/create', function () {
+        return view('pages.vendor_portal.travel-invoices.create');
+    })->name('travel-invoices.create');
+
+    // View Travel Invoice Detail
+    Route::get('/travel-invoices/{id}', function ($id) {
+        return view('pages.vendor_portal.travel-invoices.show', ['id' => $id]);
+    })->name('travel-invoices.show');
+
+    // Edit Travel Invoice (for rejected invoices)
+    Route::get('/travel-invoices/{id}/edit', function ($id) {
+        return view('pages.vendor_portal.travel-invoices.edit', ['id' => $id]);
+    })->name('travel-invoices.edit');
+
+});
+
+
+
+
+
+
+
+
+
+
+
+// =====================================================
+// ADD THESE ROUTES TO YOUR web.php FILE
+// Vendor Forgot Password Routes (OTP Method)
+// =====================================================
+
+
+
+// Vendor Forgot Password Routes (Guest only - not logged in)
+Route::middleware('guest:vendor')->prefix('vendor')->group(function () {
+    
+    // Step 1: Enter Email
+    Route::get('/forgot-password', [VendorForgotPasswordController::class, 'showForgotPasswordForm'])
+        ->name('vendor.password.request');
+    
+    Route::post('/forgot-password', [VendorForgotPasswordController::class, 'sendOtp'])
+        ->name('vendor.password.send.otp');
+    
+    // Step 2: Verify OTP
+    Route::get('/verify-otp', [VendorForgotPasswordController::class, 'showVerifyOtpForm'])
+        ->name('vendor.password.verify.otp.form');
+    
+    Route::post('/verify-otp', [VendorForgotPasswordController::class, 'verifyOtp'])
+        ->name('vendor.password.verify.otp');
+    
+    Route::get('/resend-otp', [VendorForgotPasswordController::class, 'resendOtp'])
+        ->name('vendor.password.resend.otp');
+    
+    // Step 3: Reset Password
+    Route::get('/reset-password', [VendorForgotPasswordController::class, 'showResetPasswordForm'])
+        ->name('vendor.password.reset.form');
+    
+    Route::post('/reset-password', [VendorForgotPasswordController::class, 'resetPassword'])
+        ->name('vendor.password.update');
+});
+
+
+
+
+
+
+
+
+
+
+Route::middleware(['auth:vendor'])->prefix('vendor')->group(function () {
+    Route::get('/change-password', [VendorChangePasswordController::class, 'showChangePasswordForm'])
+        ->name('vendor.change-password');
+    
+    Route::post('/change-password', [VendorChangePasswordController::class, 'updatePassword'])
+        ->name('vendor.change-password.update');
+});
+
+
+
+
+// Approval Matrix / Invoice Flow
+Route::get('/admin/master/approval-matrix/invoice-flow', function () {
+    return view('pages.master.approval_matrix.invoice-flow');
+})->middleware(['auth'])->name('master.invoice-flow');

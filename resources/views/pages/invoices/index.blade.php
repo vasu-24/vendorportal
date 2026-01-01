@@ -6,7 +6,7 @@
     .card { border: none; border-radius: 8px; }
     .modal-content { border: none; border-radius: 8px; }
 
-    /* Page Header - Same as other pages */
+    /* Page Header */
     .page-icon {
         width: 44px;
         height: 44px;
@@ -97,15 +97,25 @@
         color: #495057;
     }
 
-    /* Soft Badge Colors - Same as Vendor */
-    .badge-draft { background-color: #e9ecef; color: #495057; font-weight: 500; }
-    .badge-submitted { background-color: #e2e3f1; color: #383d6e; font-weight: 500; }
-    .badge-under-review { background-color: #fff3cd; color: #856404; font-weight: 500; }
-    .badge-approved { background-color: #d4edda; color: #155724; font-weight: 500; }
-    .badge-rejected { background-color: #f8d7da; color: #721c24; font-weight: 500; }
-    .badge-resubmitted { background-color: #cce5ff; color: #004085; font-weight: 500; }
-    .badge-paid { background-color: #d1ecf1; color: #0c5460; font-weight: 500; }
-
+/* Status Badges - STANDARD (Same as Travel Invoice) */
+.badge-status { 
+    padding: 4px 10px; 
+    border-radius: 12px; 
+    font-size: 10px; 
+    font-weight: 600; 
+    text-transform: uppercase; 
+}
+.badge-draft { background: #e9ecef; color: #495057; }
+.badge-submitted { background: #cfe2ff; color: #084298; }
+.badge-resubmitted { background: #e2d9f3; color: #6f42c1; }
+.badge-under-review { background: #fff3cd; color: #856404; }
+.badge-pending-rm { background: #fff3cd; color: #856404; }
+.badge-pending-vp { background: #ffe5b4; color: #7a4f01; }
+.badge-pending-ceo { background: #f8d7da; color: #842029; }
+.badge-pending-finance { background: #d1e7dd; color: #0f5132; }
+.badge-approved { background: #d4edda; color: #155724; }
+.badge-rejected { background: #f8d7da; color: #721c24; }
+.badge-paid { background: #d1ecf1; color: #0c5460; }
     /* Zoho Badge */
     .badge-zoho-synced { background-color: #d4edda; color: #155724; font-weight: 500; }
     .badge-zoho-pending { background-color: #e9ecef; color: #6c757d; font-weight: 500; }
@@ -113,7 +123,7 @@
 
 <div class="container-fluid py-3">
 
-    {{-- Page Header - Same as Vendor --}}
+    {{-- Page Header --}}
     <div class="d-flex justify-content-between align-items-start mb-4">
         <div class="d-flex align-items-start gap-3">
             <div class="page-icon">
@@ -180,6 +190,7 @@
                     <tr class="bg-light">
                         <th class="ps-3" style="width: 50px;">#</th>
                         <th>Invoice</th>
+                        <th>Type</th>
                         <th>Contract</th>
                         <th>Vendor</th>
                         <th>Amount</th>
@@ -191,7 +202,7 @@
                 </thead>
                 <tbody id="invoiceTableBody">
                     <tr>
-                        <td colspan="9" class="text-center py-4">
+                        <td colspan="10" class="text-center py-4">
                             <div class="spinner-border spinner-border-sm text-primary"></div>
                             <span class="ms-2 text-muted">Loading...</span>
                         </td>
@@ -328,7 +339,7 @@
     function loadInvoices() {
         const tbody = $('#invoiceTableBody');
         tbody.html(`
-            <tr><td colspan="9" class="text-center py-4">
+            <tr><td colspan="10" class="text-center py-4">
                 <div class="spinner-border spinner-border-sm text-primary"></div>
                 <span class="ms-2 text-muted">Loading...</span>
             </td></tr>
@@ -347,7 +358,7 @@
                 }
             })
             .catch(err => {
-                tbody.html(`<tr><td colspan="9" class="text-center py-4 text-danger">Failed to load invoices</td></tr>`);
+                tbody.html(`<tr><td colspan="10" class="text-center py-4 text-danger">Failed to load invoices</td></tr>`);
                 Toast.error('Failed to load invoices');
             });
     }
@@ -359,7 +370,7 @@
         const tbody = $('#invoiceTableBody');
 
         if (!invoices || invoices.length === 0) {
-            tbody.html(`<tr><td colspan="9" class="text-center py-4 text-muted">
+            tbody.html(`<tr><td colspan="10" class="text-center py-4 text-muted">
                 <i class="bi bi-inbox fs-3 d-block mb-2"></i>No invoices found
             </td></tr>`);
             return;
@@ -374,6 +385,7 @@
                         <div class="fw-medium">${escapeHtml(inv.invoice_number)}</div>
                         <small class="text-muted">${inv.description ? escapeHtml(inv.description.substring(0, 25)) + '...' : '-'}</small>
                     </td>
+                    <td>${getTypeBadge(inv.invoice_type)}</td>
                     <td>
                         ${inv.contract ? `
                             <div class="fw-medium">${escapeHtml(inv.contract.contract_number)}</div>
@@ -407,6 +419,16 @@
         });
 
         tbody.html(html);
+    }
+
+    // =====================================================
+    // TYPE BADGE
+    // =====================================================
+    function getTypeBadge(type) {
+        if (type === 'adhoc') {
+            return '<span class="badge-type-adhoc"><i class="bi bi-lightning me-1"></i>ADHOC</span>';
+        }
+        return '<span class="badge-type-normal"><i class="bi bi-file-earmark-text me-1"></i>Normal</span>';
     }
 
     // =====================================================
@@ -582,18 +604,22 @@
     // =====================================================
     // HELPERS
     // =====================================================
-    function getStatusBadge(status) {
-        const badges = {
-            'draft': '<span class="badge badge-draft">Draft</span>',
-            'submitted': '<span class="badge badge-submitted">Submitted</span>',
-            'under_review': '<span class="badge badge-under-review">Under Review</span>',
-            'approved': '<span class="badge badge-approved">Approved</span>',
-            'rejected': '<span class="badge badge-rejected">Rejected</span>',
-            'resubmitted': '<span class="badge badge-resubmitted">Resubmitted</span>',
-            'paid': '<span class="badge badge-paid">Paid</span>'
-        };
-        return badges[status] || `<span class="badge badge-draft">${status}</span>`;
-    }
+   function getStatusBadge(status) {
+    const badges = {
+        'draft': '<span class="badge-status badge-draft">Draft</span>',
+        'submitted': '<span class="badge-status badge-submitted">Submitted</span>',
+        'resubmitted': '<span class="badge-status badge-resubmitted">Resubmitted</span>',
+        'under_review': '<span class="badge-status badge-under-review">Under Review</span>',
+        'pending_rm': '<span class="badge-status badge-pending-rm">Pending RM</span>',
+        'pending_vp': '<span class="badge-status badge-pending-vp">Pending VP</span>',
+        'pending_ceo': '<span class="badge-status badge-pending-ceo">Pending CEO</span>',
+        'pending_finance': '<span class="badge-status badge-pending-finance">Pending Finance</span>',
+        'approved': '<span class="badge-status badge-approved">Approved</span>',
+        'rejected': '<span class="badge-status badge-rejected">Rejected</span>',
+        'paid': '<span class="badge-status badge-paid">Paid</span>'
+    };
+    return badges[status] || `<span class="badge-status badge-draft">${status}</span>`;
+}
 
     function formatNumber(num) {
         return parseFloat(num || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

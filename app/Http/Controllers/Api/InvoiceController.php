@@ -231,23 +231,25 @@ public function index(Request $request)
             // No filter needed
             
         } elseif ($userRole === 'manager') {
-            // RM sees:
-            // 1. Invoices assigned to them (any status including rejected)
-            // 2. Unassigned submitted/resubmitted invoices with their tag
-            $userTagIds = \App\Models\ManagerTag::where('user_id', $userId)->pluck('tag_id')->toArray();
-            
-            $query->where(function($q) use ($userId, $userTagIds) {
-                // Assigned to this RM (includes rejected)
-                $q->where('assigned_rm_id', $userId)
-                  // OR unassigned submitted/resubmitted with matching tag
-                  ->orWhere(function($q2) use ($userTagIds) {
-                      $q2->whereIn('status', ['submitted', 'resubmitted'])
-                         ->where(function($q3) use ($userTagIds) {
-                             $q3->whereIn('assigned_tag_id', $userTagIds)
-                                ->orWhereNull('assigned_rm_id');
-                         });
-                  });
-            });
+    // RM sees invoices that have items with their tag
+    $userTagIds = \App\Models\ManagerTag::where('user_id', $userId)->pluck('tag_id')->toArray();
+    
+    $query->where(function($q) use ($userId, $userTagIds) {
+        // Invoices assigned to this RM
+        $q->where('assigned_rm_id', $userId)
+          // OR invoices with items having RM's tag
+          ->orWhereHas('items', function($q2) use ($userTagIds) {
+              $q2->whereIn('tag_id', $userTagIds);
+          })
+          // OR unassigned submitted/resubmitted with matching tag
+          ->orWhere(function($q2) use ($userTagIds) {
+              $q2->whereIn('status', ['submitted', 'resubmitted'])
+                 ->where(function($q3) use ($userTagIds) {
+                     $q3->whereIn('assigned_tag_id', $userTagIds)
+                        ->orWhereNull('assigned_rm_id');
+                 });
+          });
+    });
             
         } elseif ($userRole === 'vp') {
             // VOO sees:
@@ -439,11 +441,10 @@ public function index(Request $request)
     // =====================================================
     // GET INVOICE DETAILS
     // =====================================================
-
-    /**
-     * Get single invoice details
-     */
-  public function show($id)
+/**
+ * Get single invoice details
+ */
+public function show($id)
 {
     try {
         $user = Auth::user();
@@ -473,19 +474,29 @@ public function index(Request $request)
         // =====================================================
         
         $canView = false;
+        $userTagIds = [];
         
         if ($userRole === 'super-admin') {
             // Super Admin can view ALL - NO RESTRICTIONS
             $canView = true;
             
         } elseif ($userRole === 'manager') {
-            // RM can view if assigned to them OR has matching tag
+            // RM can view if:
+            // 1. Assigned to them
+            // 2. Has matching tag at invoice level
+            // 3. Has items with their tag
             $userTagIds = \App\Models\ManagerTag::where('user_id', $userId)->pluck('tag_id')->toArray();
             
             if ($invoice->assigned_rm_id === $userId) {
                 $canView = true;
             } elseif (in_array($invoice->assigned_tag_id, $userTagIds)) {
                 $canView = true;
+            } else {
+                // Check if any item has RM's tag
+                $hasItemWithTag = $invoice->items->whereIn('tag_id', $userTagIds)->count() > 0;
+                if ($hasItemWithTag) {
+                    $canView = true;
+                }
             }
             
         } elseif ($userRole === 'vp') {
@@ -538,11 +549,41 @@ public function index(Request $request)
             ], 403);
         }
 
+        // =====================================================
+        // RM SPECIFIC DATA
+        // =====================================================
+        
+        $rmItems = null;
+        $rmPendingItems = 0;
+        $rmApprovedItems = 0;
+        $canApproveItems = false;
+        
+        if ($userRole === 'manager' && $invoice->status === 'pending_rm') {
+            // Get items that belong to this RM
+            $rmItems = $invoice->items->filter(function($item) use ($userTagIds) {
+                return in_array($item->tag_id, $userTagIds);
+            })->values();
+            
+            $rmPendingItems = $rmItems->where('rm_approved', false)->count();
+            $rmApprovedItems = $rmItems->where('rm_approved', true)->count();
+            $canApproveItems = $rmPendingItems > 0;
+        }
+        
+        // Get all pending items count (for display)
+        $totalPendingItems = $invoice->items->where('rm_approved', false)->count();
+        $totalApprovedItems = $invoice->items->where('rm_approved', true)->count();
+
         return response()->json([
             'success' => true,
             'data' => $invoice,
             'user_role' => $userRole,
-            'can_edit' => ($userRole === 'finance' && $invoice->status === 'pending_finance') || $userRole === 'super-admin'
+            'can_edit' => ($userRole === 'finance' && $invoice->status === 'pending_finance') || $userRole === 'super-admin',
+            'can_approve_items' => $canApproveItems,
+            'rm_items' => $rmItems,
+            'rm_pending_items' => $rmPendingItems,
+            'rm_approved_items' => $rmApprovedItems,
+            'total_pending_items' => $totalPendingItems,
+            'total_approved_items' => $totalApprovedItems,
         ]);
 
     } catch (\Exception $e) {
@@ -554,8 +595,6 @@ public function index(Request $request)
         ], 404);
     }
 }
-
-
 
 
 
@@ -681,7 +720,14 @@ foreach ($invoice->items as $item) {
 /**
  * Start review - moves to pending_rm
  */
+// =====================================================
+// START REVIEW (Initiates Approval Flow)
+// =====================================================
 
+/**
+ * Start review - moves to pending_rm
+ * Assigns tags to items and finds all RMs
+ */
 public function startReview($id)
 {
     try {
@@ -700,25 +746,66 @@ public function startReview($id)
         $exceedsContract = $invoice->checkExceedsContract();
         
         // =====================================================
-        // AUTO-ASSIGN RM BASED ON TAG
+        // GET FIRST TAG (for items without tag)
+        // =====================================================
+        
+        $firstTagId = null;
+        $firstTagName = null;
+        
+        // Find first item with tag
+        foreach ($invoice->items as $item) {
+            if (!empty($item->tag_id)) {
+                $firstTagId = $item->tag_id;
+                $firstTagName = $item->tag_name;
+                break;
+            }
+            // Also check from contract_item
+            if ($item->contractItem && !empty($item->contractItem->tag_id)) {
+                $firstTagId = $item->contractItem->tag_id;
+                $firstTagName = $item->contractItem->tag_name;
+                break;
+            }
+        }
+        
+        // =====================================================
+        // ASSIGN TAGS TO ALL ITEMS
+        // =====================================================
+        
+        foreach ($invoice->items as $item) {
+            $itemTagId = $item->tag_id;
+            $itemTagName = $item->tag_name;
+            
+            // If item doesn't have tag, get from contract_item
+            if (empty($itemTagId) && $item->contractItem) {
+                $itemTagId = $item->contractItem->tag_id;
+                $itemTagName = $item->contractItem->tag_name;
+            }
+            
+            // If still no tag, use first tag
+            if (empty($itemTagId)) {
+                $itemTagId = $firstTagId;
+                $itemTagName = $firstTagName;
+            }
+            
+            // Update item with tag
+            $item->update([
+                'tag_id' => $itemTagId,
+                'tag_name' => $itemTagName,
+                'rm_approved' => false,
+                'rm_approved_by' => null,
+                'rm_approved_at' => null,
+            ]);
+        }
+        
+        // =====================================================
+        // FIND PRIMARY RM (first tag's manager)
         // =====================================================
         
         $assignedRmId = null;
-        $assignedTagId = null;
-        $assignedTagName = null;
-        
-        // Get tag from first invoice item's contract_item
-        $firstItem = $invoice->items->first();
-        if ($firstItem && $firstItem->contractItem) {
-            $assignedTagId = $firstItem->contractItem->tag_id;
-            $assignedTagName = $firstItem->contractItem->tag_name;
-            
-            // Find manager assigned to this tag
-            if ($assignedTagId) {
-                $managerTag = \App\Models\ManagerTag::where('tag_id', $assignedTagId)->first();
-                if ($managerTag) {
-                    $assignedRmId = $managerTag->user_id;
-                }
+        if ($firstTagId) {
+            $managerTag = \App\Models\ManagerTag::where('tag_id', $firstTagId)->first();
+            if ($managerTag) {
+                $assignedRmId = $managerTag->user_id;
             }
         }
 
@@ -727,25 +814,28 @@ public function startReview($id)
             'current_approver_role' => 'rm',
             'exceeds_contract' => $exceedsContract,
             'assigned_rm_id' => $assignedRmId,
-            'assigned_tag_id' => $assignedTagId,
-            'assigned_tag_name' => $assignedTagName,
+            'assigned_tag_id' => $firstTagId,
+            'assigned_tag_name' => $firstTagName,
             'reviewed_by' => $userId,
             'reviewed_at' => now(),
         ]);
 
-        // Get RM name for message
-        $rmName = 'RM';
-        if ($assignedRmId) {
-            $rmUser = \App\Models\User::find($assignedRmId);
-            $rmName = $rmUser ? $rmUser->name : 'RM';
+        // Get unique RMs for this invoice
+        $uniqueTagIds = $invoice->items()->distinct()->pluck('tag_id')->filter()->toArray();
+        $rmNames = [];
+        foreach ($uniqueTagIds as $tagId) {
+            $managerTag = \App\Models\ManagerTag::where('tag_id', $tagId)->first();
+            if ($managerTag && $managerTag->user) {
+                $rmNames[] = $managerTag->user->name;
+            }
         }
+        $rmNamesStr = !empty($rmNames) ? implode(', ', array_unique($rmNames)) : 'RM';
 
         return response()->json([
             'success' => true,
-            'message' => "Invoice sent to {$rmName} for approval.",
+            'message' => "Invoice sent to {$rmNamesStr} for approval.",
             'data' => $invoice->fresh(),
-            'assigned_rm' => $rmName,
-            'assigned_tag' => $assignedTagName,
+            'assigned_rms' => $rmNames,
         ]);
 
     } catch (\Exception $e) {
@@ -759,19 +849,7 @@ public function startReview($id)
 }
 
 
-
-
-    // =====================================================
-    // APPROVE INVOICE (WITH ZOHO INTEGRATION)
-    // =====================================================
-
-    /**
-     * Approve invoice and push to Zoho
-     */
-  // =====================================================
-// APPROVE INVOICE (MULTI-LEVEL APPROVAL FLOW)
-// =====================================================
-
+  
 /**
  * Approve invoice - Multi-level flow
  * Flow: RM → VP → CEO (if exceeds contract) → Finance → Approved
@@ -819,25 +897,71 @@ public function approve(Request $request, $id)
                 ];
                 break;
                 
-            // STEP 2: RM Approves → Pending VP
-            case 'pending_rm':
-                // Check if user is RM or Admin
-            if (!in_array($userRole, ['manager', 'super-admin', 'super-admin'])) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Only RM can approve at this stage.'
-                    ], 403);
-                }
-                
-                $nextStatus = 'pending_vp';
-                $updateData = [
-                    'status' => $nextStatus,
-                    'current_approver_role' => 'vp',
-                    'rm_approved_by' => $userId,
-                    'rm_approved_at' => now(),
-                ];
-                break;
-                
+// STEP 2: RM Approves → Check if all items approved → Pending VP
+case 'pending_rm':
+    // Check if user is RM or Admin
+    if (!in_array($userRole, ['manager', 'super-admin'])) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Only RM can approve at this stage.'
+        ], 403);
+    }
+    
+    // Get RM's tag IDs
+    $rmTagIds = \App\Models\ManagerTag::where('user_id', $userId)->pluck('tag_id')->toArray();
+    
+    // Approve only items with RM's tags
+    $approvedCount = 0;
+    foreach ($invoice->items as $item) {
+        if (in_array($item->tag_id, $rmTagIds) && !$item->rm_approved) {
+            $item->update([
+                'rm_approved' => true,
+                'rm_approved_by' => $userId,
+                'rm_approved_at' => now(),
+            ]);
+            $approvedCount++;
+        }
+    }
+    
+    if ($approvedCount === 0) {
+        return response()->json([
+            'success' => false,
+            'message' => 'No items to approve for your tag.'
+        ], 400);
+    }
+    
+    // Check if ALL items are approved
+    $pendingItems = $invoice->items()->where('rm_approved', false)->count();
+    
+    if ($pendingItems > 0) {
+        // Still waiting for other RMs
+        $updateData = [
+            'rm_approved_by' => $userId,
+            'rm_approved_at' => now(),
+        ];
+        $invoice->update($updateData);
+        
+        return response()->json([
+            'success' => true,
+            'message' => "Your items approved. Waiting for other RMs to approve ({$pendingItems} items pending).",
+            'data' => $invoice->fresh(),
+            'pending_items' => $pendingItems,
+            'all_approved' => false,
+        ]);
+    }
+    
+    // All items approved - move to VP
+    $nextStatus = 'pending_vp';
+    $updateData = [
+        'status' => $nextStatus,
+        'current_approver_role' => 'vp',
+        'rm_approved_by' => $userId,
+        'rm_approved_at' => now(),
+    ];
+    break;
+    
+    
+
             // STEP 3: VP Approves → Pending CEO (if exceeds) OR Pending Finance
             case 'pending_vp':
                 // Check if user is VP or Admin
@@ -992,7 +1116,10 @@ public function approve(Request $request, $id)
             'message' => 'Something went wrong.'
         ], 500);
     }
-}public function reject(Request $request, $id)
+}
+
+
+public function reject(Request $request, $id)
 {
     try {
         $validator = Validator::make($request->all(), [
@@ -1076,6 +1203,15 @@ public function approve(Request $request, $id)
             'approved_at' => null,
         ]);
 
+        // =====================================================
+        // RESET ALL ITEM APPROVALS
+        // =====================================================
+        $invoice->items()->update([
+            'rm_approved' => false,
+            'rm_approved_by' => null,
+            'rm_approved_at' => null,
+        ]);
+
         Log::info('Invoice rejected', [
             'invoice_id' => $invoice->id,
             'rejected_by' => $userId,
@@ -1100,7 +1236,6 @@ public function approve(Request $request, $id)
         ], 500);
     }
 }
-
     // =====================================================
     // MARK AS PAID
     // =====================================================

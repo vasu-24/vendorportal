@@ -222,7 +222,10 @@ public function edit($id)
     // =====================================================
     // DOWNLOAD WORD FILE - FULL DEBUG VERSION
     // =====================================================
-    public function downloadWord($id, Request $request)
+
+
+
+public function downloadWord($id, Request $request)
     {
         // ========== STEP 1: LOG START ==========
         Log::info('========== DOWNLOAD WORD STARTED ==========');
@@ -302,8 +305,11 @@ public function edit($id)
 
             // ========== STEP 8: SET PLACEHOLDERS ==========
             Log::info('STEP 8: Setting placeholders...');
+            Log::info('STEP 8: Template file is: ' . $templateFile);
             
-            // Party details from DB
+            // =====================================================
+            // COMMON FIELDS (from contract DB - for all templates)
+            // =====================================================
             $templateProcessor->setValue('VENDOR_NAME', $contract->vendor_name ?? '');
             $templateProcessor->setValue('VENDOR_CIN', $contract->vendor_cin ?? '');
             $templateProcessor->setValue('VENDOR_ADDRESS', $contract->vendor_address ?? '');
@@ -313,23 +319,143 @@ public function edit($id)
             
             Log::info('STEP 8: DB values set - Vendor: ' . ($contract->vendor_name ?? 'NULL'));
 
-            // Fields from POST request
-            $effectiveDate = $request->input('effective_date');
-            if ($effectiveDate) {
-                $effectiveDate = Carbon::parse($effectiveDate)->format('d-m-Y');
+            // =====================================================
+            // FIDE MOU PLACEHOLDERS
+            // =====================================================
+            if (str_contains($templateFile, 'FIDE_Agreement') || str_contains($templateFile, 'FIDE Agreement')) {
+                Log::info('STEP 8: Processing FIDE MOU template');
+                
+                $effectiveDate = $request->input('effective_date');
+                if ($effectiveDate) {
+                    $effectiveDate = Carbon::parse($effectiveDate)->format('d-m-Y');
+                }
+                
+                $templateProcessor->setValue('EFFECTIVE_DATE', $effectiveDate ?? '');
+                $templateProcessor->setValue('MOU_VALIDITY_YEARS', $request->input('mou_validity_years') ?? '');
+                $templateProcessor->setValue('TERMINATION_NOTICE_DAYS', $request->input('termination_notice_days') ?? '30');
+                $templateProcessor->setValue('SECOND_PARTY_DESCRIPTION', $request->input('second_party_description') ?? '');
+                $templateProcessor->setValue('MOU_PURPOSE', $request->input('mou_purpose') ?? '');
+                $templateProcessor->setValue('MOU_OBJECTIVES', $request->input('mou_objectives') ?? '');
+                $templateProcessor->setValue('VENDOR_CONTACT_NAME', $request->input('vendor_contact_name') ?? '');
+                $templateProcessor->setValue('VENDOR_CONTACT_DESIGNATION', $request->input('vendor_contact_designation') ?? '');
+                $templateProcessor->setValue('VENDOR_CONTACT_EMAIL', $request->input('vendor_contact_email') ?? '');
+                $templateProcessor->setValue('VENDOR_CONTACT_ADDRESS', $request->input('vendor_contact_address') ?? '');
+                $templateProcessor->setValue('VENDOR_SIGNATORY_NAME', $request->input('vendor_signatory_name') ?? '');
+                $templateProcessor->setValue('VENDOR_SIGNATORY_DESIGNATION', $request->input('vendor_signatory_designation') ?? '');
+                $templateProcessor->setValue('VENDOR_SIGNATORY_PLACE', $request->input('vendor_signatory_place') ?? '');
+                
+                Log::info('STEP 8: FIDE MOU placeholders set');
             }
-            $templateProcessor->setValue('EFFECTIVE_DATE', $effectiveDate ?? '');
-            $templateProcessor->setValue('MOU_VALIDITY_YEARS', $request->input('mou_validity_years') ?? '');
-            $templateProcessor->setValue('SECOND_PARTY_DESCRIPTION', $request->input('second_party_description') ?? '');
-            $templateProcessor->setValue('MOU_PURPOSE', $request->input('mou_purpose') ?? '');
-            $templateProcessor->setValue('MOU_OBJECTIVES', $request->input('mou_objectives') ?? '');
-            $templateProcessor->setValue('TERMINATION_NOTICE_DAYS', $request->input('termination_notice_days') ?? '30');
-            $templateProcessor->setValue('VENDOR_CONTACT_NAME', $request->input('vendor_contact_name') ?? '');
-            $templateProcessor->setValue('VENDOR_CONTACT_EMAIL', $request->input('vendor_contact_email') ?? '');
-            $templateProcessor->setValue('VENDOR_CONTACT_ADDRESS', $request->input('vendor_contact_address') ?? '');
-            
-            Log::info('STEP 8 PASSED: All placeholders set');
-            Log::info('STEP 8: POST values - Effective Date: ' . ($effectiveDate ?? 'NULL'));
+
+            // =====================================================
+            // NDA PLACEHOLDERS
+            // =====================================================
+            if (str_contains($templateFile, 'NDA')) {
+                Log::info('STEP 8: Processing NDA template');
+                
+                $effectiveDate = $request->input('effective_date');
+                if ($effectiveDate) {
+                    $effectiveDate = Carbon::parse($effectiveDate)->format('d-m-Y');
+                }
+                $signingDate = $request->input('signing_date');
+                if ($signingDate) {
+                    $signingDate = Carbon::parse($signingDate)->format('d-m-Y');
+                }
+                
+                $templateProcessor->setValue('EFFECTIVE_DATE', $effectiveDate ?? '');
+                $templateProcessor->setValue('NDA_TERM_YEARS', $request->input('nda_term_years') ?? '');
+                $templateProcessor->setValue('CONFIDENTIALITY_SURVIVAL_YEARS', $request->input('confidentiality_survival_years') ?? '');
+                $templateProcessor->setValue('DISCLOSING_PARTY_NAME', $request->input('disclosing_party_name') ?? '');
+                $templateProcessor->setValue('DISCLOSING_PARTY_SHORT_NAME', $request->input('disclosing_party_short_name') ?? '');
+                $templateProcessor->setValue('COMPANY_INCORPORATION_TYPE', $request->input('company_incorporation_type') ?? '');
+                $templateProcessor->setValue('DISCLOSING_PARTY_ADDRESS', $request->input('disclosing_party_address') ?? '');
+                $templateProcessor->setValue('CLIENT_LEGAL_NAME', $request->input('client_legal_name') ?? '');
+                $templateProcessor->setValue('CLIENT_ADDRESS', $request->input('client_address') ?? '');
+                $templateProcessor->setValue('CONFIDENTIALITY_PURPOSE', $request->input('confidentiality_purpose') ?? '');
+                $templateProcessor->setValue('DISCLOSING_PARTY_SIGNATORY', $request->input('disclosing_party_signatory') ?? '');
+                $templateProcessor->setValue('CLIENT_SIGNATORY', $request->input('client_signatory') ?? '');
+                $templateProcessor->setValue('SIGNING_DATE', $signingDate ?? '');
+                
+                Log::info('STEP 8: NDA placeholders set');
+            }
+
+            // =====================================================
+            // CONSULTING AGREEMENT PLACEHOLDERS
+            // =====================================================
+            if (str_contains($templateFile, 'Consulting')) {
+                Log::info('STEP 8: Processing Consulting Agreement template');
+                
+                $agreementDate = $request->input('agreement_date');
+                if ($agreementDate) {
+                    $agreementDate = Carbon::parse($agreementDate)->format('d-m-Y');
+                }
+                $signingDate = $request->input('signing_date');
+                if ($signingDate) {
+                    $signingDate = Carbon::parse($signingDate)->format('d-m-Y');
+                }
+                $sowStartDate = $request->input('sow_start_date');
+                if ($sowStartDate) {
+                    $sowStartDate = Carbon::parse($sowStartDate)->format('d-m-Y');
+                }
+                $sowEndDate = $request->input('sow_end_date');
+                if ($sowEndDate) {
+                    $sowEndDate = Carbon::parse($sowEndDate)->format('d-m-Y');
+                }
+                
+                $templateProcessor->setValue('AGREEMENT_DATE', $agreementDate ?? '');
+                $templateProcessor->setValue('CONSULTANT_NAME', $request->input('consultant_name') ?? '');
+                $templateProcessor->setValue('CONSULTANT_PAN', $request->input('consultant_pan') ?? '');
+                $templateProcessor->setValue('CONSULTANT_ADDRESS', $request->input('consultant_address') ?? '');
+                $templateProcessor->setValue('CLIENT_LEGAL_NAME', $request->input('client_legal_name') ?? '');
+                $templateProcessor->setValue('CLIENT_CIN', $request->input('client_cin') ?? '');
+                $templateProcessor->setValue('CLIENT_REGISTERED_ADDRESS', $request->input('client_registered_address') ?? '');
+                $templateProcessor->setValue('SERVICES_DESCRIPTION', $request->input('services_description') ?? '');
+                $templateProcessor->setValue('INITIAL_TERM_MONTHS', $request->input('initial_term_months') ?? '');
+                $templateProcessor->setValue('TERMINATION_NOTICE_DAYS', $request->input('termination_notice_days') ?? '30');
+                $templateProcessor->setValue('SOW_START_DATE', $sowStartDate ?? '');
+                $templateProcessor->setValue('SOW_END_DATE', $sowEndDate ?? '');
+                $templateProcessor->setValue('CONSULTANT_SIGNATORY_NAME', $request->input('consultant_signatory_name') ?? '');
+                $templateProcessor->setValue('CLIENT_SIGNATORY_NAME', $request->input('client_signatory_name') ?? '');
+                $templateProcessor->setValue('SIGNING_PLACE', $request->input('signing_place') ?? '');
+                $templateProcessor->setValue('SIGNING_DATE', $signingDate ?? '');
+                
+                Log::info('STEP 8: Consulting Agreement placeholders set');
+            }
+
+            // =====================================================
+            // MSA PLACEHOLDERS
+            // =====================================================
+            if (str_contains($templateFile, 'MSA')) {
+                Log::info('STEP 8: Processing MSA template');
+                
+                $msaExecutionDate = $request->input('msa_execution_date');
+                if ($msaExecutionDate) {
+                    $msaExecutionDate = Carbon::parse($msaExecutionDate)->format('d-m-Y');
+                }
+                $signingDate = $request->input('signing_date');
+                if ($signingDate) {
+                    $signingDate = Carbon::parse($signingDate)->format('d-m-Y');
+                }
+                
+                $templateProcessor->setValue('MSA_EXECUTION_DATE', $msaExecutionDate ?? '');
+                $templateProcessor->setValue('SERVICE_PROVIDER_NAME', $request->input('service_provider_name') ?? '');
+                $templateProcessor->setValue('SERVICE_PROVIDER_ADDRESS', $request->input('service_provider_address') ?? '');
+                $templateProcessor->setValue('CLIENT_LEGAL_NAME', $request->input('client_legal_name') ?? '');
+                $templateProcessor->setValue('CLIENT_CIN', $request->input('client_cin') ?? '');
+                $templateProcessor->setValue('CLIENT_REGISTERED_ADDRESS', $request->input('client_registered_address') ?? '');
+                $templateProcessor->setValue('CLIENT_BUSINESS_DESCRIPTION', $request->input('client_business_description') ?? '');
+                $templateProcessor->setValue('SERVICES_DESCRIPTION', $request->input('services_description') ?? '');
+                $templateProcessor->setValue('SOW_REFERENCE', $request->input('sow_reference') ?? '');
+                $templateProcessor->setValue('SERVICE_FEES', $request->input('service_fees') ?? '');
+                $templateProcessor->setValue('PAYMENT_TERMS', $request->input('payment_terms') ?? '');
+                $templateProcessor->setValue('SERVICE_PROVIDER_SIGNATORY', $request->input('service_provider_signatory') ?? '');
+                $templateProcessor->setValue('CLIENT_SIGNATORY', $request->input('client_signatory') ?? '');
+                $templateProcessor->setValue('SIGNING_DATE', $signingDate ?? '');
+                
+                Log::info('STEP 8: MSA placeholders set');
+            }
+
+            Log::info('STEP 8 PASSED: All placeholders set for template type');
 
             // ========== STEP 9: CREATE OUTPUT DIRECTORY ==========
             $outputDir = storage_path('app/contracts/generated');

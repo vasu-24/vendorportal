@@ -11,6 +11,8 @@ class Contract extends Model
 
     protected $fillable = [
         'contract_number',
+            'contract_type',      
+
         'template_file',
         'company_id',
         'company_name',
@@ -23,11 +25,13 @@ class Contract extends Model
         'start_date',
         'end_date',
         'contract_value',
+        'sow_value', 
         'status',
         'is_visible_to_vendor',
         'document_path',
         'notes',
         'created_by',
+
     ];
 
     protected $casts = [
@@ -219,4 +223,19 @@ class Contract extends Model
 
         return $badges[$this->status] ?? '<span class="badge bg-secondary">' . $this->status . '</span>';
     }
+
+// =====================================================
+// SCOPES
+// =====================================================
+
+public function scopeNormal($query)
+{
+    return $query->where('contract_type', 'normal');
+}
+
+public function scopeAdhoc($query)
+{
+    return $query->where('contract_type', 'adhoc');
+}
+
 }

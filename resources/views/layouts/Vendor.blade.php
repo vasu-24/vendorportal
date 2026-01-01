@@ -664,6 +664,21 @@
         .sidebar-body::-webkit-scrollbar-thumb:hover {
             background: var(--text-light);
         }
+
+
+
+
+        /* Dropdown Arrow */
+.nav-arrow {
+    font-size: 12px;
+    transition: transform 0.2s;
+}
+.nav-link[aria-expanded="true"] .nav-arrow {
+    transform: rotate(180deg);
+}
+.sidebar.collapsed .nav-arrow {
+    display: none;
+}
     </style>
     @stack('styles')
 </head>
@@ -704,23 +719,8 @@
                 <span class="nav-text">Dashboard</span>
             </a>
         </li>
-        <li class="nav-item">
-            <a href="{{ route('vendor.profile') }}" 
-               class="nav-link {{ request()->routeIs('vendor.profile') ? 'active' : '' }}"
-               data-title="Company Profile">
-                <span class="nav-icon"><i class="bi bi-building"></i></span>
-                <span class="nav-text">Company Profile</span>
-            </a>
-        </li>
-        <li class="nav-item">
-            <a href="{{ route('vendor.documents') }}" 
-               class="nav-link {{ request()->routeIs('vendor.documents') ? 'active' : '' }}"
-               data-title="Documents">
-                <span class="nav-icon"><i class="bi bi-folder"></i></span>
-                <span class="nav-text">Documents</span>
-            </a>
-        </li>
-        
+      
+     
         <!-- ✅ ADD THIS - Contracts -->
         <li class="nav-item">
             <a href="{{ route('vendor.contracts.index') }}" 
@@ -740,28 +740,57 @@
                 <span class="nav-badge">3</span>
             </a>
         </li>
+
+
+<!-- ✈️ TRAVEL INVOICES - NEW MENU ITEM -->
+<li class="nav-item">
+    <a href="{{ route('vendor.travel-invoices.index') }}" 
+       class="nav-link {{ request()->routeIs('vendor.travel-invoices*') ? 'active' : '' }}"
+       data-title="Travel Invoices">
+        <span class="nav-icon"><i class="bi bi-airplane"></i></span>
+        <span class="nav-text">Travel Invoices</span>
+    </a>
+</li>
+
+
     </ul>
 </div>
 
 
-            <!-- Settings Section -->
-            <div class="nav-section">
-                <div class="nav-section-title">Settings</div>
-                <ul class="nav-menu">
+
+
+      <!-- Settings Section -->
+<div class="nav-section">
+    <div class="nav-section-title">Settings</div>
+    <ul class="nav-menu">
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="collapse" href="#settingsMenu" role="button" 
+               aria-expanded="{{ request()->routeIs('vendor.change-password') ? 'true' : 'false' }}"
+               data-title="Settings">
+                <span class="nav-icon"><i class="bi bi-gear"></i></span>
+                <span class="nav-text">Settings</span>
+                <i class="bi bi-chevron-down ms-auto nav-arrow"></i>
+            </a>
+            <div class="collapse {{ request()->routeIs('vendor.change-password') ? 'show' : '' }}" id="settingsMenu">
+                <ul class="nav-menu ps-4">
                     <li class="nav-item">
-                        <a href="{{ route('vendor.settings') }}" 
-                           class="nav-link {{ request()->routeIs('vendor.settings') ? 'active' : '' }}"
-                           data-title="Settings">
-                            <span class="nav-icon"><i class="bi bi-gear"></i></span>
-                            <span class="nav-text">Settings</span>
+                        <a href="{{ route('vendor.change-password') }}" 
+                           class="nav-link {{ request()->routeIs('vendor.change-password') ? 'active' : '' }}"
+                           data-title="Change Password">
+                            <span class="nav-icon"><i class="bi bi-key"></i></span>
+                            <span class="nav-text">Change Password</span>
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a href="#" class="nav-link" data-title="Help & Support">
-                            <span class="nav-icon"><i class="bi bi-question-circle"></i></span>
-                            <span class="nav-text">Help & Support</span>
-                        </a>
-                    </li>
+                </ul>
+            </div>
+        </li>
+       
+    </ul>
+</div>
+
+
+
+                  
                 </ul>
             </div>
 

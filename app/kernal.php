@@ -29,6 +29,9 @@ class Kernel extends ConsoleKernel
         
         // Or every 15 minutes:
         // $schedule->command('zoho:sync-bills')->everyFifteenMinutes();
+
+        // Check every day at midnight for 7-day escalation
+        $schedule->command('travel-invoices:auto-escalate')->dailyAt('00:00');
     }
 
     /**

@@ -70,6 +70,12 @@ class ContractController extends Controller
                 $query->where('vendor_id', $request->vendor_id);
             }
 
+
+            // Filter by contract type
+if ($request->has('contract_type') && $request->contract_type) {
+    $query->where('contract_type', $request->contract_type);
+}
+
             // Search
             if ($request->has('search') && $request->search) {
                 $search = $request->search;
@@ -105,33 +111,61 @@ class ContractController extends Controller
     // GET SINGLE CONTRACT
     // =====================================================
 
-    public function show($id)
-    {
-        try {
-            $contract = Contract::with(['vendor', 'company', 'items.category', 'invoices'])
-                ->findOrFail($id);
 
-            return response()->json([
-                'success' => true,
-                'data' => $contract
-            ]);
 
-        } catch (\Exception $e) {
-            Log::error('Contract Show Error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Contract not found'
-            ], 404);
-        }
+public function show($id)
+{
+    try {
+        $contract = Contract::with(['vendor', 'company', 'items.category', 'invoices'])
+            ->findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'data' => $contract
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Contract Show Error: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Contract not found'
+        ], 404);
     }
+}
 
-    // =====================================================
-    // CREATE CONTRACT
-    // =====================================================
+// =====================================================
+// CREATE CONTRACT
+// =====================================================
 
-    public function store(Request $request)
-    {
-        try {
+
+  // =====================================================
+// CREATE CONTRACT
+// =====================================================
+
+public function store(Request $request)
+{
+    try {
+        // Check if ADHOC or Normal contract
+        $isAdhoc = $request->input('contract_type') === 'adhoc';
+
+        if ($isAdhoc) {
+            // =====================================================
+            // ADHOC CONTRACT VALIDATION
+            // =====================================================
+            $validator = Validator::make($request->all(), [
+                'contract_type' => 'required|in:adhoc',
+                'vendor_id' => 'required|exists:vendors,id',
+                'start_date' => 'required|date',
+                'end_date' => 'required|date|after_or_equal:start_date',
+                'sow_value' => 'required|numeric|min:0',
+                'items' => 'required|array|min:1',
+                'items.*.category_id' => 'required|exists:categories,id',
+                'items.*.tag_id' => 'required|string',
+            ]);
+        } else {
+            // =====================================================
+            // NORMAL CONTRACT VALIDATION
+            // =====================================================
             $validator = Validator::make($request->all(), [
                 'template_file' => 'nullable|string',
                 'company_id' => 'nullable|exists:organisations,id',
@@ -147,29 +181,84 @@ class ContractController extends Controller
                 'items.*.rate' => 'required|numeric|min:0',
                 'items.*.tags' => 'nullable|array',
             ]);
+        }
 
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        DB::beginTransaction();
+
+        // Get vendor details
+        $vendor = Vendor::with(['companyInfo', 'statutoryInfo'])->find($request->vendor_id);
+
+        if ($isAdhoc) {
+            // =====================================================
+            // CREATE ADHOC CONTRACT
+            // =====================================================
+            $contract = Contract::create([
+                'contract_number' => Contract::generateContractNumber(),
+                'contract_type' => 'adhoc',
+                'template_file' => null,
+                'document_path' => null,
+                'company_id' => null,
+                'company_name' => null,
+                'company_cin' => null,
+                'company_address' => null,
+                'vendor_id' => $request->vendor_id,
+                'vendor_name' => $vendor->companyInfo->legal_entity_name ?? $vendor->vendor_name,
+                'vendor_cin' => $vendor->statutoryInfo->cin ?? null,
+                'vendor_address' => $vendor->companyInfo->registered_address ?? null,
+                'start_date' => $request->start_date,
+                'end_date' => $request->end_date,
+                'contract_value' => 0,
+                'sow_value' => $request->sow_value,
+                'status' => 'draft',
+                'is_visible_to_vendor' => true,
+                'notes' => null,
+                'created_by' => Auth::id(),
+            ]);
+
+            // Create ADHOC contract items (only category + tag, no qty/unit/rate)
+            foreach ($request->items as $item) {
+                $tagId = $item['tag_id'];
+                $tagName = null;
+                
+                if ($tagId) {
+                    $managerTag = ManagerTag::where('tag_id', $tagId)->first();
+                    $tagName = $managerTag->tag_name ?? null;
+                }
+
+                ContractItem::create([
+                    'contract_id' => $contract->id,
+                    'category_id' => $item['category_id'],
+                    'description' => null,
+                    'quantity' => 0,
+                    'unit' => 'nos',
+                    'rate' => 0,
+                    'tag_id' => $tagId,
+                    'tag_name' => $tagName,
+                ]);
             }
 
-            DB::beginTransaction();
-
+        } else {
+            // =====================================================
+            // CREATE NORMAL CONTRACT (existing code)
+            // =====================================================
+            
             // Get company details
             $company = null;
             if ($request->company_id) {
                 $company = Organisation::find($request->company_id);
             }
 
-            // Get vendor details
-            $vendor = Vendor::with(['companyInfo', 'statutoryInfo'])->find($request->vendor_id);
-
-            // Create contract
             $contract = Contract::create([
                 'contract_number' => Contract::generateContractNumber(),
+                'contract_type' => 'normal',
                 'template_file' => $request->template_file,
                 'document_path' => null,
                 'company_id' => $request->company_id,
@@ -183,15 +272,15 @@ class ContractController extends Controller
                 'start_date' => $request->start_date,
                 'end_date' => $request->end_date,
                 'contract_value' => $request->contract_value,
+                'sow_value' => null,
                 'status' => 'draft',
                 'is_visible_to_vendor' => true,
                 'notes' => $request->notes,
                 'created_by' => Auth::id(),
             ]);
 
-            // Create contract items with tag (stored in same table)
+            // Create contract items with tag
             foreach ($request->items as $item) {
-                // Get tag info (single tag)
                 $tagId = $item['tags'][0] ?? null;
                 $tagName = null;
                 
@@ -211,25 +300,26 @@ class ContractController extends Controller
                     'tag_name' => $tagName,
                 ]);
             }
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Contract created successfully',
-                'data' => $contract->load(['items.category'])
-            ], 201);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Contract Store Error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create contract',
-                'error' => $e->getMessage()
-            ], 500);
         }
+
+        DB::commit();
+
+        return response()->json([
+            'success' => true,
+            'message' => $isAdhoc ? 'ADHOC Contract created successfully' : 'Contract created successfully',
+            'data' => $contract->load(['items.category'])
+        ], 201);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Contract Store Error: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to create contract',
+            'error' => $e->getMessage()
+        ], 500);
     }
+}
 
     // =====================================================
     // UPDATE CONTRACT

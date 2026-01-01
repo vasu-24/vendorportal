@@ -20,6 +20,11 @@ class InvoiceItem extends Model
         'rate',
         'tax_percent',
         'amount',
+        'tag_id',
+'tag_name',
+'rm_approved',
+'rm_approved_by',
+'rm_approved_at',
     ];
 
     protected $casts = [

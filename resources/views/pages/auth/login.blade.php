@@ -143,7 +143,7 @@
                             <label for="remember">Remember me</label>
                         </div>
                         @if($type == 'vendor')
-                            <a href="#" class="forgot-link">Forgot Password?</a>
+                           <a href="{{ route('vendor.password.request') }}" class="forgot-link">Forgot Password?</a>
                         @endif
                     </div>
 

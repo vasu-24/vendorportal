@@ -6,7 +6,7 @@
     .card { border: none; border-radius: 8px; }
     .modal-content { border: none; border-radius: 8px; }
 
-    /* Page Header - Same as other pages */
+    /* Page Header */
     .page-icon {
         width: 44px;
         height: 44px;
@@ -73,14 +73,32 @@
         border-bottom: 2px solid #dee2e6;
     }
 
-    /* Soft Badge Colors */
+    /* Status Badges */
     .badge-draft { background-color: #e9ecef; color: #495057; font-weight: 500; }
-    .badge-submitted { background-color: #e2e3f1; color: #383d6e; font-weight: 500; }
-    .badge-under-review { background-color: #fff3cd; color: #856404; font-weight: 500; }
+    .badge-submitted { background-color: #cfe2ff; color: #084298; font-weight: 500; }
+    .badge-resubmitted { background-color: #e2d9f3; color: #6f42c1; font-weight: 500; }
+    .badge-pending { background-color: #fff3cd; color: #856404; font-weight: 500; }
     .badge-approved { background-color: #d4edda; color: #155724; font-weight: 500; }
     .badge-rejected { background-color: #f8d7da; color: #721c24; font-weight: 500; }
-    .badge-resubmitted { background-color: #cce5ff; color: #004085; font-weight: 500; }
     .badge-paid { background-color: #d1ecf1; color: #0c5460; font-weight: 500; }
+
+    /* Type Badges */
+    .badge-type-normal { 
+        background-color: #e7f1ff; 
+        color: #0d6efd; 
+        font-weight: 500; 
+        font-size: 11px;
+        padding: 4px 8px;
+        border-radius: 4px;
+    }
+    .badge-type-adhoc { 
+        background-color: #fff4e6; 
+        color: #fd7e14; 
+        font-weight: 500; 
+        font-size: 11px;
+        padding: 4px 8px;
+        border-radius: 4px;
+    }
 </style>
 
 <div class="container-fluid py-3">
@@ -108,16 +126,19 @@
         <div class="card-header bg-white py-0">
             <div class="row align-items-center">
                 {{-- Tabs --}}
-                <div class="col-lg-7 mb-2 mb-lg-0">
+                <div class="col-lg-8 mb-2 mb-lg-0">
                     <ul class="nav nav-tabs border-0" id="statusTabs">
                         <li class="nav-item">
                             <a class="nav-link active" href="#" data-status="">All <span class="text-muted small" id="statTotal">0</span></a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link" href="#" data-status="draft">Draft <span class="text-muted small" id="statDraft">0</span></a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" href="#" data-status="submitted">Submitted <span class="text-muted small" id="statSubmitted">0</span></a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#" data-status="under_review">Under Review <span class="text-muted small" id="statUnderReview">0</span></a>
+                            <a class="nav-link" href="#" data-status="pending">Pending <span class="text-muted small" id="statPending">0</span></a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="#" data-status="approved">Approved <span class="text-muted small" id="statApproved">0</span></a>
@@ -131,7 +152,7 @@
                     </ul>
                 </div>
                 {{-- Search --}}
-                <div class="col-lg-5 py-2">
+                <div class="col-lg-4 py-2">
                     <div class="input-group input-group-sm">
                         <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
                         <input type="text" id="searchInput" class="form-control border-start-0" placeholder="Search invoice number...">
@@ -147,10 +168,9 @@
                     <tr class="bg-light">
                         <th class="ps-3" style="width: 50px;">#</th>
                         <th>Invoice No</th>
+                        <th>Type</th>
                         <th>Contract</th>
                         <th>Date</th>
-                        <th>Base Amount</th>
-                        <th>GST</th>
                         <th>Total</th>
                         <th>Status</th>
                         <th class="text-center" style="width: 120px;">Actions</th>
@@ -158,7 +178,7 @@
                 </thead>
                 <tbody id="invoiceTableBody">
                     <tr>
-                        <td colspan="9" class="text-center py-4">
+                        <td colspan="8" class="text-center py-4">
                             <div class="spinner-border spinner-border-sm text-primary"></div>
                             <span class="ms-2 text-muted">Loading...</span>
                         </td>
@@ -222,8 +242,19 @@
                 if (res.data.success) {
                     const s = res.data.data;
                     $('#statTotal').text(s.total || 0);
-                    $('#statSubmitted').text(s.submitted || 0);
-                    $('#statUnderReview').text(s.under_review || 0);
+                    $('#statDraft').text(s.draft || 0);
+                    
+                    // Submitted = submitted + resubmitted
+                    $('#statSubmitted').text((s.submitted || 0) + (s.resubmitted || 0));
+                    
+                    // Pending = under_review + all pending stages
+                    const pending = (s.under_review || 0) + 
+                                   (s.pending_rm || 0) + 
+                                   (s.pending_vp || 0) + 
+                                   (s.pending_ceo || 0) + 
+                                   (s.pending_finance || 0);
+                    $('#statPending').text(pending);
+                    
                     $('#statApproved').text(s.approved || 0);
                     $('#statRejected').text(s.rejected || 0);
                     $('#statPaid').text(s.paid || 0);
@@ -238,7 +269,7 @@
     function loadInvoices() {
         const tbody = $('#invoiceTableBody');
         tbody.html(`
-            <tr><td colspan="9" class="text-center py-4">
+            <tr><td colspan="8" class="text-center py-4">
                 <div class="spinner-border spinner-border-sm text-primary"></div>
                 <span class="ms-2 text-muted">Loading...</span>
             </td></tr>
@@ -255,7 +286,7 @@
                 }
             })
             .catch(err => {
-                tbody.html(`<tr><td colspan="9" class="text-center py-4 text-danger">Failed to load invoices</td></tr>`);
+                tbody.html(`<tr><td colspan="8" class="text-center py-4 text-danger">Failed to load invoices</td></tr>`);
                 Toast.error('Failed to load invoices');
             });
     }
@@ -268,7 +299,7 @@
         const tbody = $('#invoiceTableBody');
 
         if (!invoices || invoices.length === 0) {
-            tbody.html(`<tr><td colspan="9" class="text-center py-4 text-muted">
+            tbody.html(`<tr><td colspan="8" class="text-center py-4 text-muted">
                 <i class="bi bi-inbox fs-3 d-block mb-2"></i>No invoices found
                 <div class="mt-2">
                     <a href="{{ route('vendor.invoices.create') }}" class="btn btn-sm btn-primary">
@@ -291,7 +322,7 @@
                     <i class="bi bi-eye"></i>
                 </a>
             `;
-            if (inv.status === 'rejected') {
+            if (inv.status === 'draft' || inv.status === 'rejected') {
                 actions += `
                     <a href="/vendor/invoices/${inv.id}/edit" class="btn btn-outline-warning btn-sm" title="Edit">
                         <i class="bi bi-pencil"></i>
@@ -305,14 +336,14 @@
                     <td>
                         <div class="fw-medium">${inv.invoice_number}</div>
                     </td>
+                    <td>${getTypeBadge(inv.invoice_type)}</td>
                     <td>
                         ${inv.contract ? `<span class="text-primary fw-medium">${inv.contract.contract_number}</span>` : '<span class="text-muted">-</span>'}
                     </td>
                     <td class="small">${formatDate(inv.invoice_date)}</td>
-                    <td>₹${formatNumber(inv.base_total)}</td>
-                    <td>₹${formatNumber(inv.gst_total)}</td>
                     <td>
                         <div class="fw-semibold">₹${formatNumber(inv.grand_total)}</div>
+                        <small class="text-muted">Net: ₹${formatNumber(inv.net_payable)}</small>
                     </td>
                     <td>${getStatusBadge(inv.status)}</td>
                     <td class="text-center">
@@ -365,16 +396,30 @@
     // =====================================================
     // HELPERS
     // =====================================================
+    function getTypeBadge(type) {
+        if (type === 'adhoc') {
+            return '<span class="badge-type-adhoc"><i class="bi bi-lightning me-1"></i>ADHOC</span>';
+        }
+        return '<span class="badge-type-normal"><i class="bi bi-file-earmark-text me-1"></i>Normal</span>';
+    }
+
     function getStatusBadge(status) {
+        // Under review & all pending stages show as "Pending"
+        const pendingStatuses = ['under_review', 'pending_rm', 'pending_vp', 'pending_ceo', 'pending_finance'];
+        
+        if (pendingStatuses.includes(status)) {
+            return '<span class="badge badge-pending">Pending</span>';
+        }
+        
         const badges = {
             'draft': '<span class="badge badge-draft">Draft</span>',
             'submitted': '<span class="badge badge-submitted">Submitted</span>',
-            'under_review': '<span class="badge badge-under-review">Under Review</span>',
+            'resubmitted': '<span class="badge badge-resubmitted">Resubmitted</span>',
             'approved': '<span class="badge badge-approved">Approved</span>',
             'rejected': '<span class="badge badge-rejected">Rejected</span>',
-            'resubmitted': '<span class="badge badge-resubmitted">Resubmitted</span>',
             'paid': '<span class="badge badge-paid">Paid</span>'
         };
+        
         return badges[status] || `<span class="badge badge-draft">${status}</span>`;
     }
 

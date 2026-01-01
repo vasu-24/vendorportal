@@ -5,15 +5,18 @@ use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\ContractController;
 use App\Http\Controllers\Api\ZohoDataController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\TimesheetController;
 use App\Http\Controllers\Api\ManagerTagController;
-use App\Http\Controllers\Api\ContractController;
+use App\Http\Controllers\Api\TravelInvoiceController;
 use App\Http\Controllers\Api\VendorInvoiceController;
+use App\Http\Controllers\Api\TravelEmployeeController;
 use App\Http\Controllers\Api\VendorApprovalController;
 use App\Http\Controllers\Api\VendorContractController;
 use App\Http\Controllers\Api\VendorRegistrationController;
+use App\Http\Controllers\Api\VendorTravelInvoiceController;
 
 // =====================================================
 // VENDOR REGISTRATION (Public - No Auth)
@@ -206,11 +209,15 @@ Route::put('/{id}/update', [InvoiceController::class, 'updateInvoice'])->middlew
 
 Route::middleware(['web', 'auth:vendor'])->group(function () {
 
+
+    Route::get('vendor/categories', [VendorInvoiceController::class, 'getCategories']);
     // =====================================================
     // VENDOR INVOICE API
     // =====================================================
     
     Route::prefix('vendor/invoices')->group(function () {
+    
+
         Route::get('/statistics', [VendorInvoiceController::class, 'getStatistics']);
         Route::get('/contracts', [VendorInvoiceController::class, 'getContracts']);
         Route::get('/status/{status}', [VendorInvoiceController::class, 'getByStatus']);
@@ -237,3 +244,92 @@ Route::middleware(['web', 'auth:vendor'])->group(function () {
 
 });
 
+
+
+
+// =====================================================
+// TRAVEL INVOICE API ROUTES
+// =====================================================
+// Add these routes to your routes/api.php file
+
+/*
+|--------------------------------------------------------------------------
+| ADMIN PORTAL - Travel Employee Routes
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware(['web', 'auth'])->prefix('admin')->group(function () {
+    
+    // Travel Employee Master
+    Route::prefix('travel-employees')->group(function () {
+        Route::get('/', [App\Http\Controllers\Api\TravelEmployeeController::class, 'index']);
+        Route::get('/statistics', [App\Http\Controllers\Api\TravelEmployeeController::class, 'getStatistics']);
+        Route::get('/dropdown', [App\Http\Controllers\Api\TravelEmployeeController::class, 'dropdown']);
+        Route::get('/projects', [App\Http\Controllers\Api\TravelEmployeeController::class, 'getProjects']);
+        Route::post('/', [App\Http\Controllers\Api\TravelEmployeeController::class, 'store']);
+        Route::get('/{id}', [App\Http\Controllers\Api\TravelEmployeeController::class, 'show']);
+        Route::put('/{id}', [App\Http\Controllers\Api\TravelEmployeeController::class, 'update']);
+        Route::delete('/{id}', [App\Http\Controllers\Api\TravelEmployeeController::class, 'destroy']);
+        Route::post('/{id}/toggle-status', [App\Http\Controllers\Api\TravelEmployeeController::class, 'toggleStatus']);
+    });
+
+    // Travel Invoice Management
+  // Travel Invoice Management (ADMIN)
+Route::prefix('travel-invoices')->group(function () {
+    Route::get('/', [App\Http\Controllers\Api\TravelInvoiceController::class, 'index']);
+    Route::get('/statistics', [App\Http\Controllers\Api\TravelInvoiceController::class, 'getStatistics']);
+    Route::get('/batches', [App\Http\Controllers\Api\TravelInvoiceController::class, 'getBatches']);
+    Route::get('/batches/{batchId}/summary', [App\Http\Controllers\Api\TravelInvoiceController::class, 'getBatchSummary']);
+    Route::get('/{id}', [App\Http\Controllers\Api\TravelInvoiceController::class, 'show']);
+
+    
+    // Approval Actions - Single
+    Route::post('/{id}/start-review', [App\Http\Controllers\Api\TravelInvoiceController::class, 'startReview']);
+    Route::post('/{id}/approve', [App\Http\Controllers\Api\TravelInvoiceController::class, 'approve']);
+    Route::post('/{id}/reject', [App\Http\Controllers\Api\TravelInvoiceController::class, 'reject']);
+    Route::post('/{id}/mark-paid', [App\Http\Controllers\Api\TravelInvoiceController::class, 'markAsPaid']);
+    
+    // Bulk Actions - Batch
+    Route::post('/batches/{batchId}/start-review', [App\Http\Controllers\Api\TravelInvoiceController::class, 'startReviewBatch']);  // 👈 ADD THIS
+    Route::post('/batches/{batchId}/approve-all', [App\Http\Controllers\Api\TravelInvoiceController::class, 'approveAll']);
+    Route::post('/batches/{batchId}/reject-all', [App\Http\Controllers\Api\TravelInvoiceController::class, 'rejectAll']);
+});
+});
+
+/*
+|--------------------------------------------------------------------------
+| VENDOR PORTAL - Travel Invoice Routes
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware(['web', 'auth:vendor'])->prefix('vendor')->group(function () {
+    
+    Route::prefix('travel-invoices')->group(function () {
+        // Statistics & Lists
+        Route::get('/statistics', [App\Http\Controllers\Api\VendorTravelInvoiceController::class, 'getStatistics']);
+        Route::get('/batches/next-number', [App\Http\Controllers\Api\VendorTravelInvoiceController::class, 'getNextBatchNumber']);
+        Route::get('/batches', [App\Http\Controllers\Api\VendorTravelInvoiceController::class, 'getBatches']);
+        Route::get('/batches/{batchId}', [App\Http\Controllers\Api\VendorTravelInvoiceController::class, 'getBatchDetails']);
+        Route::get('/employees', [App\Http\Controllers\Api\VendorTravelInvoiceController::class, 'getEmployees']);
+        Route::get('/submitted-invoices', [App\Http\Controllers\Api\VendorTravelInvoiceController::class, 'getSubmittedInvoices']); // 👈 ADD THIS LINE HERE!
+        Route::get('/', [App\Http\Controllers\Api\VendorTravelInvoiceController::class, 'index']);
+        Route::get('/{id}', [App\Http\Controllers\Api\VendorTravelInvoiceController::class, 'show']); // This must be AFTER submitted-invoices
+        
+        // ... rest of routes
+    
+
+        // Create & Update
+        Route::post('/batches', [App\Http\Controllers\Api\VendorTravelInvoiceController::class, 'createBatch']);
+        Route::post('/', [App\Http\Controllers\Api\VendorTravelInvoiceController::class, 'store']);
+        Route::put('/{id}', [App\Http\Controllers\Api\VendorTravelInvoiceController::class, 'update']);
+        Route::delete('/{id}', [App\Http\Controllers\Api\VendorTravelInvoiceController::class, 'destroy']);
+        
+        // Bills
+        Route::post('/{id}/bills', [App\Http\Controllers\Api\VendorTravelInvoiceController::class, 'uploadBills']);
+        Route::delete('/{invoiceId}/bills/{billId}', [App\Http\Controllers\Api\VendorTravelInvoiceController::class, 'deleteBill']);
+        Route::get('/{invoiceId}/bills/{billId}/download', [App\Http\Controllers\Api\VendorTravelInvoiceController::class, 'downloadBill']);
+        
+        // Submit
+        Route::post('/batches/{batchId}/submit', [App\Http\Controllers\Api\VendorTravelInvoiceController::class, 'submitBatch']);
+    });
+});

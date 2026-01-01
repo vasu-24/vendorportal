@@ -94,7 +94,7 @@ public function getContractItems($id)
             ->where('is_visible_to_vendor', true)
             ->findOrFail($id);
 
-        $items = ContractItem::with(['category'])  // Remove 'tags' for now
+        $items = ContractItem::with(['category'])
             ->where('contract_id', $id)
             ->get()
             ->map(function ($item) {
@@ -102,7 +102,8 @@ public function getContractItems($id)
                     'id' => $item->id,
                     'category_id' => $item->category_id,
                     'category_name' => $item->category->name ?? '',
-                    'tags' => [],  // Empty for now
+                    'tag_id' => $item->tag_id,
+                    'tag_name' => $item->tag_name,
                 ];
             });
 
@@ -156,27 +157,26 @@ public function getContractItems($id)
     // GET CONTRACTS FOR DROPDOWN (Invoice form)
     // =====================================================
 
-    public function getContractsDropdown()
-    {
-        try {
-            $vendorId = Auth::guard('vendor')->id();
+public function getContractsDropdown()
+{
+    try {
+        $vendorId = Auth::guard('vendor')->id();
 
-            $contracts = Contract::where('vendor_id', $vendorId)
-                ->where('is_visible_to_vendor', true)
-                ->whereIn('status', ['draft', 'active', 'signed'])
-                ->orderBy('contract_number', 'desc')
-                ->get(['id', 'contract_number', 'contract_value']);
+        $contracts = Contract::where('vendor_id', $vendorId)
+            ->where('is_visible_to_vendor', true)
+            ->whereIn('status', ['draft', 'active', 'signed'])
+            ->orderBy('contract_number', 'desc')
+            ->get(['id', 'contract_number', 'contract_type', 'contract_value', 'sow_value']);
 
-            return response()->json([
-                'success' => true,
-                'data' => $contracts
-            ]);
+        return response()->json([
+            'success' => true,
+            'data' => $contracts
+        ]);
 
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to load contracts'
-            ], 500);
-        }
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to load contracts'
+        ], 500);
     }
-}
+}}

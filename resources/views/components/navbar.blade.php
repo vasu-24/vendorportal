@@ -54,6 +54,16 @@
   </a>
 </li>
 
+<!-- =====================================================
+     TRAVEL INVOICES - NEW MENU ITEM
+     ===================================================== -->
+<li class="nav-item">
+  <a class="nav-link {{ request()->is('admin/travel-invoices*') ? 'active' : '' }}"
+     href="{{ route('admin.travel-invoices.index') }}">
+     <i class="bi bi-airplane me-1"></i>Travel Invoices
+  </a>
+</li>
+
      <!-- Contracts -->
 <li class="nav-item">
   <a class="nav-link {{ request()->is('contracts*') ? 'active' : '' }}"
@@ -109,6 +119,23 @@
   <a class="dropdown-item {{ request()->routeIs('master.manager-tags') ? 'active' : '' }}"
      href="{{ route('master.manager-tags') }}" style="padding-left: 2rem;">
      <i class="bi bi-person-badge me-2"></i>Manager Tags
+  </a>
+</li>
+
+<li>
+  <a class="dropdown-item {{ request()->routeIs('master.invoice-flow') ? 'active' : '' }}"
+     href="{{ route('master.invoice-flow') }}" style="padding-left: 2rem;">
+     <i class="bi bi-diagram-3 me-2"></i>Invoice Flow
+  </a>
+</li>
+
+<!-- =====================================================
+     TRAVEL EMPLOYEES MASTER - NEW MENU ITEM
+     ===================================================== -->
+<li>
+  <a class="dropdown-item {{ request()->routeIs('admin.travel-employees.*') || request()->is('admin/master/travel-employees*') ? 'active' : '' }}"
+     href="{{ route('admin.travel-employees.index') }}" style="padding-left: 2rem;">
+     <i class="bi bi-person-vcard me-2"></i>Travel Employees
   </a>
 </li>
 

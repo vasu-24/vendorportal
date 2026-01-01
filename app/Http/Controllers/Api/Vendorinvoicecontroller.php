@@ -192,7 +192,7 @@ class VendorInvoiceController extends Controller
             $contracts = Contract::where('vendor_id', $vendor->id)
                 ->where('is_visible_to_vendor', true)
                 ->whereIn('status', ['draft', 'active', 'signed'])
-                ->select('id', 'contract_number', 'contract_value')
+                ->select('id', 'contract_number', 'contract_type', 'contract_value', 'sow_value')
                 ->orderBy('contract_number', 'desc')
                 ->get();
 
@@ -223,6 +223,10 @@ class VendorInvoiceController extends Controller
         try {
             $vendor = $this->getVendor();
 
+            // Determine invoice type
+            $invoiceType = $request->input('invoice_type', 'normal');
+            $isAdhoc = $invoiceType === 'adhoc';
+
             // Validation
             $validator = Validator::make($request->all(), [
                 'contract_id' => 'required|exists:contracts,id',
@@ -236,9 +240,10 @@ class VendorInvoiceController extends Controller
                 'items' => 'required|string', // JSON string of line items
                 'invoice_attachment' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240', // 10MB
                 'timesheet_attachment' => 'nullable|file|mimes:xlsx,xls|max:5120', // 5MB
-'include_timesheet' => 'nullable|boolean',
-'gst_percent' => 'nullable|numeric',
-'tds_percent' => 'nullable|numeric',
+                'include_timesheet' => 'nullable|boolean',
+                'gst_percent' => 'nullable|numeric',
+                'tds_percent' => 'nullable|numeric',
+                'invoice_type' => 'nullable|in:normal,adhoc',
             ]);
 
             // Custom validation for unique invoice number per vendor
@@ -271,58 +276,62 @@ class VendorInvoiceController extends Controller
 
             DB::beginTransaction();
 
-        // 🔥 Calculate amounts
-$baseTotal = floatval($request->base_total);
-$gstPercent = floatval($request->gst_percent ?? 18);
-$tdsPercent = floatval($request->tds_percent ?? 5);
+            // Calculate amounts
+            $baseTotal = floatval($request->base_total);
+            $gstPercent = floatval($request->gst_percent ?? 18);
+            $tdsPercent = floatval($request->tds_percent ?? 5);
 
-$gstAmount = ($baseTotal * $gstPercent) / 100;
-$grandTotal = $baseTotal + $gstAmount;
-$tdsAmount = ($baseTotal * $tdsPercent) / 100;
-$netPayable = $grandTotal - $tdsAmount;
+            $gstAmount = ($baseTotal * $gstPercent) / 100;
+            $grandTotal = $baseTotal + $gstAmount;
+            $tdsAmount = ($baseTotal * $tdsPercent) / 100;
+            $netPayable = $grandTotal - $tdsAmount;
 
-// 🔥 Handle Timesheet Upload
-$timesheetPath = null;
-$timesheetFilename = null;
-if ($request->include_timesheet && $request->hasFile('timesheet_attachment')) {
-    $tsFile = $request->file('timesheet_attachment');
-    $timesheetFilename = $tsFile->getClientOriginalName();
-    $timesheetPath = $tsFile->storeAs('invoices/' . $vendor->id . '/timesheets', 'timesheet_' . time() . '.' . $tsFile->getClientOriginalExtension(), 'public');
-}
+            // Handle Timesheet Upload (only for Normal invoices)
+            $timesheetPath = null;
+            $timesheetFilename = null;
+            if (!$isAdhoc && $request->include_timesheet && $request->hasFile('timesheet_attachment')) {
+                $tsFile = $request->file('timesheet_attachment');
+                $timesheetFilename = $tsFile->getClientOriginalName();
+                $timesheetPath = $tsFile->storeAs('invoices/' . $vendor->id . '/timesheets', 'timesheet_' . time() . '.' . $tsFile->getClientOriginalExtension(), 'public');
+            }
 
-// Create invoice
-$invoice = Invoice::create([
-    'vendor_id' => $vendor->id,
-    'contract_id' => $request->contract_id,
-    'invoice_type' => 'normal',
-    'invoice_number' => $request->invoice_number,
-    'invoice_date' => $request->invoice_date,
-    'due_date' => $request->due_date,
-    'description' => $request->description,
-    'base_total' => $baseTotal,
-    'gst_percent' => $gstPercent,
-    'gst_amount' => $gstAmount,
-    'gst_total' => $gstAmount,
-    'grand_total' => $grandTotal,
-    'tds_percent' => $tdsPercent,
-    'tds_amount' => $tdsAmount,
-    'net_payable' => $netPayable,
-    'include_timesheet' => $request->include_timesheet ? true : false,
-    'timesheet_path' => $timesheetPath,
-    'timesheet_filename' => $timesheetFilename,
-    'zoho_gst_tax_id' => $request->zoho_gst_tax_id,
-    'status' => 'draft',
-]);
+            // Create invoice
+            $invoice = Invoice::create([
+                'vendor_id' => $vendor->id,
+                'contract_id' => $request->contract_id,
+                'invoice_type' => $invoiceType,
+                'invoice_number' => $request->invoice_number,
+                'invoice_date' => $request->invoice_date,
+                'due_date' => $request->due_date,
+                'description' => $request->description,
+                'base_total' => $baseTotal,
+                'gst_percent' => $gstPercent,
+                'gst_amount' => $gstAmount,
+                'gst_total' => $gstAmount,
+                'grand_total' => $grandTotal,
+                'tds_percent' => $tdsPercent,
+                'tds_amount' => $tdsAmount,
+                'net_payable' => $netPayable,
+                'include_timesheet' => !$isAdhoc && $request->include_timesheet ? true : false,
+                'timesheet_path' => $timesheetPath,
+                'timesheet_filename' => $timesheetFilename,
+                'zoho_gst_tax_id' => $request->zoho_gst_tax_id,
+                'status' => 'draft',
+            ]);
 
             // Create line items
             foreach ($items as $item) {
-                // Get category_id from contract_item
-                $contractItem = ContractItem::find($item['contract_item_id']);
-                $categoryId = $contractItem ? $contractItem->category_id : null;
+                // Get category_id from contract_item or directly
+                $categoryId = $item['category_id'] ?? null;
+                
+                if (!$categoryId && !empty($item['contract_item_id'])) {
+                    $contractItem = ContractItem::find($item['contract_item_id']);
+                    $categoryId = $contractItem ? $contractItem->category_id : null;
+                }
 
                 InvoiceItem::create([
                     'invoice_id' => $invoice->id,
-                    'contract_item_id' => $item['contract_item_id'],
+                    'contract_item_id' => $item['contract_item_id'] ?? null,
                     'category_id' => $categoryId,
                     'particulars' => $item['particulars'] ?? null,
                     'sac' => $item['sac'] ?? null,
@@ -331,6 +340,8 @@ $invoice = Invoice::create([
                     'rate' => $item['rate'],
                     'tax_percent' => $item['tax_percent'] ?? null,
                     'amount' => $item['amount'],
+                    'tag_id' => $item['tag_id'] ?? null,
+                    'tag_name' => $item['tag_name'] ?? null,
                 ]);
             }
 
@@ -423,6 +434,8 @@ $invoice = Invoice::create([
                 ], 403);
             }
 
+            $isAdhoc = $invoice->invoice_type === 'adhoc';
+
             // Validation
             $validator = Validator::make($request->all(), [
                 'contract_id' => 'required|exists:contracts,id',
@@ -435,10 +448,10 @@ $invoice = Invoice::create([
                 'grand_total' => 'required|numeric|min:0',
                 'items' => 'required|string', // JSON string of line items
                 'invoice_attachment' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
-               'timesheet_attachment' => 'nullable|file|mimes:xlsx,xls|max:5120',
-'include_timesheet' => 'nullable|boolean',
-'gst_percent' => 'nullable|numeric',
-'tds_percent' => 'nullable|numeric',
+                'timesheet_attachment' => 'nullable|file|mimes:xlsx,xls|max:5120',
+                'include_timesheet' => 'nullable|boolean',
+                'gst_percent' => 'nullable|numeric',
+                'tds_percent' => 'nullable|numeric',
             ]);
 
             // Check unique invoice number (excluding current)
@@ -478,63 +491,66 @@ $invoice = Invoice::create([
                 $newStatus = 'resubmitted';
             }
 
+            // Calculate amounts
+            $baseTotal = floatval($request->base_total);
+            $gstPercent = floatval($request->gst_percent ?? 18);
+            $tdsPercent = floatval($request->tds_percent ?? 5);
+
+            $gstAmount = ($baseTotal * $gstPercent) / 100;
+            $grandTotal = $baseTotal + $gstAmount;
+            $tdsAmount = ($baseTotal * $tdsPercent) / 100;
+            $netPayable = $grandTotal - $tdsAmount;
+
+            // Handle Timesheet Upload (only for Normal invoices)
+            $timesheetPath = $invoice->timesheet_path;
+            $timesheetFilename = $invoice->timesheet_filename;
+            if (!$isAdhoc && $request->include_timesheet && $request->hasFile('timesheet_attachment')) {
+                // Delete old timesheet if exists
+                if ($invoice->timesheet_path) {
+                    Storage::disk('public')->delete($invoice->timesheet_path);
+                }
+                $tsFile = $request->file('timesheet_attachment');
+                $timesheetFilename = $tsFile->getClientOriginalName();
+                $timesheetPath = $tsFile->storeAs('invoices/' . $vendor->id . '/timesheets', 'timesheet_' . time() . '.' . $tsFile->getClientOriginalExtension(), 'public');
+            }
+
             // Update invoice
-          // 🔥 Calculate amounts
-$baseTotal = floatval($request->base_total);
-$gstPercent = floatval($request->gst_percent ?? 18);
-$tdsPercent = floatval($request->tds_percent ?? 5);
-
-$gstAmount = ($baseTotal * $gstPercent) / 100;
-$grandTotal = $baseTotal + $gstAmount;
-$tdsAmount = ($baseTotal * $tdsPercent) / 100;
-$netPayable = $grandTotal - $tdsAmount;
-
-// 🔥 Handle Timesheet Upload
-$timesheetPath = $invoice->timesheet_path;
-$timesheetFilename = $invoice->timesheet_filename;
-if ($request->include_timesheet && $request->hasFile('timesheet_attachment')) {
-    // Delete old timesheet if exists
-    if ($invoice->timesheet_path) {
-        Storage::disk('public')->delete($invoice->timesheet_path);
-    }
-    $tsFile = $request->file('timesheet_attachment');
-    $timesheetFilename = $tsFile->getClientOriginalName();
-    $timesheetPath = $tsFile->storeAs('invoices/' . $vendor->id . '/timesheets', 'timesheet_' . time() . '.' . $tsFile->getClientOriginalExtension(), 'public');
-}
-
-// Update invoice
-$invoice->update([
-    'contract_id' => $request->contract_id,
-    'invoice_number' => $request->invoice_number,
-    'invoice_date' => $request->invoice_date,
-    'due_date' => $request->due_date,
-    'description' => $request->description,
-    'base_total' => $baseTotal,
-    'gst_percent' => $gstPercent,
-    'gst_amount' => $gstAmount,
-    'gst_total' => $gstAmount,
-    'grand_total' => $grandTotal,
-    'tds_percent' => $tdsPercent,
-    'tds_amount' => $tdsAmount,
-    'net_payable' => $netPayable,
-    'include_timesheet' => $request->include_timesheet ? true : false,
-    'timesheet_path' => $timesheetPath,
-    'timesheet_filename' => $timesheetFilename,
-    'zoho_gst_tax_id' => $request->zoho_gst_tax_id,
-    'status' => $newStatus,
-    'rejection_reason' => null,
-]);
+            $invoice->update([
+                'contract_id' => $request->contract_id,
+                'invoice_number' => $request->invoice_number,
+                'invoice_date' => $request->invoice_date,
+                'due_date' => $request->due_date,
+                'description' => $request->description,
+                'base_total' => $baseTotal,
+                'gst_percent' => $gstPercent,
+                'gst_amount' => $gstAmount,
+                'gst_total' => $gstAmount,
+                'grand_total' => $grandTotal,
+                'tds_percent' => $tdsPercent,
+                'tds_amount' => $tdsAmount,
+                'net_payable' => $netPayable,
+                'include_timesheet' => !$isAdhoc && $request->include_timesheet ? true : false,
+                'timesheet_path' => $timesheetPath,
+                'timesheet_filename' => $timesheetFilename,
+                'zoho_gst_tax_id' => $request->zoho_gst_tax_id,
+                'status' => $newStatus,
+                'rejection_reason' => null,
+            ]);
 
             // Delete old line items and create new ones
             $invoice->items()->delete();
 
             foreach ($items as $item) {
-                $contractItem = ContractItem::find($item['contract_item_id']);
-                $categoryId = $contractItem ? $contractItem->category_id : null;
+                $categoryId = $item['category_id'] ?? null;
+                
+                if (!$categoryId && !empty($item['contract_item_id'])) {
+                    $contractItem = ContractItem::find($item['contract_item_id']);
+                    $categoryId = $contractItem ? $contractItem->category_id : null;
+                }
 
                 InvoiceItem::create([
                     'invoice_id' => $invoice->id,
-                    'contract_item_id' => $item['contract_item_id'],
+                    'contract_item_id' => $item['contract_item_id'] ?? null,
                     'category_id' => $categoryId,
                     'particulars' => $item['particulars'] ?? null,
                     'sac' => $item['sac'] ?? null,
@@ -543,6 +559,8 @@ $invoice->update([
                     'rate' => $item['rate'],
                     'tax_percent' => $item['tax_percent'] ?? null,
                     'amount' => $item['amount'],
+                    'tag_id' => $item['tag_id'] ?? null,
+                    'tag_name' => $item['tag_name'] ?? null,
                 ]);
             }
 
@@ -596,13 +614,14 @@ $invoice->update([
 
     /**
      * Submit invoice for approval
+     * CEO approval required if invoice exceeds contract_value (Normal) or sow_value (ADHOC)
      */
     public function submit($id)
     {
         try {
             $vendor = $this->getVendor();
 
-            $invoice = Invoice::where('vendor_id', $vendor->id)->findOrFail($id);
+            $invoice = Invoice::with('contract')->where('vendor_id', $vendor->id)->findOrFail($id);
 
             // Check if can submit
             if (!$invoice->canSubmit()) {
@@ -628,6 +647,34 @@ $invoice->update([
                 ], 422);
             }
 
+            // Determine if CEO approval is required
+            $requiresCeo = false;
+            $contract = $invoice->contract;
+            
+            if ($contract) {
+                $isAdhoc = $invoice->invoice_type === 'adhoc';
+                
+                // Get total invoiced amount for this contract (excluding current invoice)
+                $totalInvoiced = Invoice::where('contract_id', $contract->id)
+                    ->where('id', '!=', $invoice->id)
+                    ->whereNotIn('status', ['rejected', 'draft'])
+                    ->sum('grand_total');
+                
+                $newTotal = $totalInvoiced + $invoice->grand_total;
+                
+                if ($isAdhoc) {
+                    // ADHOC: Compare with SOW Value
+                    $threshold = $contract->sow_value ?? 0;
+                    $requiresCeo = $newTotal > $threshold;
+                    Log::info("ADHOC Invoice #{$invoice->id}: Total={$newTotal}, SOW={$threshold}, RequiresCEO=" . ($requiresCeo ? 'Yes' : 'No'));
+                } else {
+                    // Normal: Compare with Contract Value
+                    $threshold = $contract->contract_value ?? 0;
+                    $requiresCeo = $newTotal > $threshold;
+                    Log::info("Normal Invoice #{$invoice->id}: Total={$newTotal}, ContractValue={$threshold}, RequiresCEO=" . ($requiresCeo ? 'Yes' : 'No'));
+                }
+            }
+
             // Determine status (resubmitted if was rejected before)
             $newStatus = $invoice->status === 'rejected' ? 'resubmitted' : 'submitted';
 
@@ -635,12 +682,14 @@ $invoice->update([
                 'status' => $newStatus,
                 'submitted_at' => now(),
                 'rejection_reason' => null, // Clear rejection reason on resubmit
+                'requires_ceo_approval' => $requiresCeo, // Store this for approval flow
             ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Invoice submitted successfully.',
-                'data' => $invoice->fresh()
+                'data' => $invoice->fresh(),
+                'requires_ceo_approval' => $requiresCeo
             ]);
 
         } catch (\Exception $e) {
@@ -680,6 +729,11 @@ $invoice->update([
                 Storage::disk('public')->delete($attachment->file_path);
             }
 
+            // Delete timesheet if exists
+            if ($invoice->timesheet_path) {
+                Storage::disk('public')->delete($invoice->timesheet_path);
+            }
+
             // Delete invoice (cascade will delete items and attachments)
             $invoice->delete();
 
@@ -697,6 +751,32 @@ $invoice->update([
             ], 500);
         }
     }
+
+// =====================================================
+// GET CATEGORIES (for Add Item dropdown)
+// =====================================================
+
+public function getCategories()
+{
+    try {
+        $categories = \App\Models\Category::where('status', 'active')
+            ->orderBy('name')
+            ->get(['id', 'name', 'code', 'hsn_sac_code']);
+
+        return response()->json([
+            'success' => true,
+            'data' => $categories
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Get Categories Error: ' . $e->getMessage());
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to load categories'
+        ], 500);
+    }
+}
 
     // =====================================================
     // DOWNLOAD ATTACHMENT
