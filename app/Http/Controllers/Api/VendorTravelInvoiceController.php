@@ -68,79 +68,99 @@ class VendorTravelInvoiceController extends Controller
     // GET BATCHES LIST (FIXED - handles pending status)
     // =====================================================
 
-    public function getBatches(Request $request)
-    {
-        try {
-            $vendor = $this->getVendor();
+public function getBatches(Request $request)
+{
+    try {
+        $vendor = $this->getVendor();
 
-            $query = TravelBatch::where('vendor_id', $vendor->id)
-                ->withCount('invoices')
-                ->with(['invoices:id,batch_id,employee_id,location', 'invoices.employee:id,employee_name']);
+        $query = TravelBatch::where('vendor_id', $vendor->id)
+            ->withCount('invoices')
+            ->with(['invoices:id,batch_id,employee_id,location', 'invoices.employee:id,employee_name']);
 
-            // Filter by status - handle 'pending' to include all pending-related statuses
-            if ($request->filled('status') && $request->status !== 'all' && $request->status !== '') {
-                $status = $request->status;
-                
-                if ($status === 'pending') {
-                    // Include all pending-related statuses for batches
-                    $query->whereIn('status', ['submitted', 'resubmitted', 'pending', 'pending_rm', 'pending_vp', 'pending_ceo', 'pending_finance']);
-                } else {
-                    $query->where('status', $status);
-                }
+        // Filter by status - handle special cases
+        if ($request->filled('status') && $request->status !== 'all' && $request->status !== '') {
+            $status = $request->status;
+            
+            if ($status === 'pending') {
+                $query->whereIn('status', ['submitted', 'resubmitted', 'pending', 'pending_rm', 'pending_vp', 'pending_ceo', 'pending_finance']);
+            } elseif ($status === 'rejected') {
+                $query->where(function($q) {
+                    $q->where('status', 'rejected')
+                      ->orWhereHas('invoices', function($q2) {
+                          $q2->where('status', 'rejected');
+                      });
+                });
+            } elseif ($status === 'approved') {
+                $query->where(function($q) {
+                    $q->where('status', 'approved')
+                      ->orWhereHas('invoices', function($q2) {
+                          $q2->where('status', 'approved');
+                      });
+                });
+            } elseif ($status === 'paid') {
+                $query->where(function($q) {
+                    $q->where('status', 'paid')
+                      ->orWhereHas('invoices', function($q2) {
+                          $q2->where('status', 'paid');
+                      });
+                });
+            } else {
+                $query->where('status', $status);
             }
-
-            // Search
-            if ($request->filled('search')) {
-                $query->where('batch_number', 'like', "%{$request->search}%");
-            }
-
-            $batches = $query->orderBy('created_at', 'desc')
-                ->paginate($request->get('per_page', 10));
-
-            // Add employee and location summary to each batch
-            $batches->getCollection()->transform(function ($batch) {
-                $invoices = $batch->invoices;
-                
-                // Employee summary
-                $employees = $invoices->pluck('employee.employee_name')->filter()->unique()->values();
-                if ($employees->count() === 0) {
-                    $batch->employee_summary = '-';
-                } elseif ($employees->count() === 1) {
-                    $batch->employee_summary = $employees->first();
-                } else {
-                    $batch->employee_summary = $employees->first() . ', +' . ($employees->count() - 1) . ' more';
-                }
-
-                // Location summary
-                $locations = $invoices->pluck('location')->filter()->unique()->values();
-                if ($locations->count() === 0) {
-                    $batch->location_summary = '-';
-                } elseif ($locations->count() === 1) {
-                    $batch->location_summary = $locations->first();
-                } else {
-                    $batch->location_summary = $locations->first() . ', +' . ($locations->count() - 1) . ' more';
-                }
-
-                // Remove invoices from response to keep it light
-                unset($batch->invoices);
-
-                return $batch;
-            });
-
-            return response()->json([
-                'success' => true,
-                'data' => $batches
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Vendor Get Batches Error: ' . $e->getMessage());
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Something went wrong.'
-            ], 500);
         }
+
+        // Search
+        if ($request->filled('search')) {
+            $query->where('batch_number', 'like', "%{$request->search}%");
+        }
+
+        $batches = $query->orderBy('created_at', 'desc')
+            ->paginate($request->get('per_page', 10));
+
+        // Add employee and location summary to each batch
+        $batches->getCollection()->transform(function ($batch) {
+            $invoices = $batch->invoices;
+            
+            // Employee summary
+            $employees = $invoices->pluck('employee.employee_name')->filter()->unique()->values();
+            if ($employees->count() === 0) {
+                $batch->employee_summary = '-';
+            } elseif ($employees->count() === 1) {
+                $batch->employee_summary = $employees->first();
+            } else {
+                $batch->employee_summary = $employees->first() . ', +' . ($employees->count() - 1) . ' more';
+            }
+
+            // Location summary
+            $locations = $invoices->pluck('location')->filter()->unique()->values();
+            if ($locations->count() === 0) {
+                $batch->location_summary = '-';
+            } elseif ($locations->count() === 1) {
+                $batch->location_summary = $locations->first();
+            } else {
+                $batch->location_summary = $locations->first() . ', +' . ($locations->count() - 1) . ' more';
+            }
+
+            // Remove invoices from response to keep it light
+            unset($batch->invoices);
+
+            return $batch;
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $batches
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Vendor Get Batches Error: ' . $e->getMessage());
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Something went wrong.'
+        ], 500);
     }
+}
 
     // =====================================================
     // GET BATCH DETAILS WITH INVOICES
@@ -457,7 +477,8 @@ public function getSubmittedInvoices()
                 'invoice_date' => 'required|date',
                 'reference_invoice_id' => 'nullable|exists:travel_invoices,id',
                 'location' => 'nullable|string|max:255',
-                'travel_type' => 'required|in:domestic,international',
+             'travel_type' => 'nullable|string|max:255',
+                'category_id' => 'nullable|exists:categories,id',
                 'travel_date' => 'nullable|date',
                 'description' => 'nullable|string|max:1000',
                 'tds_percent' => 'nullable|numeric|min:0|max:100',
@@ -519,6 +540,7 @@ public function getSubmittedInvoices()
                 'project_code' => $employee->tag_id,
                 'location' => $request->location,
                 'travel_type' => $request->travel_type,
+                'category_id' => $request->category_id,
                 'travel_date' => $request->travel_date,
                 'description' => $request->description,
                 'tds_percent' => $request->tds_percent ?? 5,
@@ -626,7 +648,8 @@ public function getSubmittedInvoices()
                 'invoice_date' => 'required|date',
                 'reference_invoice_id' => 'nullable|exists:travel_invoices,id',
                 'location' => 'nullable|string|max:255',
-                'travel_type' => 'required|in:domestic,international',
+              'travel_type' => 'nullable|string|max:255',
+                'category_id' => 'nullable|exists:categories,id',
                 'travel_date' => 'nullable|date',
                 'description' => 'nullable|string|max:1000',
                 'tds_percent' => 'nullable|numeric|min:0|max:100',
@@ -672,6 +695,7 @@ public function getSubmittedInvoices()
                 'project_code' => $employee->tag_id,
                 'location' => $request->location,
                 'travel_type' => $request->travel_type,
+                'category_id' => $request->category_id,
                 'travel_date' => $request->travel_date,
                 'description' => $request->description,
                 'tds_percent' => $request->tds_percent ?? 5,
@@ -911,100 +935,102 @@ public function getSubmittedInvoices()
     // =====================================================
 
     public function submitBatch($batchId)
-    {
-        try {
-            $vendor = $this->getVendor();
+{
+    try {
+        $vendor = $this->getVendor();
 
-            $batch = TravelBatch::where('vendor_id', $vendor->id)
-                ->findOrFail($batchId);
+        $batch = TravelBatch::where('vendor_id', $vendor->id)
+            ->findOrFail($batchId);
 
-            if ($batch->status !== 'draft') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Only draft batches can be submitted.'
-                ], 400);
-            }
-
-            // Check if batch has invoices
-            $invoiceCount = $batch->invoices()->count();
-            if ($invoiceCount === 0) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Please add at least one invoice before submitting.'
-                ], 422);
-            }
-
-            // Check if all invoices have bills
-            $invoicesWithoutBills = $batch->invoices()
-                ->whereDoesntHave('bills')
-                ->count();
-
-            if ($invoicesWithoutBills > 0) {
-                return response()->json([
-                    'success' => false,
-                    'message' => "{$invoicesWithoutBills} invoice(s) don't have bills attached."
-                ], 422);
-            }
-
-            DB::beginTransaction();
-
-            // Update all draft invoices in batch to submitted
-            $batch->invoices()
-                ->where('status', 'draft')
-                ->update([
-                    'status' => 'submitted',
-                    'submitted_at' => now(),
-                ]);
-
-            // Update rejected invoices to resubmitted
-            $batch->invoices()
-                ->where('status', 'rejected')
-                ->update([
-                    'status' => 'resubmitted',
-                    'submitted_at' => now(),
-                    'rejection_reason' => null,
-                    'rm_approved_by' => null,
-                    'rm_approved_at' => null,
-                    'vp_approved_by' => null,
-                    'vp_approved_at' => null,
-                    'ceo_approved_by' => null,
-                    'ceo_approved_at' => null,
-                    'finance_approved_by' => null,
-                    'finance_approved_at' => null,
-                    'approved_by' => null,
-                    'approved_at' => null,
-                ]);
-
-            // Update batch status
-            $batch->update([
-                'status' => 'submitted',
-                'submitted_at' => now(),
-            ]);
-
-            DB::commit();
-
-            Log::info('Travel Batch submitted', [
-                'batch_id' => $batch->id,
-                'vendor_id' => $vendor->id,
-                'invoice_count' => $invoiceCount,
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => "Batch submitted successfully with {$invoiceCount} invoice(s).",
-                'data' => $batch->fresh()
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Submit Batch Error: ' . $e->getMessage());
-
+        if ($batch->status !== 'draft') {
             return response()->json([
                 'success' => false,
-                'message' => 'Something went wrong.'
-            ], 500);
+                'message' => 'Only draft batches can be submitted.'
+            ], 400);
         }
+
+        // Check if batch has invoices
+        $invoiceCount = $batch->invoices()->count();
+        if ($invoiceCount === 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Please add at least one invoice before submitting.'
+            ], 422);
+        }
+
+        // Check if all invoices have bills
+        $invoicesWithoutBills = $batch->invoices()
+            ->whereDoesntHave('bills')
+            ->count();
+
+        if ($invoicesWithoutBills > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => "{$invoicesWithoutBills} invoice(s) don't have bills attached."
+            ], 422);
+        }
+
+        DB::beginTransaction();
+
+        // Update all draft invoices in batch to pending_rm directly
+        $batch->invoices()
+            ->where('status', 'draft')
+            ->update([
+                'status' => 'pending_rm',
+                'submitted_at' => now(),
+                'current_approver_role' => 'rm',
+            ]);
+
+        // Update rejected invoices to pending_rm directly
+        $batch->invoices()
+            ->where('status', 'rejected')
+            ->update([
+                'status' => 'pending_rm',
+                'submitted_at' => now(),
+                'current_approver_role' => 'rm',
+                'rejection_reason' => null,
+                'rm_approved_by' => null,
+                'rm_approved_at' => null,
+                'vp_approved_by' => null,
+                'vp_approved_at' => null,
+                'ceo_approved_by' => null,
+                'ceo_approved_at' => null,
+                'finance_approved_by' => null,
+                'finance_approved_at' => null,
+                'approved_by' => null,
+                'approved_at' => null,
+            ]);
+
+        // Update batch status
+        $batch->update([
+            'status' => 'pending_rm',
+            'submitted_at' => now(),
+        ]);
+
+        DB::commit();
+
+        Log::info('Travel Batch submitted', [
+            'batch_id' => $batch->id,
+            'vendor_id' => $vendor->id,
+            'invoice_count' => $invoiceCount,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Batch submitted successfully with {$invoiceCount} invoice(s).",
+            'data' => $batch->fresh()
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Submit Batch Error: ' . $e->getMessage());
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Something went wrong.'
+        ], 500);
     }
+}
 
     // =====================================================
     // DOWNLOAD BILL

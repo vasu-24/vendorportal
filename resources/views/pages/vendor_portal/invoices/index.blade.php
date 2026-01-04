@@ -99,6 +99,47 @@
         padding: 4px 8px;
         border-radius: 4px;
     }
+    /* Modal Styles */
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #f1f1f1;
+}
+.detail-row:last-child {
+    border-bottom: none;
+}
+.detail-label {
+    font-size: 12px;
+    color: #6b7280;
+}
+.detail-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+}
+.detail-section {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+.detail-section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #174081;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #dee2e6;
+}
+.items-table {
+    font-size: 12px;
+}
+.items-table th {
+    background: #e9ecef;
+    font-weight: 600;
+    color: #174081;
+}
 </style>
 
 <div class="container-fluid py-3">
@@ -131,12 +172,8 @@
                         <li class="nav-item">
                             <a class="nav-link active" href="#" data-status="">All <span class="text-muted small" id="statTotal">0</span></a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" data-status="draft">Draft <span class="text-muted small" id="statDraft">0</span></a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" data-status="submitted">Submitted <span class="text-muted small" id="statSubmitted">0</span></a>
-                        </li>
+                      
+                      
                         <li class="nav-item">
                             <a class="nav-link" href="#" data-status="pending">Pending <span class="text-muted small" id="statPending">0</span></a>
                         </li>
@@ -191,6 +228,29 @@
         <div class="card-footer bg-white py-2 d-flex justify-content-between align-items-center">
             <small class="text-muted" id="paginationInfo">Showing 0 of 0</small>
             <ul class="pagination pagination-sm mb-0" id="paginationContainer"></ul>
+        </div>
+    </div>
+</div>
+<!-- Invoice Detail Modal -->
+<div class="modal fade" id="invoiceDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header py-2 bg-light">
+                <h6 class="modal-title fw-semibold">
+                    <i class="bi bi-receipt me-2"></i>
+                    <span id="modalInvoiceNumber">Invoice Details</span>
+                </h6>
+                <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="invoiceDetailContent">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary"></div>
+                    <p class="mt-2 text-muted">Loading...</p>
+                </div>
+            </div>
+            
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
         </div>
     </div>
 </div>
@@ -316,19 +376,20 @@
         invoices.forEach((inv, i) => {
             const rowNum = ((data.current_page - 1) * data.per_page) + i + 1;
             
-            // Actions
-            let actions = `
-                <a href="/vendor/invoices/${inv.id}" class="btn btn-outline-primary btn-sm" title="View">
-                    <i class="bi bi-eye"></i>
-                </a>
-            `;
-            if (inv.status === 'draft' || inv.status === 'rejected') {
-                actions += `
-                    <a href="/vendor/invoices/${inv.id}/edit" class="btn btn-outline-warning btn-sm" title="Edit">
-                        <i class="bi bi-pencil"></i>
-                    </a>
-                `;
-            }
+            
+    // Actions - Changed to open modal
+    let actions = `
+        <button class="btn btn-outline-primary btn-sm" onclick="viewInvoiceModal(${inv.id})" title="View">
+            <i class="bi bi-eye"></i>
+        </button>
+    `;
+    if (inv.status === 'draft' || inv.status === 'rejected') {
+        actions += `
+            <a href="/vendor/invoices/${inv.id}/edit" class="btn btn-outline-warning btn-sm" title="Edit">
+                <i class="bi bi-pencil"></i>
+            </a>
+        `;
+    }
 
             html += `
                 <tr>
@@ -431,5 +492,142 @@
     function formatNumber(num) {
         return parseFloat(num || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
+    function viewInvoiceModal(id) {
+        console.log('Opening invoice:', id);
+        
+        $('#invoiceDetailContent').html(`
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary"></div>
+                <p class="mt-2 text-muted">Loading invoice details...</p>
+            </div>
+        `);
+        $('#modalInvoiceNumber').text('Invoice Details');
+        $('#viewFullPageBtn').attr('href', '/vendor/invoices/' + id);
+        
+        var modal = new bootstrap.Modal(document.getElementById('invoiceDetailModal'));
+        modal.show();
+        
+        axios.get(API_BASE + '/' + id)
+            .then(function(res) {
+                if (res.data.success) {
+                    renderInvoiceDetail(res.data.data);
+                } else {
+                    $('#invoiceDetailContent').html('<div class="text-center py-5 text-danger"><i class="bi bi-exclamation-circle fs-1"></i><p class="mt-2">Failed to load</p></div>');
+                }
+            })
+            .catch(function(err) {
+                console.error('Error:', err);
+                $('#invoiceDetailContent').html('<div class="text-center py-5 text-danger"><i class="bi bi-exclamation-circle fs-1"></i><p class="mt-2">Failed to load</p></div>');
+            });
+    }
+
+   
+       function renderInvoiceDetail(invoice) {
+    $('#modalInvoiceNumber').html(invoice.invoice_number + ' <span class="ms-2">' + getTypeBadge(invoice.invoice_type) + '</span>');
+    
+    var html = `
+        <!-- Invoice Info -->
+        <div class="detail-section">
+            <div class="detail-section-title"><i class="bi bi-info-circle me-2"></i>Invoice Information</div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="detail-row">
+                        <span class="detail-label">Invoice Number</span>
+                        <span class="detail-value">${invoice.invoice_number}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Invoice Date</span>
+                        <span class="detail-value">${formatDate(invoice.invoice_date)}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Due Date</span>
+                        <span class="detail-value">${invoice.due_date ? formatDate(invoice.due_date) : '-'}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Status</span>
+                        <span class="detail-value">${getStatusBadge(invoice.status)}</span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="detail-row">
+                        <span class="detail-label">Contract</span>
+                        <span class="detail-value">${invoice.contract ? invoice.contract.contract_number : '-'}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Type</span>
+                        <span class="detail-value">${getTypeBadge(invoice.invoice_type)}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Description</span>
+                        <span class="detail-value">${invoice.description || '-'}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Amount Info -->
+        <div class="detail-section">
+            <div class="detail-section-title"><i class="bi bi-currency-rupee me-2"></i>Amount Details</div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="detail-row">
+                        <span class="detail-label">Base Amount</span>
+                        <span class="detail-value">₹${formatNumber(invoice.base_total)}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">GST (${invoice.gst_percent || 0}%)</span>
+                        <span class="detail-value">₹${formatNumber(invoice.gst_total)}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Grand Total</span>
+                        <span class="detail-value text-primary fw-bold">₹${formatNumber(invoice.grand_total)}</span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="detail-row">
+                        <span class="detail-label">TDS (${invoice.tds_percent || 0}%)</span>
+                        <span class="detail-value text-danger">- ₹${formatNumber(invoice.tds_amount)}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Net Payable</span>
+                        <span class="detail-value text-success fw-bold">₹${formatNumber(invoice.net_payable)}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Line Items
+    if (invoice.items && invoice.items.length > 0) {
+        html += '<div class="detail-section">';
+        html += '<div class="detail-section-title"><i class="bi bi-list-ul me-2"></i>Line Items (' + invoice.items.length + ')</div>';
+        html += '<div class="table-responsive"><table class="table table-sm items-table mb-0">';
+        html += '<thead><tr><th>#</th><th>Particulars</th><th>Qty</th><th>Rate</th><th class="text-end">Amount</th></tr></thead>';
+        html += '<tbody>';
+        
+        invoice.items.forEach(function(item, index) {
+            html += '<tr>';
+            html += '<td>' + (index + 1) + '</td>';
+            html += '<td>' + (item.particulars || item.description || '-') + '</td>';
+            html += '<td>' + (item.quantity || 1) + '</td>';
+            html += '<td>₹' + formatNumber(item.rate) + '</td>';
+            html += '<td class="text-end fw-semibold">₹' + formatNumber(item.amount) + '</td>';
+            html += '</tr>';
+        });
+        
+        html += '</tbody></table></div></div>';
+    }
+    
+    // Rejection Reason
+    if (invoice.status === 'rejected' && invoice.rejection_reason) {
+        html += '<div class="alert alert-danger mb-0">';
+        html += '<strong><i class="bi bi-exclamation-triangle me-2"></i>Rejection Reason:</strong>';
+        html += '<p class="mb-0 mt-2">' + invoice.rejection_reason + '</p>';
+        html += '</div>';
+    }
+    
+    $('#invoiceDetailContent').html(html);
+}
+    
 </script>
 @endpush

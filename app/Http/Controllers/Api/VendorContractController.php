@@ -19,9 +19,10 @@ class VendorContractController extends Controller
         try {
             $vendorId = Auth::guard('vendor')->id();
 
-            $query = Contract::with(['items.category'])
-                ->where('vendor_id', $vendorId)
-                ->where('is_visible_to_vendor', true);
+          $query = Contract::with(['items.category'])
+    ->where('vendor_id', $vendorId)
+    ->where('is_visible_to_vendor', true)
+    ->where('is_signed', true);  // Only show signed contracts
 
             // Filter by status
             if ($request->has('status') && $request->status !== 'all') {
@@ -162,9 +163,10 @@ public function getContractsDropdown()
     try {
         $vendorId = Auth::guard('vendor')->id();
 
-        $contracts = Contract::where('vendor_id', $vendorId)
-            ->where('is_visible_to_vendor', true)
-            ->whereIn('status', ['draft', 'active', 'signed'])
+      $contracts = Contract::where('vendor_id', $vendorId)
+    ->where('is_visible_to_vendor', true)
+    ->where('is_signed', true)  // Only signed contracts
+    ->whereIn('status', ['signed', 'active'])
             ->orderBy('contract_number', 'desc')
             ->get(['id', 'contract_number', 'contract_type', 'contract_value', 'sow_value']);
 

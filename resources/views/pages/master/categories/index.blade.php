@@ -1,174 +1,225 @@
 @extends('layouts.app')
 @section('title', 'Category Master')
 
-@push('styles')
+@section('content')
 <style>
-    #statusTabs .nav-link {
-        font-weight: 500;
-        color: #6c757d;
-        border-bottom: 2px solid transparent;
-        padding-bottom: 8px;
+    .card { border: none; border-radius: 8px; }
+    
+    /* Page Header */
+    .page-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 8px;
+        background: #eef4ff;
+        color: #1d4ed8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
     }
-    #statusTabs .nav-link:hover {
-        color: #212529;
+    .page-title {
+        font-size: 22px;
+        font-weight: 700;
+        color: #174081;
+        margin: 0;
     }
-    #statusTabs .nav-link.active {
-        color: #212529;
+    .page-subtitle {
+        font-size: 13px;
+        color: #6b7280;
+        margin: 0;
+    }
+
+    /* Table */
+    .index-table th { 
+        color: #174081;
+        background: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+        font-size: 12px;
         font-weight: 600;
-        border-bottom: 2px solid #212529;
     }
-    .zoho-badge {
-        font-size: 10px;
-        padding: 2px 6px;
+    .index-table td { 
+        vertical-align: middle; 
+        font-size: 14px; 
+        color: #495057; 
+    }
+    .index-table tbody tr:hover { 
+        background-color: #f1f5f9; 
+    }
+
+    /* Badges */
+    .badge-active {
+        background: #d4edda;
+        color: #155724;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 500;
+    }
+    .badge-inactive {
+        background: #f8d7da;
+        color: #721c24;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 500;
+    }
+    .badge-zoho {
+        background: #e7f3ff;
+        color: #0d6efd;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 500;
+    }
+    .badge-zoho-unmapped {
+        background: #fff3cd;
+        color: #856404;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 500;
+    }
+    .badge-travel {
+        background: #d1ecf1;
+        color: #0c5460;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 500;
+    }
+
+    /* Travel Filter Checkbox */
+    .travel-filter {
+        background: #f0f9ff;
+        border: 1px solid #bae6fd;
+        border-radius: 6px;
+        padding: 6px 12px;
+    }
+    .travel-filter .form-check-input:checked {
+        background-color: #0ea5e9;
+        border-color: #0ea5e9;
     }
 </style>
-@endpush
 
-@section('content')
-<div class="container-fluid">
+<div class="container-fluid py-3">
 
-    <!-- Alert Container -->
-    <div id="alertContainer"></div>
-
-    <!-- Page Header -->
+    {{-- Page Header --}}
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="fw-bold mb-1" style="color: #174081;">
-                <i class="bi bi-tags me-2"></i>Category Master
-            </h4>
-            <p class="text-muted mb-0 small">Manage service/product categories for contracts</p>
+        <div class="d-flex align-items-center gap-3">
+            <div class="page-icon">
+                <i class="bi bi-tags"></i>
+            </div>
+            <div>
+                <h2 class="page-title">Category Master</h2>
+                <p class="page-subtitle">Manage service/product categories for contracts</p>
+            </div>
         </div>
         <button class="btn btn-primary btn-sm" onclick="showAddModal()">
-            <i class="bi bi-plus-lg me-1"></i> Add Category
+            <i class="bi bi-plus-lg me-1"></i>Add Category
         </button>
     </div>
 
-    <!-- Main Card -->
-    <div class="card shadow-sm border-0">
-        <div class="card-header bg-white py-3">
+    {{-- Main Card --}}
+    <div class="card shadow-sm">
+        
+        {{-- Filters --}}
+        <div class="card-header bg-white py-2">
             <div class="row align-items-center">
-                <!-- Tabs -->
-                <div class="col-lg-6 mb-2 mb-lg-0">
-                    <ul class="nav gap-4" id="statusTabs">
-                        <li class="nav-item">
-                            <a class="nav-link px-0 active" href="#" data-status="all">
-                                All <span class="text-muted" id="tabAll">0</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link px-0" href="#" data-status="active">
-                                Active <span class="text-muted" id="tabActive">0</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link px-0" href="#" data-status="inactive">
-                                Inactive <span class="text-muted" id="tabInactive">0</span>
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-                <!-- Search -->
-                <div class="col-lg-6">
+                <div class="col-md-4">
                     <div class="input-group input-group-sm">
-                        <input type="text" class="form-control" id="searchInput" placeholder="Search categories...">
-                        <button class="btn btn-outline-secondary" type="button" onclick="loadCategories()">
-                            <i class="bi bi-search"></i>
-                        </button>
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="bi bi-search text-muted"></i>
+                        </span>
+                        <input type="text" class="form-control border-start-0" id="searchInput" 
+                               placeholder="Search categories...">
                     </div>
                 </div>
+                <div class="col-md-4">
+                    {{-- Travel Invoice Filter --}}
+                    <div class="travel-filter d-inline-flex align-items-center">
+                        <div class="form-check mb-0">
+                            <input class="form-check-input" type="checkbox" id="travelFilterCheckbox">
+                            <label class="form-check-label small fw-medium" for="travelFilterCheckbox">
+                                <i class="bi bi-airplane me-1"></i>Travel Invoice Only
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 text-end">
+                    <small class="text-muted">Total: <strong id="totalCount">0</strong> categories</small>
+                </div>
             </div>
         </div>
 
-        <div class="card-body p-0">
-            <!-- Loading Spinner -->
-            <div id="loadingSpinner" class="text-center py-5">
-                <div class="spinner-border text-primary" role="status"></div>
-                <p class="mt-2 text-muted small">Loading categories...</p>
-            </div>
+        {{-- Table --}}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 index-table">
+                <thead>
+                    <tr>
+                        <th class="ps-3" style="width: 50px;">#</th>
+                        <th>Category Name</th>
+                        <th>Code</th>
+                        <th>HSN/SAC</th>
+                        <th>Zoho Account</th>
+                        <th class="text-center">Travel</th>
+                        <th>Status</th>
+                        <th class="text-center" style="width: 130px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <tr>
+                        <td colspan="8" class="text-center py-4">
+                            <div class="spinner-border spinner-border-sm text-primary"></div>
+                            <span class="ms-2 text-muted">Loading...</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
 
-            <!-- Category Table -->
-            <div id="tableContainer" style="display: none;">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="bg-light">
-                            <tr>
-                                <th class="ps-4">#</th>
-                                <th>Name</th>
-                                <th>Code</th>
-                                <th>HSN/SAC</th>
-                                <th>Zoho Account</th>
-                                <th>Status</th>
-                                <th class="text-center">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tableBody">
-                            <!-- Dynamic content -->
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Empty State -->
-                <div id="emptyState" class="text-center py-5" style="display: none;">
-                    <i class="bi bi-tags text-muted" style="font-size: 48px;"></i>
-                    <p class="text-muted mt-2">No categories found</p>
-                    <button class="btn btn-primary btn-sm" onclick="showAddModal()">
-                        <i class="bi bi-plus-lg me-1"></i> Add First Category
-                    </button>
-                </div>
-
-                <!-- Pagination -->
-                <div class="d-flex justify-content-between align-items-center px-4 py-3 border-top">
-                    <div class="text-muted small" id="paginationInfo">Showing 0 of 0</div>
-                    <nav>
-                        <ul class="pagination pagination-sm mb-0" id="paginationContainer"></ul>
-                    </nav>
-                </div>
-            </div>
+        {{-- Footer with Pagination --}}
+        <div class="card-footer bg-white py-2 d-flex justify-content-between align-items-center">
+            <small class="text-muted" id="paginationInfo">Showing 0 of 0</small>
+            <ul class="pagination pagination-sm mb-0" id="pagination"></ul>
         </div>
     </div>
-
 </div>
 
-<!-- Add/Edit Modal -->
+{{-- Add/Edit Modal --}}
 <div class="modal fade" id="categoryModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="modalTitle">
-                    <i class="bi bi-plus-circle me-2"></i>Add Category
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <div class="modal-header py-2 bg-light">
+                <h6 class="modal-title fw-semibold" id="modalTitle">Add Category</h6>
+                <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
             </div>
             <form id="categoryForm">
                 <div class="modal-body">
                     <input type="hidden" id="categoryId">
                     
-                    <!-- Name -->
+                    {{-- Name --}}
                     <div class="mb-3">
-                        <label class="form-label">Category Name <span class="text-danger">*</span></label>
+                        <label class="form-label small fw-semibold">Category Name <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="categoryName" placeholder="e.g., IT Services" required>
-                        <div class="invalid-feedback" id="error_name"></div>
                     </div>
 
-                    <!-- Code -->
+                    {{-- Code --}}
                     <div class="mb-3">
-                        <label class="form-label">Code</label>
+                        <label class="form-label small fw-semibold">Code</label>
                         <input type="text" class="form-control" id="categoryCode" placeholder="e.g., ITS">
                         <small class="text-muted">Short code for quick reference</small>
-                        <div class="invalid-feedback" id="error_code"></div>
                     </div>
 
-                    <!-- HSN/SAC Code -->
+                    {{-- HSN/SAC Code --}}
                     <div class="mb-3">
-                        <label class="form-label">HSN/SAC Code</label>
+                        <label class="form-label small fw-semibold">HSN/SAC Code</label>
                         <input type="text" class="form-control" id="hsnSacCode" placeholder="e.g., 998311">
                         <small class="text-muted">For GST purposes</small>
-                        <div class="invalid-feedback" id="error_hsn_sac_code"></div>
                     </div>
 
-                    <!-- Zoho Account Dropdown - NEW! -->
+                    {{-- Zoho Account Dropdown --}}
                     <div class="mb-3">
-                        <label class="form-label">
+                        <label class="form-label small fw-semibold">
                             <i class="bi bi-link-45deg me-1"></i>Zoho Account (COA)
                         </label>
                         <select class="form-select" id="zohoAccountId">
@@ -178,29 +229,40 @@
                         <div id="zohoLoadingText" class="text-muted small mt-1" style="display: none;">
                             <span class="spinner-border spinner-border-sm me-1"></span>Loading accounts from Zoho...
                         </div>
-                        <div id="zohoErrorText" class="text-danger small mt-1" style="display: none;"></div>
                     </div>
 
-                    <!-- Description -->
+                    {{-- Description --}}
                     <div class="mb-3">
-                        <label class="form-label">Description</label>
+                        <label class="form-label small fw-semibold">Description</label>
                         <textarea class="form-control" id="categoryDescription" rows="2" placeholder="Brief description..."></textarea>
-                        <div class="invalid-feedback" id="error_description"></div>
                     </div>
 
-                    <!-- Status -->
+                    {{-- Travel Invoice Checkbox --}}
                     <div class="mb-3">
-                        <label class="form-label">Status</label>
+                        <div class="form-check p-3 bg-light rounded">
+                            <input class="form-check-input" type="checkbox" id="isTravelCategory">
+                            <label class="form-check-label fw-medium" for="isTravelCategory">
+                                <i class="bi bi-airplane me-1 text-primary"></i>Mark as Travel Invoice Category
+                            </label>
+                            <div class="text-muted small mt-1">
+                                This category will appear in Travel Invoice dropdown
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Status --}}
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Status</label>
                         <select class="form-select" id="categoryStatus">
                             <option value="active">Active</option>
                             <option value="inactive">Inactive</option>
                         </select>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary" id="saveBtn">
-                        <i class="bi bi-check-lg me-1"></i> Save
+                <div class="modal-footer py-2 bg-light">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm" id="saveBtn">
+                        <i class="bi bi-check-lg me-1"></i>Save
                     </button>
                 </div>
             </form>
@@ -208,470 +270,431 @@
     </div>
 </div>
 
-<!-- Delete Confirmation Modal -->
+{{-- Delete Confirmation Modal --}}
 <div class="modal fade" id="deleteModal" tabindex="-1">
     <div class="modal-dialog modal-sm">
         <div class="modal-content">
-            <div class="modal-header border-0">
-                <h5 class="modal-title text-danger">
+            <div class="modal-header py-2 bg-light border-0">
+                <h6 class="modal-title fw-semibold text-danger">
                     <i class="bi bi-trash me-2"></i>Delete Category
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </h6>
+                <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <p>Are you sure you want to delete <strong id="deleteCategoryName"></strong>?</p>
                 <p class="text-muted small mb-0">This action cannot be undone.</p>
             </div>
-            <div class="modal-footer border-0">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+            <div class="modal-footer py-2 bg-light border-0">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-danger btn-sm" id="confirmDeleteBtn">
-                    <i class="bi bi-trash me-1"></i> Delete
+                    <i class="bi bi-trash me-1"></i>Delete
                 </button>
             </div>
         </div>
     </div>
 </div>
+
 @endsection
 
 @push('scripts')
 <script>
-    // =====================================================
-    // CONFIGURATION
-    // =====================================================
-    const API_BASE = '/api/admin/categories';
-    const ZOHO_API = '/api/zoho';
-    let currentStatus = 'all';
-    let currentPage = 1;
-    let currentSearch = '';
-    let deleteId = null;
-    let zohoAccounts = []; // Store fetched accounts
+const API_BASE = '/api/admin/categories';
+const ZOHO_API = '/api/zoho';
+let categories = [];
+let allCategories = [];
+let zohoAccounts = [];
+let currentPage = 1;
+let deleteId = null;
 
-    // =====================================================
-    // INITIALIZATION
-    // =====================================================
-    $(document).ready(function() {
-        loadStatistics();
-        loadCategories();
+$(document).ready(function() {
+    loadCategories();
 
-        // Tab click handler
-        $('#statusTabs .nav-link').on('click', function(e) {
-            e.preventDefault();
-            $('#statusTabs .nav-link').removeClass('active');
-            $(this).addClass('active');
-            currentStatus = $(this).data('status');
+    // Search debounce
+    let searchTimeout;
+    $('#searchInput').on('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
             currentPage = 1;
-            loadCategories();
-        });
-
-        // Search on enter
-        $('#searchInput').on('keypress', function(e) {
-            if (e.which === 13) {
-                currentSearch = $(this).val();
-                currentPage = 1;
-                loadCategories();
-            }
-        });
-
-        // Form submit
-        $('#categoryForm').on('submit', handleFormSubmit);
-
-        // Delete confirm
-        $('#confirmDeleteBtn').on('click', deleteCategory);
+            filterAndRenderTable();
+        }, 300);
     });
 
-    // =====================================================
-    // LOAD ZOHO ACCOUNTS (COA)
-    // =====================================================
-    function loadZohoAccounts(selectedAccountId = null) {
-        // If already loaded, just populate
-        if (zohoAccounts.length > 0) {
-            populateZohoDropdown(selectedAccountId);
-            return;
-        }
+    // Travel filter checkbox
+    $('#travelFilterCheckbox').on('change', function() {
+        currentPage = 1;
+        filterAndRenderTable();
+    });
 
-        $('#zohoLoadingText').show();
-        $('#zohoErrorText').hide();
-        $('#zohoAccountId').prop('disabled', true);
+    // Form submit
+    $('#categoryForm').on('submit', handleFormSubmit);
 
-        axios.get(`${ZOHO_API}/chart-of-accounts`)
-            .then(response => {
-                $('#zohoLoadingText').hide();
-                $('#zohoAccountId').prop('disabled', false);
+    // Delete confirm
+    $('#confirmDeleteBtn').on('click', deleteCategory);
+});
 
-                if (response.data.success) {
-                    zohoAccounts = response.data.data || [];
-                    populateZohoDropdown(selectedAccountId);
-                } else {
-                    $('#zohoErrorText').text('Failed to load Zoho accounts').show();
-                }
-            })
-            .catch(error => {
-                $('#zohoLoadingText').hide();
-                $('#zohoAccountId').prop('disabled', false);
-                
-                const message = error.response?.data?.message || 'Zoho not connected';
-                $('#zohoErrorText').text(message).show();
-                console.error('Failed to load Zoho accounts:', error);
-            });
-    }
+// =====================================================
+// LOAD CATEGORIES
+// =====================================================
+function loadCategories() {
+    const tbody = $('#tableBody');
+    tbody.html(`
+        <tr><td colspan="8" class="text-center py-4">
+            <div class="spinner-border spinner-border-sm text-primary"></div>
+            <span class="ms-2 text-muted">Loading...</span>
+        </td></tr>
+    `);
 
-    // =====================================================
-    // POPULATE ZOHO DROPDOWN
-    // =====================================================
-    function populateZohoDropdown(selectedAccountId = null) {
-        let html = '<option value="">-- Select Zoho Account --</option>';
-        
-        zohoAccounts.forEach(account => {
-            const isSelected = selectedAccountId && account.account_id === selectedAccountId ? 'selected' : '';
-            const accountType = account.account_type ? ` (${account.account_type})` : '';
-            html += `<option value="${account.account_id}" data-name="${escapeHtml(account.account_name)}" ${isSelected}>
-                ${escapeHtml(account.account_name)}${accountType}
-            </option>`;
-        });
-
-        $('#zohoAccountId').html(html);
-    }
-
-    // =====================================================
-    // LOAD STATISTICS
-    // =====================================================
-    function loadStatistics() {
-        axios.get(`${API_BASE}/statistics`)
-            .then(response => {
-                if (response.data.success) {
-                    const stats = response.data.data;
-                    $('#tabAll').text(stats.total || 0);
-                    $('#tabActive').text(stats.active || 0);
-                    $('#tabInactive').text(stats.inactive || 0);
-                }
-            })
-            .catch(error => console.error('Failed to load statistics:', error));
-    }
-
-    // =====================================================
-    // LOAD CATEGORIES
-    // =====================================================
-    function loadCategories() {
-        $('#loadingSpinner').show();
-        $('#tableContainer').hide();
-
-        let url = `${API_BASE}?page=${currentPage}&per_page=10`;
-        if (currentStatus !== 'all') url += `&status=${currentStatus}`;
-        if (currentSearch) url += `&search=${encodeURIComponent(currentSearch)}`;
-
-        axios.get(url)
-            .then(response => {
-                $('#loadingSpinner').hide();
-                $('#tableContainer').show();
-
-                if (response.data.success) {
-                    const data = response.data.data;
-                    renderCategories(data.data || data);
-                    if (data.current_page) {
-                        renderPagination(data);
-                    }
-                }
-            })
-            .catch(error => {
-                $('#loadingSpinner').hide();
-                $('#tableContainer').show();
-                console.error('Failed to load categories:', error);
-                showAlert('danger', 'Failed to load categories');
-            });
-    }
-
-    // =====================================================
-    // RENDER CATEGORIES TABLE
-    // =====================================================
-    function renderCategories(categories) {
-        if (!categories || categories.length === 0) {
-            $('#tableBody').html('');
-            $('#emptyState').show();
-            return;
-        }
-
-        $('#emptyState').hide();
-        let html = '';
-
-        categories.forEach((category, index) => {
-            const zohoStatus = category.zoho_account_id 
-                ? `<span class="badge bg-info zoho-badge">${escapeHtml(category.zoho_account_name) || 'Mapped'}</span>`
-                : `<span class="badge bg-warning zoho-badge">Not Mapped</span>`;
-
-            html += `
-                <tr>
-                    <td class="ps-4 text-muted">${index + 1}</td>
-                    <td>
-                        <div class="fw-semibold">${escapeHtml(category.name)}</div>
-                    </td>
-                    <td>
-                        <span class="text-muted">${category.code || '-'}</span>
-                    </td>
-                    <td>
-                        <span class="text-muted">${category.hsn_sac_code || '-'}</span>
-                    </td>
-                    <td>${zohoStatus}</td>
-                    <td>${getStatusBadge(category.status)}</td>
-                    <td class="text-center">
-                        <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-primary" onclick="editCategory(${category.id})" title="Edit">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button class="btn btn-outline-${category.status === 'active' ? 'warning' : 'success'}" 
-                                    onclick="toggleStatus(${category.id})" 
-                                    title="${category.status === 'active' ? 'Deactivate' : 'Activate'}">
-                                <i class="bi bi-${category.status === 'active' ? 'pause' : 'play'}"></i>
-                            </button>
-                            <button class="btn btn-outline-danger" onclick="showDeleteModal(${category.id}, '${escapeHtml(category.name)}')" title="Delete">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
-        });
-
-        $('#tableBody').html(html);
-    }
-
-    // =====================================================
-    // SHOW ADD MODAL
-    // =====================================================
-    function showAddModal() {
-        $('#modalTitle').html('<i class="bi bi-plus-circle me-2"></i>Add Category');
-        $('#categoryId').val('');
-        $('#categoryForm')[0].reset();
-        $('#categoryStatus').val('active');
-        $('#zohoAccountId').val('');
-        $('#zohoErrorText').hide();
-        clearErrors();
-        
-        // Load Zoho accounts
-        loadZohoAccounts();
-        
-        new bootstrap.Modal('#categoryModal').show();
-    }
-
-    // =====================================================
-    // EDIT CATEGORY
-    // =====================================================
-    function editCategory(id) {
-        axios.get(`${API_BASE}/${id}`)
-            .then(response => {
-                if (response.data.success) {
-                    const category = response.data.data;
-                    
-                    $('#modalTitle').html('<i class="bi bi-pencil me-2"></i>Edit Category');
-                    $('#categoryId').val(category.id);
-                    $('#categoryName').val(category.name);
-                    $('#categoryCode').val(category.code || '');
-                    $('#hsnSacCode').val(category.hsn_sac_code || '');
-                    $('#categoryDescription').val(category.description || '');
-                    $('#categoryStatus').val(category.status);
-                    $('#zohoErrorText').hide();
-                    
-                    // Load Zoho accounts with pre-selected value
-                    loadZohoAccounts(category.zoho_account_id);
-                    
-                    clearErrors();
-                    new bootstrap.Modal('#categoryModal').show();
-                }
-            })
-            .catch(error => {
-                console.error('Failed to load category:', error);
-                showAlert('danger', 'Failed to load category details');
-            });
-    }
-
-    // =====================================================
-    // HANDLE FORM SUBMIT
-    // =====================================================
-    function handleFormSubmit(e) {
-        e.preventDefault();
-        clearErrors();
-
-        const id = $('#categoryId').val();
-        const selectedOption = $('#zohoAccountId option:selected');
-        
-        const data = {
-            name: $('#categoryName').val(),
-            code: $('#categoryCode').val() || null,
-            hsn_sac_code: $('#hsnSacCode').val() || null,
-            description: $('#categoryDescription').val() || null,
-            status: $('#categoryStatus').val(),
-            zoho_account_id: $('#zohoAccountId').val() || null,
-            zoho_account_name: selectedOption.data('name') || null,
-        };
-
-        const btn = $('#saveBtn');
-        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
-
-        const request = id 
-            ? axios.put(`${API_BASE}/${id}`, data)
-            : axios.post(API_BASE, data);
-
-        request
-            .then(response => {
-                if (response.data.success) {
-                    bootstrap.Modal.getInstance(document.getElementById('categoryModal')).hide();
-                    showAlert('success', response.data.message);
-                    loadCategories();
-                    loadStatistics();
-                }
-            })
-            .catch(error => {
-                if (error.response?.data?.errors) {
-                    const errors = error.response.data.errors;
-                    Object.keys(errors).forEach(field => {
-                        $(`#error_${field}`).text(errors[field][0]);
-                        $(`#category${capitalize(field)}, #${field.replace('_', '')}`).addClass('is-invalid');
-                    });
-                } else {
-                    showAlert('danger', error.response?.data?.message || 'Failed to save category');
-                }
-            })
-            .finally(() => {
-                btn.prop('disabled', false).html('<i class="bi bi-check-lg me-1"></i> Save');
-            });
-    }
-
-    // =====================================================
-    // TOGGLE STATUS
-    // =====================================================
-    function toggleStatus(id) {
-        axios.post(`${API_BASE}/${id}/toggle-status`)
-            .then(response => {
-                if (response.data.success) {
-                    showAlert('success', 'Status updated');
-                    loadCategories();
-                    loadStatistics();
-                }
-            })
-            .catch(error => {
-                console.error('Failed to toggle status:', error);
-                showAlert('danger', 'Failed to update status');
-            });
-    }
-
-    // =====================================================
-    // DELETE CATEGORY
-    // =====================================================
-    function showDeleteModal(id, name) {
-        deleteId = id;
-        $('#deleteCategoryName').text(name);
-        new bootstrap.Modal('#deleteModal').show();
-    }
-
-    function deleteCategory() {
-        if (!deleteId) return;
-
-        const btn = $('#confirmDeleteBtn');
-        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Deleting...');
-
-        axios.delete(`${API_BASE}/${deleteId}`)
-            .then(response => {
-                if (response.data.success) {
-                    bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
-                    showAlert('success', 'Category deleted');
-                    loadCategories();
-                    loadStatistics();
-                }
-            })
-            .catch(error => {
-                showAlert('danger', error.response?.data?.message || 'Failed to delete category');
-            })
-            .finally(() => {
-                btn.prop('disabled', false).html('<i class="bi bi-trash me-1"></i> Delete');
-                deleteId = null;
-            });
-    }
-
-    // =====================================================
-    // RENDER PAGINATION
-    // =====================================================
-    function renderPagination(data) {
-        const { current_page, last_page, from, to, total } = data;
-
-        $('#paginationInfo').text(`Showing ${from || 0} to ${to || 0} of ${total || 0}`);
-
-        if (last_page <= 1) {
-            $('#paginationContainer').html('');
-            return;
-        }
-
-        let html = '';
-
-        html += `
-            <li class="page-item ${current_page === 1 ? 'disabled' : ''}">
-                <a class="page-link" href="#" onclick="goToPage(${current_page - 1})">
-                    <i class="bi bi-chevron-left"></i>
-                </a>
-            </li>
-        `;
-
-        for (let i = 1; i <= last_page; i++) {
-            if (i === 1 || i === last_page || (i >= current_page - 1 && i <= current_page + 1)) {
-                html += `
-                    <li class="page-item ${i === current_page ? 'active' : ''}">
-                        <a class="page-link" href="#" onclick="goToPage(${i})">${i}</a>
-                    </li>
-                `;
-            } else if (i === current_page - 2 || i === current_page + 2) {
-                html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+    axios.get(`${API_BASE}?per_page=1000`)
+        .then(res => {
+            if (res.data.success) {
+                allCategories = res.data.data.data || res.data.data;
+                filterAndRenderTable();
             }
-        }
+        })
+        .catch(err => {
+            tbody.html(`<tr><td colspan="8" class="text-center py-4 text-danger">Failed to load categories</td></tr>`);
+            Toast.error('Failed to load categories');
+        });
+}
+
+// =====================================================
+// FILTER AND RENDER TABLE
+// =====================================================
+function filterAndRenderTable() {
+    const searchQuery = $('#searchInput').val().toLowerCase().trim();
+    const travelOnly = $('#travelFilterCheckbox').is(':checked');
+    
+    // Filter categories
+    categories = allCategories.filter(cat => {
+        // Search filter
+        const matchesSearch = !searchQuery || 
+            (cat.name && cat.name.toLowerCase().includes(searchQuery)) ||
+            (cat.code && cat.code.toLowerCase().includes(searchQuery)) ||
+            (cat.zoho_account_name && cat.zoho_account_name.toLowerCase().includes(searchQuery));
+        
+        // Travel filter
+        const matchesTravel = !travelOnly || cat.is_travel_category;
+        
+        return matchesSearch && matchesTravel;
+    });
+
+    // Paginate
+    const perPage = 10;
+    const total = categories.length;
+    const lastPage = Math.ceil(total / perPage) || 1;
+    const from = total > 0 ? ((currentPage - 1) * perPage) + 1 : 0;
+    const to = Math.min(currentPage * perPage, total);
+    
+    const paginatedCategories = categories.slice((currentPage - 1) * perPage, currentPage * perPage);
+
+    renderTable(paginatedCategories, { 
+        current_page: currentPage, 
+        last_page: lastPage, 
+        from: from, 
+        to: to, 
+        total: total,
+        per_page: perPage
+    });
+
+    $('#totalCount').text(total);
+}
+
+// =====================================================
+// RENDER TABLE
+// =====================================================
+function renderTable(categoriesToRender, paginationData) {
+    const tbody = $('#tableBody');
+    
+    if (!categoriesToRender || categoriesToRender.length === 0) {
+        tbody.html(`
+            <tr><td colspan="8" class="text-center py-5 text-muted">
+                <i class="bi bi-inbox fs-1 d-block mb-2"></i>No categories found
+            </td></tr>
+        `);
+        $('#paginationInfo').text('Showing 0 of 0');
+        $('#pagination').html('');
+        return;
+    }
+
+    let html = '';
+    categoriesToRender.forEach((cat, index) => {
+        const rowNum = paginationData.from + index;
+        
+        // Zoho Account Badge
+        const zohoStatus = cat.zoho_account_id 
+            ? `<span class="badge-zoho">${escapeHtml(cat.zoho_account_name) || 'Mapped'}</span>`
+            : `<span class="badge-zoho-unmapped">Not Mapped</span>`;
+
+        // Travel Badge
+        const travelBadge = cat.is_travel_category 
+            ? '<span class="badge-travel"><i class="bi bi-airplane me-1"></i>Yes</span>'
+            : '<span class="text-muted">-</span>';
+
+        // Status Badge
+        const statusBadge = cat.status === 'active'
+            ? '<span class="badge-active">Active</span>'
+            : '<span class="badge-inactive">Inactive</span>';
 
         html += `
-            <li class="page-item ${current_page === last_page ? 'disabled' : ''}">
-                <a class="page-link" href="#" onclick="goToPage(${current_page + 1})">
-                    <i class="bi bi-chevron-right"></i>
-                </a>
-            </li>
+            <tr>
+                <td class="ps-3">${rowNum}</td>
+                <td>
+                    <div class="fw-medium">${escapeHtml(cat.name)}</div>
+                    ${cat.description ? `<small class="text-muted">${escapeHtml(cat.description.substring(0, 30))}...</small>` : ''}
+                </td>
+                <td>${cat.code || '-'}</td>
+                <td>${cat.hsn_sac_code || '-'}</td>
+                <td>${zohoStatus}</td>
+                <td class="text-center">${travelBadge}</td>
+                <td>${statusBadge}</td>
+                <td class="text-center">
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-primary" onclick="editCategory(${cat.id})" title="Edit">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-outline-${cat.status === 'active' ? 'warning' : 'success'}" 
+                                onclick="toggleStatus(${cat.id})" 
+                                title="${cat.status === 'active' ? 'Deactivate' : 'Activate'}">
+                            <i class="bi bi-${cat.status === 'active' ? 'pause-circle' : 'check-circle'}"></i>
+                        </button>
+                        <button class="btn btn-outline-danger" onclick="showDeleteModal(${cat.id}, '${escapeHtml(cat.name)}')" title="Delete">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
         `;
+    });
 
-        $('#paginationContainer').html(html);
+    tbody.html(html);
+    renderPagination(paginationData);
+}
+
+// =====================================================
+// PAGINATION
+// =====================================================
+function renderPagination(data) {
+    $('#paginationInfo').text(`Showing ${data.from || 0} to ${data.to || 0} of ${data.total || 0}`);
+    
+    const container = $('#pagination');
+    if (data.last_page <= 1) {
+        container.html('');
+        return;
     }
 
-    function goToPage(page) {
-        currentPage = page;
-        loadCategories();
-    }
+    let html = `
+        <li class="page-item ${data.current_page === 1 ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="goToPage(${data.current_page - 1}); return false;">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+        </li>
+    `;
 
-    // =====================================================
-    // HELPER FUNCTIONS
-    // =====================================================
-    function getStatusBadge(status) {
-        if (status === 'active') {
-            return '<span class="badge bg-success">Active</span>';
+    for (let i = 1; i <= data.last_page; i++) {
+        if (i === 1 || i === data.last_page || (i >= data.current_page - 1 && i <= data.current_page + 1)) {
+            html += `
+                <li class="page-item ${i === data.current_page ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="goToPage(${i}); return false;">${i}</a>
+                </li>
+            `;
+        } else if (i === data.current_page - 2 || i === data.current_page + 2) {
+            html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
         }
-        return '<span class="badge bg-secondary">Inactive</span>';
     }
 
-    function escapeHtml(text) {
-        if (!text) return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
+    html += `
+        <li class="page-item ${data.current_page === data.last_page ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="goToPage(${data.current_page + 1}); return false;">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </li>
+    `;
+
+    container.html(html);
+}
+
+function goToPage(page) {
+    currentPage = page;
+    filterAndRenderTable();
+}
+
+// =====================================================
+// LOAD ZOHO ACCOUNTS
+// =====================================================
+function loadZohoAccounts(selectedAccountId = null) {
+    if (zohoAccounts.length > 0) {
+        populateZohoDropdown(selectedAccountId);
+        return;
     }
 
-    function capitalize(str) {
-        return str.charAt(0).toUpperCase() + str.slice(1);
-    }
+    $('#zohoLoadingText').show();
+    $('#zohoAccountId').prop('disabled', true);
 
-    function clearErrors() {
-        $('.is-invalid').removeClass('is-invalid');
-        $('.invalid-feedback').text('');
-    }
+    axios.get(`${ZOHO_API}/chart-of-accounts`)
+        .then(res => {
+            $('#zohoLoadingText').hide();
+            $('#zohoAccountId').prop('disabled', false);
 
-    function showAlert(type, message) {
-        const icon = type === 'success' ? 'check-circle' : 'exclamation-circle';
-        $('#alertContainer').html(`
-            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
-                <i class="bi bi-${icon} me-2"></i>${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        `);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+            if (res.data.success) {
+                zohoAccounts = res.data.data || [];
+                populateZohoDropdown(selectedAccountId);
+            }
+        })
+        .catch(err => {
+            $('#zohoLoadingText').hide();
+            $('#zohoAccountId').prop('disabled', false);
+            console.error('Failed to load Zoho accounts:', err);
+        });
+}
+
+function populateZohoDropdown(selectedAccountId = null) {
+    let html = '<option value="">-- Select Zoho Account --</option>';
+    
+    zohoAccounts.forEach(account => {
+        const isSelected = selectedAccountId && account.account_id === selectedAccountId ? 'selected' : '';
+        const accountType = account.account_type ? ` (${account.account_type})` : '';
+        html += `<option value="${account.account_id}" data-name="${escapeHtml(account.account_name)}" ${isSelected}>
+            ${escapeHtml(account.account_name)}${accountType}
+        </option>`;
+    });
+
+    $('#zohoAccountId').html(html);
+}
+
+// =====================================================
+// SHOW ADD MODAL
+// =====================================================
+function showAddModal() {
+    $('#modalTitle').text('Add Category');
+    $('#categoryId').val('');
+    $('#categoryForm')[0].reset();
+    $('#categoryStatus').val('active');
+    $('#zohoAccountId').val('');
+    $('#isTravelCategory').prop('checked', false);
+    
+    loadZohoAccounts();
+    new bootstrap.Modal('#categoryModal').show();
+}
+
+// =====================================================
+// EDIT CATEGORY
+// =====================================================
+function editCategory(id) {
+    const cat = allCategories.find(c => c.id === id);
+    if (!cat) return;
+
+    $('#modalTitle').text('Edit Category');
+    $('#categoryId').val(cat.id);
+    $('#categoryName').val(cat.name);
+    $('#categoryCode').val(cat.code || '');
+    $('#hsnSacCode').val(cat.hsn_sac_code || '');
+    $('#categoryDescription').val(cat.description || '');
+    $('#categoryStatus').val(cat.status);
+    $('#isTravelCategory').prop('checked', cat.is_travel_category || false);
+    
+    loadZohoAccounts(cat.zoho_account_id);
+    new bootstrap.Modal('#categoryModal').show();
+}
+
+// =====================================================
+// HANDLE FORM SUBMIT
+// =====================================================
+function handleFormSubmit(e) {
+    e.preventDefault();
+
+    const id = $('#categoryId').val();
+    const selectedOption = $('#zohoAccountId option:selected');
+    
+    const data = {
+        name: $('#categoryName').val(),
+        code: $('#categoryCode').val() || null,
+        hsn_sac_code: $('#hsnSacCode').val() || null,
+        description: $('#categoryDescription').val() || null,
+        status: $('#categoryStatus').val(),
+        zoho_account_id: $('#zohoAccountId').val() || null,
+        zoho_account_name: selectedOption.data('name') || null,
+     is_travel_category: $('#isTravelCategory').is(':checked') ? 1 : 0
+    };
+
+    const btn = $('#saveBtn');
+    btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
+
+    const request = id 
+        ? axios.put(`${API_BASE}/${id}`, data)
+        : axios.post(API_BASE, data);
+
+    request
+        .then(res => {
+            if (res.data.success) {
+                bootstrap.Modal.getInstance(document.getElementById('categoryModal')).hide();
+                Toast.success(id ? 'Category updated!' : 'Category created!');
+                loadCategories();
+            }
+        })
+        .catch(err => {
+            Toast.error(err.response?.data?.message || 'Failed to save category');
+        })
+        .finally(() => {
+            btn.prop('disabled', false).html('<i class="bi bi-check-lg me-1"></i>Save');
+        });
+}
+
+// =====================================================
+// TOGGLE STATUS
+// =====================================================
+function toggleStatus(id) {
+    axios.post(`${API_BASE}/${id}/toggle-status`)
+        .then(res => {
+            if (res.data.success) {
+                Toast.success('Status updated!');
+                loadCategories();
+            }
+        })
+        .catch(err => {
+            Toast.error('Failed to update status');
+        });
+}
+
+// =====================================================
+// DELETE CATEGORY
+// =====================================================
+function showDeleteModal(id, name) {
+    deleteId = id;
+    $('#deleteCategoryName').text(name);
+    new bootstrap.Modal('#deleteModal').show();
+}
+
+function deleteCategory() {
+    if (!deleteId) return;
+
+    const btn = $('#confirmDeleteBtn');
+    btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Deleting...');
+
+    axios.delete(`${API_BASE}/${deleteId}`)
+        .then(res => {
+            if (res.data.success) {
+                bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
+                Toast.success('Category deleted!');
+                loadCategories();
+            }
+        })
+        .catch(err => {
+            Toast.error(err.response?.data?.message || 'Failed to delete category');
+        })
+        .finally(() => {
+            btn.prop('disabled', false).html('<i class="bi bi-trash me-1"></i>Delete');
+            deleteId = null;
+        });
+}
+
+// =====================================================
+// HELPER
+// =====================================================
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
 </script>
 @endpush

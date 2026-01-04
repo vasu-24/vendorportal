@@ -112,7 +112,7 @@
 <div class="toast-container" id="toastContainer"></div>
 
 <script>
-    const Toast = {
+  window.Toast = {
         container: null,
 
         init() {

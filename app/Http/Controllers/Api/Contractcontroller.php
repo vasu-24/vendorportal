@@ -141,6 +141,9 @@ public function show($id)
   // =====================================================
 // CREATE CONTRACT
 // =====================================================
+// =====================================================
+// CREATE CONTRACT
+// =====================================================
 
 public function store(Request $request)
 {
@@ -168,17 +171,19 @@ public function store(Request $request)
             // =====================================================
             $validator = Validator::make($request->all(), [
                 'template_file' => 'nullable|string',
+                'template_type' => 'nullable|string|in:paid,non_paid',
                 'company_id' => 'nullable|exists:organisations,id',
                 'vendor_id' => 'required|exists:vendors,id',
                 'start_date' => 'nullable|date',
                 'end_date' => 'nullable|date|after_or_equal:start_date',
                 'contract_value' => 'required|numeric|min:0',
                 'notes' => 'nullable|string',
-                'items' => 'required|array|min:1',
-                'items.*.category_id' => 'required|exists:categories,id',
-                'items.*.quantity' => 'required|numeric|min:0',
-                'items.*.unit' => 'required|string',
-                'items.*.rate' => 'required|numeric|min:0',
+                // ITEMS ONLY REQUIRED FOR PAID TEMPLATES
+                'items' => 'required_if:template_type,paid|array',
+                'items.*.category_id' => 'required_with:items|exists:categories,id',
+                'items.*.quantity' => 'required_with:items|numeric|min:0',
+                'items.*.unit' => 'required_with:items|string',
+                'items.*.rate' => 'required_with:items|numeric|min:0',
                 'items.*.tags' => 'nullable|array',
             ]);
         }
@@ -247,7 +252,7 @@ public function store(Request $request)
 
         } else {
             // =====================================================
-            // CREATE NORMAL CONTRACT (existing code)
+            // CREATE NORMAL CONTRACT
             // =====================================================
             
             // Get company details
@@ -260,6 +265,7 @@ public function store(Request $request)
                 'contract_number' => Contract::generateContractNumber(),
                 'contract_type' => 'normal',
                 'template_file' => $request->template_file,
+                'template_type' => $request->template_type ?? 'paid',
                 'document_path' => null,
                 'company_id' => $request->company_id,
                 'company_name' => $company->company_name ?? null,
@@ -279,26 +285,28 @@ public function store(Request $request)
                 'created_by' => Auth::id(),
             ]);
 
-            // Create contract items with tag
-            foreach ($request->items as $item) {
-                $tagId = $item['tags'][0] ?? null;
-                $tagName = null;
-                
-                if ($tagId) {
-                    $managerTag = ManagerTag::where('tag_id', $tagId)->first();
-                    $tagName = $managerTag->tag_name ?? null;
-                }
+            // Create contract items with tag (ONLY IF ITEMS EXIST)
+            if ($request->has('items') && is_array($request->items) && count($request->items) > 0) {
+                foreach ($request->items as $item) {
+                    $tagId = $item['tags'][0] ?? null;
+                    $tagName = null;
+                    
+                    if ($tagId) {
+                        $managerTag = ManagerTag::where('tag_id', $tagId)->first();
+                        $tagName = $managerTag->tag_name ?? null;
+                    }
 
-                ContractItem::create([
-                    'contract_id' => $contract->id,
-                    'category_id' => $item['category_id'],
-                    'description' => $item['description'] ?? null,
-                    'quantity' => $item['quantity'],
-                    'unit' => $item['unit'],
-                    'rate' => $item['rate'],
-                    'tag_id' => $tagId,
-                    'tag_name' => $tagName,
-                ]);
+                    ContractItem::create([
+                        'contract_id' => $contract->id,
+                        'category_id' => $item['category_id'],
+                        'description' => $item['description'] ?? null,
+                        'quantity' => $item['quantity'],
+                        'unit' => $item['unit'],
+                        'rate' => $item['rate'],
+                        'tag_id' => $tagId,
+                        'tag_name' => $tagName,
+                    ]);
+                }
             }
         }
 
@@ -320,6 +328,8 @@ public function store(Request $request)
         ], 500);
     }
 }
+
+
 
     // =====================================================
     // UPDATE CONTRACT
@@ -521,70 +531,86 @@ public function store(Request $request)
         }
     }
 
-    // =====================================================
-    // UPLOAD CONTRACT DOCUMENT
-    // =====================================================
+  public function uploadDocument(Request $request)
+{
+    try {
+        $validator = Validator::make($request->all(), [
+            'contract_id' => 'required|exists:contracts,id',
+            'contract_file' => 'required|file|max:10240',
+            'is_signed' => 'nullable|boolean',
+        ]);
 
-    public function uploadDocument(Request $request)
-    {
-        try {
-            $validator = Validator::make($request->all(), [
-                'contract_id' => 'required|exists:contracts,id',
-                'contract_file' => 'required|file|max:10240',
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $file = $request->file('contract_file');
-            $extension = strtolower($file->getClientOriginalExtension());
-            
-            $allowedExtensions = ['doc', 'docx', 'pdf'];
-            if (!in_array($extension, $allowedExtensions)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Please upload a Word (.doc, .docx) or PDF file.'
-                ], 422);
-            }
-
-            $contract = Contract::findOrFail($request->contract_id);
-            
-            if ($contract->document_path && Storage::disk('public')->exists($contract->document_path)) {
-                Storage::disk('public')->delete($contract->document_path);
-            }
-            
-            $fileName = $contract->contract_number . '_' . time() . '.' . $extension;
-            $filePath = $file->storeAs('contracts/documents', $fileName, 'public');
-            
-            $contract->update([
-                'document_path' => $filePath,
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Document uploaded successfully',
-                'data' => [
-                    'file_name' => $file->getClientOriginalName(),
-                    'path' => $filePath,
-                    'preview_url' => asset('storage/' . $filePath),
-                    'contract' => $contract->fresh()
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Contract Upload Error: ' . $e->getMessage());
+        if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to upload: ' . $e->getMessage()
-            ], 500);
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
         }
-    }
 
+        $file = $request->file('contract_file');
+        $extension = strtolower($file->getClientOriginalExtension());
+        
+        $allowedExtensions = ['doc', 'docx', 'pdf'];
+        if (!in_array($extension, $allowedExtensions)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Please upload a Word (.doc, .docx) or PDF file.'
+            ], 422);
+        }
+
+        $contract = Contract::findOrFail($request->contract_id);
+        
+        // Delete old file if exists
+        if ($contract->document_path && Storage::disk('public')->exists($contract->document_path)) {
+            Storage::disk('public')->delete($contract->document_path);
+        }
+        
+        $fileName = $contract->contract_number . '_' . time() . '.' . $extension;
+        $filePath = $file->storeAs('contracts/documents', $fileName, 'public');
+        
+        // Check if signed
+        $isSigned = $request->boolean('is_signed', false);
+        
+        // Update contract
+        $updateData = [
+            'document_path' => $filePath,
+        ];
+        
+        if ($isSigned) {
+            $updateData['is_signed'] = true;
+            $updateData['status'] = 'signed';
+            $updateData['is_visible_to_vendor'] = true;
+        }
+        
+        $contract->update($updateData);
+
+        Log::info('Contract document uploaded', [
+            'contract_id' => $contract->id,
+            'is_signed' => $isSigned,
+            'status' => $contract->status,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => $isSigned ? 'Signed contract uploaded successfully!' : 'Document uploaded successfully',
+            'data' => [
+                'file_name' => $file->getClientOriginalName(),
+                'path' => $filePath,
+                'preview_url' => asset('storage/' . $filePath),
+                'is_signed' => $isSigned,
+                'contract' => $contract->fresh()
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Contract Upload Error: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to upload: ' . $e->getMessage()
+        ], 500);
+    }
+}
     // =====================================================
     // GET CONTRACT ITEMS WITH TAGS (For Invoice Comparison)
     // =====================================================

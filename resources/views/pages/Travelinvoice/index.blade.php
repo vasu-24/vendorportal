@@ -73,17 +73,6 @@
     
     /* Buttons */
     .btn-view { padding: 4px 12px; font-size: 11px; }
-    .btn-start-review { 
-        padding: 4px 10px; 
-        font-size: 11px; 
-        background: #10b981; 
-        color: white; 
-        border: none; 
-        border-radius: 4px;
-        font-weight: 600;
-    }
-    .btn-start-review:hover { background: #059669; color: white; }
-    .btn-start-review:disabled { background: #9ca3af; cursor: not-allowed; }
 </style>
 
 <div class="container-fluid py-3">
@@ -230,7 +219,7 @@ function renderBatches(data, userRole) {
 
     let html = '';
     batches.forEach((batch, i) => {
-        const canStartReview = batch.can_start_review && canUserStartReview(userRole);
+      
         const approvableCount = batch.approvable_count || 0;
         
         html += `
@@ -246,11 +235,7 @@ function renderBatches(data, userRole) {
                 <td>${formatDate(batch.created_at)}</td>
                 <td class="text-center">
                     <div class="d-flex gap-1 justify-content-center">
-                        ${canStartReview ? `
-                            <button class="btn-start-review" onclick="startReview(${batch.id})" title="Start Review">
-                                <i class="bi bi-play-fill me-1"></i>Start Review
-                            </button>
-                        ` : ''}
+
                         <a href="/admin/travel-invoices/batch/${batch.id}" class="btn btn-primary btn-view">
                             <i class="bi bi-eye me-1"></i>View${approvableCount > 0 ? ` (${approvableCount})` : ''}
                         </a>
@@ -264,27 +249,8 @@ function renderBatches(data, userRole) {
     renderPagination(data);
 }
 
-// Check if user can start review based on role
-function canUserStartReview(role) {
-    return ['super-admin', 'manager'].includes(role);
-}
 
-// Start Review - Move submitted to pending_rm
-function startReview(batchId) {
-    if (!confirm('Start review for all submitted invoices in this batch?')) return;
-    
-    axios.post(`${API_BASE}/batches/${batchId}/start-review`)
-        .then(res => {
-            if (res.data.success) {
-                Toast.success(res.data.message);
-                loadBatches();
-                loadStatistics();
-            }
-        })
-        .catch(err => {
-            Toast.error(err.response?.data?.message || 'Failed to start review');
-        });
-}
+
 
 function renderPagination(data) {
     $('#paginationInfo').text(`Showing ${data.from || 0} to ${data.to || 0} of ${data.total || 0}`);

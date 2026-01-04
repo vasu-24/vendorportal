@@ -227,11 +227,25 @@
                     </div>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label mb-1 small fw-semibold">Upload New Document</label>
-                    <input type="file" id="uploadFile" class="form-control form-control-sm" accept=".doc,.docx,.pdf">
-                    <small class="text-muted">Accepts: .doc, .docx, .pdf (Max 10MB)</small>
-                </div>
+
+
+            <div class="mb-3">
+    <label class="form-label mb-1 small fw-semibold">Upload New Document</label>
+    <input type="file" id="uploadFile" class="form-control form-control-sm" accept=".doc,.docx,.pdf">
+    <small class="text-muted">Accepts: .doc, .docx, .pdf (Max 10MB)</small>
+</div>
+
+<div class="mb-3">
+    <div class="form-check">
+        <input class="form-check-input" type="checkbox" id="isSignedCheckbox">
+        <label class="form-check-label fw-semibold" for="isSignedCheckbox">
+            <i class="bi bi-pen text-success me-1"></i>Signed Contract
+        </label>
+    </div>
+    <small class="text-muted ms-4">Check this if the contract is signed. Only signed contracts will be visible to vendors.</small>
+</div>
+
+
             </div>
             <div class="modal-footer py-2 bg-light">
                 <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
@@ -353,12 +367,18 @@ function renderContracts(data) {
             }
         }
 
-        // Document Icon (only for Normal contracts)
-        const docIcon = isAdhoc 
-            ? '<i class="bi bi-dash text-muted" title="N/A"></i>'
-            : (c.document_path 
-                ? '<i class="bi bi-check-circle text-success" title="Uploaded"></i>' 
-                : '<i class="bi bi-dash-circle text-muted" title="Not uploaded"></i>');
+   
+       // Document Icon (only for Normal contracts)
+let docIcon = '';
+if (isAdhoc) {
+    docIcon = '<i class="bi bi-dash text-muted" title="N/A"></i>';
+} else if (c.is_signed) {
+    docIcon = '<i class="bi bi-pen-fill text-success" title="Signed"></i>';
+} else if (c.document_path) {
+    docIcon = '<i class="bi bi-file-earmark-check text-warning" title="Uploaded (Not Signed)"></i>';
+} else {
+    docIcon = '<i class="bi bi-dash-circle text-muted" title="Not uploaded"></i>';
+}
 
         // Period
         const startDate = c.start_date ? formatDate(c.start_date) : '-';
@@ -562,9 +582,13 @@ function viewContract(id) {
 // =====================================================
 // OPEN UPLOAD MODAL (Only for Normal contracts)
 // =====================================================
+
+
+
 function openUploadModal(id) {
     $('#uploadContractId').val(id);
     $('#uploadFile').val('');
+    $('#isSignedCheckbox').prop('checked', false);
 
     axios.get(`${API_BASE}/${id}`)
         .then(res => {
@@ -594,7 +618,6 @@ function openUploadModal(id) {
             }
         });
 }
-
 // =====================================================
 // UPLOAD DOCUMENT
 // =====================================================
@@ -602,6 +625,7 @@ function uploadDocument() {
     const contractId = $('#uploadContractId').val();
     const fileInput = document.getElementById('uploadFile');
     const file = fileInput.files[0];
+    const isSigned = $('#isSignedCheckbox').is(':checked');
 
     if (!file) {
         Toast.warning('Please select a file');
@@ -611,6 +635,7 @@ function uploadDocument() {
     const formData = new FormData();
     formData.append('contract_id', contractId);
     formData.append('contract_file', file);
+    formData.append('is_signed', isSigned ? '1' : '0');
 
     $('#uploadBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Uploading...');
 
@@ -620,7 +645,7 @@ function uploadDocument() {
     .then(res => {
         if (res.data.success) {
             bootstrap.Modal.getInstance('#uploadModal').hide();
-            Toast.success('Document uploaded successfully!');
+            Toast.success(res.data.message || 'Document uploaded successfully!');
             loadContracts();
         }
     })

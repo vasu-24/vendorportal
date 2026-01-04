@@ -165,38 +165,43 @@ public function updateInvoice(Request $request, $id)
 
 
 
-    public function getStatistics()
-    {
-        try {
-            $stats = [
-                'total' => Invoice::count(),
-                'submitted' => Invoice::where('status', 'submitted')->count(),
-                'under_review' => Invoice::where('status', 'under_review')->count(),
-                'approved' => Invoice::where('status', 'approved')->count(),
-                'rejected' => Invoice::where('status', 'rejected')->count(),
-                'paid' => Invoice::where('status', 'paid')->count(),
-                'draft' => Invoice::where('status', 'draft')->count(),
-                'resubmitted' => Invoice::where('status', 'resubmitted')->count(),
-                
-                'total_amount_pending' => Invoice::whereIn('status', ['submitted', 'under_review', 'resubmitted'])->sum('grand_total'),
-                'total_amount_approved' => Invoice::where('status', 'approved')->sum('grand_total'),
-                'total_amount_paid' => Invoice::where('status', 'paid')->sum('grand_total'),
-            ];
+  public function getStatistics()
+{
+    try {
+        $stats = [
+            'total' => Invoice::count(),
+            'submitted' => Invoice::where('status', 'submitted')->count(),
+            'under_review' => Invoice::where('status', 'under_review')->count(),
+            'approved' => Invoice::where('status', 'approved')->count(),
+            'rejected' => Invoice::where('status', 'rejected')->count(),
+            'paid' => Invoice::where('status', 'paid')->count(),
+            'draft' => Invoice::where('status', 'draft')->count(),
+            'resubmitted' => Invoice::where('status', 'resubmitted')->count(),
+            
+            'pending_rm' => Invoice::where('status', 'pending_rm')->count(),
+            'pending_vp' => Invoice::where('status', 'pending_vp')->count(),
+            'pending_ceo' => Invoice::where('status', 'pending_ceo')->count(),
+            'pending_finance' => Invoice::where('status', 'pending_finance')->count(),
+            
+            'total_amount_pending' => Invoice::whereIn('status', ['submitted', 'under_review', 'resubmitted', 'pending_rm', 'pending_vp', 'pending_ceo', 'pending_finance'])->sum('grand_total'),
+            'total_amount_approved' => Invoice::where('status', 'approved')->sum('grand_total'),
+            'total_amount_paid' => Invoice::where('status', 'paid')->sum('grand_total'),
+        ];
 
-            return response()->json([
-                'success' => true,
-                'data' => $stats
-            ]);
+        return response()->json([
+            'success' => true,
+            'data' => $stats
+        ]);
 
-        } catch (\Exception $e) {
-            Log::error('Get Invoice Statistics Error: ' . $e->getMessage());
+    } catch (\Exception $e) {
+        Log::error('Get Invoice Statistics Error: ' . $e->getMessage());
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Something went wrong.'
-            ], 500);
-        }
+        return response()->json([
+            'success' => false,
+            'message' => 'Something went wrong.'
+        ], 500);
     }
+}
 
     // =====================================================
     // LIST ALL INVOICES

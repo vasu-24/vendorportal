@@ -67,40 +67,14 @@
                 <option value="1000+">1000+</option>
             </select>
         </div>
+     
         
-        <div class="col-md-6">
-            <label class="form-label form-label-sm">Credit Period Offered {{-- <span class="text-danger">*</span> --}}</label>
-            <select name="credit_period" class="form-select form-select-sm" {{-- required --}}>
-                <option value="">Select</option>
-                <option value="Immediate">Immediate</option>
-                <option value="15 Days">15 Days</option>
-                <option value="30 Days">30 Days</option>
-                <option value="45 Days">45 Days</option>
-                <option value="60 Days">60 Days</option>
-                <option value="90 Days">90 Days</option>
-            </select>
-        </div>
-        
-        <div class="col-12">
-            <label class="form-label form-label-sm">Annual Turnover (Last 3 Financial Years) {{-- <span class="text-danger">*</span> --}}</label>
-            <div class="row g-2">
-                <div class="col-md-4">
-                    <div class="input-group input-group-sm">
-                        <span class="input-group-text">FY 22-23</span>
-                        <input type="text" name="turnover_fy1" class="form-control form-control-sm" placeholder="₹ Amount" {{-- required --}}>
-                    </div>
+       
+                
+               
+                    
                 </div>
-                <div class="col-md-4">
-                    <div class="input-group input-group-sm">
-                        <span class="input-group-text">FY 23-24</span>
-                        <input type="text" name="turnover_fy2" class="form-control form-control-sm" placeholder="₹ Amount" {{-- required --}}>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="input-group input-group-sm">
-                        <span class="input-group-text">FY 24-25</span>
-                        <input type="text" name="turnover_fy3" class="form-control form-control-sm" placeholder="₹ Amount" {{-- required --}}>
-                    </div>
+               
                 </div>
             </div>
         </div>

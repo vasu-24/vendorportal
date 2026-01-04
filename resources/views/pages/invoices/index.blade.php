@@ -106,9 +106,9 @@
     text-transform: uppercase; 
 }
 .badge-draft { background: #e9ecef; color: #495057; }
-.badge-submitted { background: #cfe2ff; color: #084298; }
+
 .badge-resubmitted { background: #e2d9f3; color: #6f42c1; }
-.badge-under-review { background: #fff3cd; color: #856404; }
+
 .badge-pending-rm { background: #fff3cd; color: #856404; }
 .badge-pending-vp { background: #ffe5b4; color: #7a4f01; }
 .badge-pending-ceo { background: #f8d7da; color: #842029; }
@@ -151,12 +151,10 @@
                         <li class="nav-item">
                             <a class="nav-link active" href="#" data-status="all">All <span class="text-muted small" id="tabAll">0</span></a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" data-status="submitted">Submitted <span class="text-muted small" id="tabSubmitted">0</span></a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" data-status="under_review">Under Review <span class="text-muted small" id="tabUnderReview">0</span></a>
-                        </li>
+                       <li class="nav-item">
+    <a class="nav-link" href="#" data-status="pending">Pending <span class="text-muted small" id="tabPending">0</span></a>
+</li>
+                       
                         <li class="nav-item">
                             <a class="nav-link" href="#" data-status="approved">Approved <span class="text-muted small" id="tabApproved">0</span></a>
                         </li>
@@ -300,21 +298,24 @@
     // =====================================================
     // LOAD STATISTICS
     // =====================================================
-    function loadStatistics() {
-        axios.get(`${API_BASE}/statistics`)
-            .then(res => {
-                if (res.data.success) {
-                    const s = res.data.data;
-                    $('#tabAll').text(s.total || 0);
-                    $('#tabSubmitted').text(s.submitted || 0);
-                    $('#tabUnderReview').text(s.under_review || 0);
-                    $('#tabApproved').text(s.approved || 0);
-                    $('#tabRejected').text(s.rejected || 0);
-                    $('#tabPaid').text(s.paid || 0);
-                }
-            })
-            .catch(err => console.error('Stats error:', err));
-    }
+function loadStatistics() {
+    axios.get(`${API_BASE}/statistics`)
+        .then(res => {
+            if (res.data.success) {
+                const s = res.data.data;
+                $('#tabAll').text(s.total || 0);
+                
+                // Pending = all pending stages
+                const pending = (s.pending_rm || 0) + (s.pending_vp || 0) + (s.pending_ceo || 0) + (s.pending_finance || 0);
+                $('#tabPending').text(pending);
+          
+                $('#tabApproved').text(s.approved || 0);
+                $('#tabRejected').text(s.rejected || 0);
+                $('#tabPaid').text(s.paid || 0);
+            }
+        })
+        .catch(err => console.error('Stats error:', err));
+}
 
     // =====================================================
     // LOAD VENDORS
@@ -446,26 +447,24 @@
     // =====================================================
     // ACTION BUTTONS
     // =====================================================
-    function getActionButtons(inv) {
-        let btns = '';
+function getActionButtons(inv) {
+    let btns = '';
 
-        if (inv.status === 'submitted') {
-            btns += `<button class="btn btn-outline-warning" onclick="startReview(${inv.id})" title="Start Review"><i class="bi bi-hourglass-split"></i></button>`;
-        }
-
-        if (inv.status === 'under_review') {
-            btns += `
-                <button class="btn btn-outline-success" onclick="showApproveModal(${inv.id})" title="Approve"><i class="bi bi-check-lg"></i></button>
-                <button class="btn btn-outline-danger" onclick="showRejectModal(${inv.id})" title="Reject"><i class="bi bi-x-lg"></i></button>
-            `;
-        }
-
-        if (inv.status === 'approved') {
-            btns += `<button class="btn btn-outline-primary" onclick="showMarkPaidModal(${inv.id})" title="Mark Paid"><i class="bi bi-currency-rupee"></i></button>`;
-        }
-
-        return btns;
+    // Approve/Reject for all pending stages
+    if (['pending_rm', 'pending_vp', 'pending_ceo', 'pending_finance'].includes(inv.status)) {
+        btns += `
+            <button class="btn btn-outline-success" onclick="showApproveModal(${inv.id}, '${inv.status}')" title="Approve"><i class="bi bi-check-lg"></i></button>
+            <button class="btn btn-outline-danger" onclick="showRejectModal(${inv.id})" title="Reject"><i class="bi bi-x-lg"></i></button>
+        `;
     }
+
+    if (inv.status === 'approved') {
+        btns += `<button class="btn btn-outline-primary" onclick="showMarkPaidModal(${inv.id})" title="Mark Paid"><i class="bi bi-currency-rupee"></i></button>`;
+    }
+
+    return btns;
+}
+
 
     // =====================================================
     // QUICK ACTIONS
@@ -473,30 +472,26 @@
     let currentActionId = null;
     let currentAction = null;
 
-    function startReview(id) {
-        if (!confirm('Start reviewing this invoice?')) return;
-
-        axios.post(`${API_BASE}/${id}/start-review`)
-            .then(res => {
-                if (res.data.success) {
-                    Toast.success('Invoice is now under review');
-                    loadInvoices();
-                    loadStatistics();
-                }
-            })
-            .catch(err => Toast.error('Failed to start review'));
-    }
-
-    function showApproveModal(id) {
-        currentActionId = id;
-        currentAction = 'approve';
-        $('#quickActionTitle').text('Approve Invoice');
+  
+function showApproveModal(id, status) {
+    currentActionId = id;
+    currentAction = 'approve';
+    $('#quickActionTitle').text('Approve Invoice');
+    
+    // Only show Zoho message for Finance (final approval)
+    if (status === 'pending_finance') {
         $('#quickActionContent').html('<p>Are you sure you want to approve this invoice?</p><p class="small text-muted"><i class="bi bi-info-circle me-1"></i>This will also push the bill to Zoho Books.</p>');
-        $('#reasonContainer').hide();
-        $('#paymentRefContainer').hide();
-        $('#confirmActionBtn').removeClass().addClass('btn btn-success btn-sm').text('Approve');
-        new bootstrap.Modal('#quickActionModal').show();
+    } else {
+        $('#quickActionContent').html('<p>Are you sure you want to approve this invoice?</p><p class="small text-muted"><i class="bi bi-info-circle me-1"></i>Invoice will move to next approval stage.</p>');
     }
+    
+    $('#reasonContainer').hide();
+    $('#paymentRefContainer').hide();
+    $('#confirmActionBtn').removeClass().addClass('btn btn-success btn-sm').text('Approve');
+    new bootstrap.Modal('#quickActionModal').show();
+}
+
+
 
     function showRejectModal(id) {
         currentActionId = id;
@@ -607,9 +602,9 @@
    function getStatusBadge(status) {
     const badges = {
         'draft': '<span class="badge-status badge-draft">Draft</span>',
-        'submitted': '<span class="badge-status badge-submitted">Submitted</span>',
+    
         'resubmitted': '<span class="badge-status badge-resubmitted">Resubmitted</span>',
-        'under_review': '<span class="badge-status badge-under-review">Under Review</span>',
+     
         'pending_rm': '<span class="badge-status badge-pending-rm">Pending RM</span>',
         'pending_vp': '<span class="badge-status badge-pending-vp">Pending VP</span>',
         'pending_ceo': '<span class="badge-status badge-pending-ceo">Pending CEO</span>',

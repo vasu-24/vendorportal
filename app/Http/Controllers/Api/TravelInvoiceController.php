@@ -26,8 +26,7 @@ class TravelInvoiceController extends Controller
         try {
             $stats = [
                 'total' => TravelInvoice::count(),
-                'draft' => TravelInvoice::where('status', 'draft')->count(),
-                'submitted' => TravelInvoice::where('status', 'submitted')->count(),
+              
                 'pending_rm' => TravelInvoice::where('status', 'pending_rm')->count(),
                 'pending_vp' => TravelInvoice::where('status', 'pending_vp')->count(),
                 'pending_ceo' => TravelInvoice::where('status', 'pending_ceo')->count(),
@@ -65,6 +64,7 @@ class TravelInvoiceController extends Controller
             $userRole = $user->role->slug ?? 'viewer';
 
             $query = TravelBatch::with(['vendor', 'invoices.employee']);
+             $query->where('status', '!=', 'draft');
 
             // Role-based filtering
             if ($userRole === 'super-admin') {
@@ -139,7 +139,7 @@ class TravelInvoiceController extends Controller
                 $batch->invoices_count = $batch->invoices->count();
                 $batch->total_amount = $batch->invoices->sum('gross_amount');
                 $batch->approvable_count = $batch->getApprovableCountForRole($userRole, $userId);
-                $batch->can_start_review = $batch->invoices->whereIn('status', ['submitted', 'resubmitted'])->count() > 0;
+       
                 
                 $employees = $batch->invoices->pluck('employee.employee_name')->filter()->unique()->values();
                 $batch->employee_summary = $employees->count() === 0 ? '-' : 
@@ -165,162 +165,94 @@ class TravelInvoiceController extends Controller
         }
     }
 
-    // =====================================================
-    // GET BATCH SUMMARY
-    // =====================================================
+ // =====================================================
+// GET BATCH SUMMARY
+// =====================================================
 
-    public function getBatchSummary($batchId)
-    {
-        try {
-            $user = Auth::user();
-            $userId = $user->id;
-            $userRole = $user->role->slug ?? 'viewer';
+public function getBatchSummary($batchId)
+{
+    try {
+        $user = Auth::user();
+        $userId = $user->id;
+        $userRole = $user->role->slug ?? 'viewer';
 
-            $batch = TravelBatch::with([
-                'vendor', 
-                'vendor.companyInfo', 
-                'vendor.contact', 
-                'vendor.statutoryInfo',
-                'invoices.employee', 
-                'invoices.items', 
-                'invoices.bills'
-            ])->findOrFail($batchId);
+        $batch = TravelBatch::with([
+            'vendor', 
+            'vendor.companyInfo', 
+            'vendor.contact', 
+            'vendor.statutoryInfo',
+            'invoices.employee', 
+            'invoices.items', 
+            'invoices.bills'
+        ])->findOrFail($batchId);
 
-            // Filter invoices based on role - each role sees only relevant invoices
-            if ($userRole === 'manager') {
-                // Manager sees only their tagged invoices
-                $managerTagIds = $this->getManagerTagIds($userId);
-                
-                $filteredInvoices = $batch->invoices->filter(function($invoice) use ($managerTagIds) {
-                    return in_array($invoice->tag_id, $managerTagIds);
-                })->values();
-                
-                $batch->setRelation('invoices', $filteredInvoices);
-                
-            } elseif ($userRole === 'vp') {
-                // VP sees only invoices at pending_vp or beyond (not pending_rm, submitted)
-                $filteredInvoices = $batch->invoices->filter(function($invoice) {
-                    return in_array($invoice->status, ['pending_vp', 'pending_ceo', 'pending_finance', 'approved', 'rejected', 'paid']);
-                })->values();
-                
-                $batch->setRelation('invoices', $filteredInvoices);
-                
-            } elseif ($userRole === 'ceo') {
-                // CEO sees only invoices at pending_ceo or beyond
-                $filteredInvoices = $batch->invoices->filter(function($invoice) {
-                    return in_array($invoice->status, ['pending_ceo', 'pending_finance', 'approved', 'rejected', 'paid']);
-                })->values();
-                
-                $batch->setRelation('invoices', $filteredInvoices);
-                
-            } elseif ($userRole === 'finance') {
-                // Finance sees only invoices at pending_finance or beyond
-                $filteredInvoices = $batch->invoices->filter(function($invoice) {
-                    return in_array($invoice->status, ['pending_finance', 'approved', 'rejected', 'paid']);
-                })->values();
-                
-                $batch->setRelation('invoices', $filteredInvoices);
-            }
-            // super-admin sees all invoices (no filter)
+        // 👇 FIRST: Exclude draft invoices for ALL roles (admin should not see drafts)
+        $nonDraftInvoices = $batch->invoices->filter(function($invoice) {
+            return $invoice->status !== 'draft';
+        });
 
-            $summary = $batch->getSummary();
-            $approvableCount = $batch->getApprovableCountForRole($userRole, $userId);
+        // Filter invoices based on role - each role sees only relevant invoices
+        if ($userRole === 'manager') {
+            // Manager sees only their tagged invoices (excluding draft)
+            $managerTagIds = $this->getManagerTagIds($userId);
             
-            // Check can_start_review based on FILTERED invoices (for manager)
-            $canStartReview = $batch->invoices->whereIn('status', ['submitted', 'resubmitted'])->count() > 0;
-
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'batch' => $batch,
-                    'invoices' => $batch->invoices,
-                    'summary' => $summary,
-                    'approvable_count' => $approvableCount,
-                    'can_start_review' => $canStartReview,
-                ],
-                'user_role' => $userRole
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Get Batch Summary Error: ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => 'Batch not found.'], 404);
+            $filteredInvoices = $nonDraftInvoices->filter(function($invoice) use ($managerTagIds) {
+                return in_array($invoice->tag_id, $managerTagIds);
+            })->values();
+            
+            $batch->setRelation('invoices', $filteredInvoices);
+            
+        } elseif ($userRole === 'vp') {
+            // VP sees only invoices at pending_vp or beyond
+            $filteredInvoices = $nonDraftInvoices->filter(function($invoice) {
+                return in_array($invoice->status, ['pending_vp', 'pending_ceo', 'pending_finance', 'approved', 'rejected', 'paid']);
+            })->values();
+            
+            $batch->setRelation('invoices', $filteredInvoices);
+            
+        } elseif ($userRole === 'ceo') {
+            // CEO sees only invoices at pending_ceo or beyond
+            $filteredInvoices = $nonDraftInvoices->filter(function($invoice) {
+                return in_array($invoice->status, ['pending_ceo', 'pending_finance', 'approved', 'rejected', 'paid']);
+            })->values();
+            
+            $batch->setRelation('invoices', $filteredInvoices);
+            
+        } elseif ($userRole === 'finance') {
+            // Finance sees only invoices at pending_finance or beyond
+            $filteredInvoices = $nonDraftInvoices->filter(function($invoice) {
+                return in_array($invoice->status, ['pending_finance', 'approved', 'rejected', 'paid']);
+            })->values();
+            
+            $batch->setRelation('invoices', $filteredInvoices);
+            
+        } else {
+            // super-admin sees all invoices (except draft)
+            $batch->setRelation('invoices', $nonDraftInvoices->values());
         }
+
+        $summary = $batch->getSummary();
+        $approvableCount = $batch->getApprovableCountForRole($userRole, $userId);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'batch' => $batch,
+                'invoices' => $batch->invoices,
+                'summary' => $summary,
+                'approvable_count' => $approvableCount,
+            ],
+            'user_role' => $userRole
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Get Batch Summary Error: ' . $e->getMessage());
+        return response()->json(['success' => false, 'message' => 'Batch not found.'], 404);
     }
+}
+  
 
-    // =====================================================
-    // START REVIEW - SINGLE INVOICE
-    // =====================================================
-
-    public function startReview($id)
-    {
-        try {
-            $invoice = TravelInvoice::findOrFail($id);
-            $userId = Auth::id();
-
-            if (!$invoice->canStartReview()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'This invoice cannot be reviewed.'
-                ], 400);
-            }
-
-            $invoice->startReview($userId);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Invoice sent to RM for approval.',
-                'data' => $invoice->fresh()
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Start Review Error: ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => 'Something went wrong.'], 500);
-        }
-    }
-
-    // =====================================================
-    // START REVIEW - BATCH (All invoices - UNIVERSAL)
-    // =====================================================
-
-    public function startReviewBatch($batchId)
-    {
-        try {
-            $batch = TravelBatch::findOrFail($batchId);
-            $user = Auth::user();
-            $userId = $user->id;
-
-            // Get ALL submitted/resubmitted invoices (UNIVERSAL - not filtered by manager)
-            $invoices = $batch->invoices()
-                ->whereIn('status', ['submitted', 'resubmitted'])
-                ->get();
-
-            if ($invoices->isEmpty()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No invoices to review.'
-                ], 400);
-            }
-
-            $count = 0;
-            foreach ($invoices as $invoice) {
-                if ($invoice->startReview($userId)) {
-                    $count++;
-                }
-            }
-
-            $batch->updateStatus();
-
-            return response()->json([
-                'success' => true,
-                'message' => "✅ {$count} invoices sent to RM for review.",
-                'count' => $count
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Start Review Batch Error: ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => 'Something went wrong.'], 500);
-        }
-    }
+  
 
     // =====================================================
     // APPROVE - SINGLE INVOICE
@@ -683,4 +615,138 @@ class TravelInvoiceController extends Controller
 
         return $labels[$role] ?? 'Unknown';
     }
+
+/**
+ * Update Travel Invoice (Finance Edit)
+ * PUT /api/admin/travel-invoices/{id}/update
+ */
+public function updateInvoice(Request $request, $id)
+{
+    try {
+        $invoice = TravelInvoice::with('items')->findOrFail($id);
+        
+        // Only allow edit at pending_finance status
+        if ($invoice->status !== 'pending_finance') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invoice can only be edited at pending_finance stage'
+            ], 400);
+        }
+        
+        // Validate request
+        $validated = $request->validate([
+            'location' => 'nullable|string|max:255',
+            'travel_date' => 'nullable|date',
+            'tds_percent' => 'nullable|numeric|min:0|max:100',
+            'tds_tax_id' => 'nullable|string',
+            'items' => 'nullable|array',
+            'items.*.id' => 'required|exists:travel_invoice_items,id',
+            'items.*.mode' => 'nullable|string',
+            'items.*.particulars' => 'nullable|string',
+            'items.*.basic' => 'nullable|numeric|min:0',
+            'items.*.taxes' => 'nullable|numeric|min:0',
+            'items.*.service_charge' => 'nullable|numeric|min:0',
+            'items.*.gst' => 'nullable|numeric|min:0',
+        ]);
+        
+        DB::beginTransaction();
+        
+        // Update invoice basic info
+        $invoice->update([
+            'location' => $validated['location'] ?? $invoice->location,
+            'travel_date' => $validated['travel_date'] ?? $invoice->travel_date,
+            'tds_percent' => $validated['tds_percent'] ?? $invoice->tds_percent,
+            'tds_tax_id' => $validated['tds_tax_id'] ?? $invoice->tds_tax_id,
+        ]);
+        
+        // Update items
+        $totalBasic = 0;
+        $totalTaxes = 0;
+        $totalService = 0;
+        $totalGst = 0;
+        
+        if (!empty($validated['items'])) {
+            foreach ($validated['items'] as $itemData) {
+                $item = TravelInvoiceItem::find($itemData['id']);
+                if ($item && $item->travel_invoice_id == $invoice->id) {
+                    $basic = $itemData['basic'] ?? $item->basic;
+                    $taxes = $itemData['taxes'] ?? $item->taxes;
+                    $serviceCharge = $itemData['service_charge'] ?? $item->service_charge;
+                    $gst = $itemData['gst'] ?? $item->gst;
+                    $grossAmount = $basic + $taxes + $serviceCharge + $gst;
+                    
+                    $item->update([
+                        'mode' => $itemData['mode'] ?? $item->mode,
+                        'particulars' => $itemData['particulars'] ?? $item->particulars,
+                        'basic' => $basic,
+                        'taxes' => $taxes,
+                        'service_charge' => $serviceCharge,
+                        'gst' => $gst,
+                        'gross_amount' => $grossAmount,
+                    ]);
+                    
+                    $totalBasic += $basic;
+                    $totalTaxes += $taxes;
+                    $totalService += $serviceCharge;
+                    $totalGst += $gst;
+                }
+            }
+        } else {
+            // Recalculate from existing items
+            foreach ($invoice->items as $item) {
+                $totalBasic += $item->basic;
+                $totalTaxes += $item->taxes;
+                $totalService += $item->service_charge;
+                $totalGst += $item->gst;
+            }
+        }
+        
+        // Calculate totals
+        $grossAmount = $totalBasic + $totalTaxes + $totalService + $totalGst;
+        $tdsPercent = $validated['tds_percent'] ?? $invoice->tds_percent ?? 5;
+        $tdsAmount = ($totalBasic * $tdsPercent) / 100;
+        $netAmount = $grossAmount - $tdsAmount;
+        
+        // Update invoice totals
+        $invoice->update([
+            'basic_total' => $totalBasic,
+            'taxes_total' => $totalTaxes,
+            'service_charge_total' => $totalService,
+            'gst_total' => $totalGst,
+            'gross_amount' => $grossAmount,
+            'tds_amount' => $tdsAmount,
+            'net_amount' => $netAmount,
+        ]);
+        
+        DB::commit();
+        
+        Log::info('Travel Invoice updated by Finance', [
+            'invoice_id' => $invoice->id,
+            'updated_by' => auth()->id(),
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Invoice updated successfully',
+            'data' => $invoice->fresh()->load('items')
+        ]);
+        
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Validation failed',
+            'errors' => $e->errors()
+        ], 422);
+        
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Travel Invoice Update Error: ' . $e->getMessage());
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to update invoice'
+        ], 500);
+    }
+}
+
 }

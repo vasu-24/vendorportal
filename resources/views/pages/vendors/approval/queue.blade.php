@@ -1,4 +1,4 @@
-@extends('layouts.app')
+{{-- @extends('layouts.app')
 @section('title', 'Vendor Approval Queue')
 
 @section('content')
@@ -115,4 +115,4 @@
 
 @push('scripts')
 <script src="{{ asset('js/vendor-approval-queue.js') }}"></script>
-@endpush
+@endpush --}}

@@ -1,69 +1,156 @@
 @extends('layouts.app')
 
+@section('title', 'Manager Master')
+
 @section('content')
+<style>
+    .card { border: none; border-radius: 8px; }
+    
+    /* Page Header */
+    .page-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 8px;
+        background: #eef4ff;
+        color: #1d4ed8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+    }
+    .page-title {
+        font-size: 22px;
+        font-weight: 700;
+        color: #174081;
+        margin: 0;
+    }
+    .page-subtitle {
+        font-size: 13px;
+        color: #6b7280;
+        margin: 0;
+    }
+
+    /* Table */
+    .index-table th { 
+        color: #174081;
+        background: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .index-table td { 
+        vertical-align: middle; 
+        font-size: 14px; 
+        color: #495057; 
+    }
+    .index-table tbody tr:hover { 
+        background-color: #f1f5f9; 
+    }
+
+    /* Tag Badge */
+    .badge-tag {
+        background: #e7f3ff;
+        color: #0d6efd;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 500;
+        margin: 2px;
+        display: inline-block;
+    }
+</style>
+
 <div class="container-fluid py-3">
 
-    <!-- Page Header -->
+    {{-- Page Header --}}
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="fw-bold mb-1">Manager Master</h4>
-            <p class="text-muted mb-0 small">Assign tags to managers for approval routing</p>
+        <div class="d-flex align-items-center gap-3">
+            <div class="page-icon">
+                <i class="bi bi-person-badge"></i>
+            </div>
+            <div>
+                <h2 class="page-title">Manager Master</h2>
+                <p class="page-subtitle">Assign tags to managers for approval routing</p>
+            </div>
         </div>
         <button class="btn btn-primary btn-sm" onclick="openModal()">
-            <i class="bi bi-plus-lg me-1"></i> Assign Tags
+            <i class="bi bi-plus-lg me-1"></i>Assign Tags
         </button>
     </div>
 
-    <!-- Manager List -->
+    {{-- Main Card --}}
     <div class="card shadow-sm">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="bg-light">
-                        <tr>
-                            <th style="width: 50px;">#</th>
-                            <th>Manager Name</th>
-                            <th>Email</th>
-                            <th>Assigned Tags</th>
-                            <th style="width: 100px;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="managerTableBody">
-                        <tr>
-                            <td colspan="5" class="text-center py-4">
-                                <div class="spinner-border spinner-border-sm text-primary"></div>
-                                <span class="ms-2">Loading...</span>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+        
+        {{-- Search --}}
+        <div class="card-header bg-white py-2">
+            <div class="row align-items-center">
+                <div class="col-md-4">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="bi bi-search text-muted"></i>
+                        </span>
+                        <input type="text" class="form-control border-start-0" id="searchInput" 
+                               placeholder="Search managers...">
+                    </div>
+                </div>
+                <div class="col-md-8 text-end">
+                    <small class="text-muted">Total: <strong id="totalCount">0</strong> managers</small>
+                </div>
             </div>
         </div>
-    </div>
 
+        {{-- Table --}}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 index-table">
+                <thead>
+                    <tr>
+                        <th class="ps-3" style="width: 50px;">#</th>
+                        <th>Manager Name</th>
+                        <th>Email</th>
+                        <th>Assigned Tags</th>
+                        <th class="text-center" style="width: 120px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="managerTableBody">
+                    <tr>
+                        <td colspan="5" class="text-center py-4">
+                            <div class="spinner-border spinner-border-sm text-primary"></div>
+                            <span class="ms-2 text-muted">Loading...</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        {{-- Footer --}}
+        <div class="card-footer bg-white py-2 d-flex justify-content-between align-items-center">
+            <small class="text-muted" id="paginationInfo">Showing 0 of 0</small>
+            <ul class="pagination pagination-sm mb-0" id="pagination"></ul>
+        </div>
+    </div>
 </div>
 
-<!-- Assign Tags Modal -->
+{{-- Assign Tags Modal --}}
 <div class="modal fade" id="assignModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Assign Tags to Manager</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <div class="modal-header py-2 bg-light">
+                <h6 class="modal-title fw-semibold">Assign Tags to Manager</h6>
+                <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <form id="assignForm">
-                    <!-- Manager Select -->
+                    {{-- Manager Select --}}
                     <div class="mb-3">
-                        <label class="form-label">Manager <span class="text-danger">*</span></label>
+                        <label class="form-label small fw-semibold">Manager <span class="text-danger">*</span></label>
                         <select class="form-select" id="managerSelect" required>
                             <option value="">-- Select Manager --</option>
                         </select>
                     </div>
 
-                    <!-- Tags Checkboxes -->
+                    {{-- Tags Checkboxes --}}
                     <div class="mb-3">
-                        <label class="form-label">Assign Tags <span class="text-danger">*</span></label>
+                        <label class="form-label small fw-semibold">Assign Tags <span class="text-danger">*</span></label>
                         <div class="border rounded p-3" style="max-height: 250px; overflow-y: auto;" id="tagsContainer">
                             <div class="text-center text-muted">
                                 <div class="spinner-border spinner-border-sm"></div>
@@ -73,89 +160,203 @@
                     </div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+            <div class="modal-footer py-2 bg-light">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary btn-sm" onclick="saveTags()">
-                    <i class="bi bi-check-lg me-1"></i> Save
+                    <i class="bi bi-check-lg me-1"></i>Save
                 </button>
             </div>
         </div>
     </div>
 </div>
+
 @endsection
 
 @push('scripts')
 <script>
 const API_BASE = '/api/admin/manager-tags';
 let managers = [];
+let allManagers = []; // For filtering
 let zohoTags = [];
 let assignModal;
+let currentPage = 1;
 
 $(document).ready(function() {
     assignModal = new bootstrap.Modal(document.getElementById('assignModal'));
     loadManagers();
     loadZohoTags();
     loadManagersDropdown();
+
+    // Search debounce
+    let searchTimeout;
+    $('#searchInput').on('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            currentPage = 1;
+            filterAndRenderTable();
+        }, 300);
+    });
 });
 
 // =====================================================
 // LOAD MANAGERS LIST
 // =====================================================
 function loadManagers() {
+    const tbody = $('#managerTableBody');
+    tbody.html(`
+        <tr><td colspan="5" class="text-center py-4">
+            <div class="spinner-border spinner-border-sm text-primary"></div>
+            <span class="ms-2 text-muted">Loading...</span>
+        </td></tr>
+    `);
+
     axios.get(API_BASE)
         .then(response => {
-            managers = response.data.data;
-            renderTable();
+            allManagers = response.data.data;
+            managers = [...allManagers];
+            filterAndRenderTable();
         })
         .catch(error => {
-            console.error('Error:', error);
+            tbody.html(`<tr><td colspan="5" class="text-center py-4 text-danger">Failed to load managers</td></tr>`);
             Toast.error('Failed to load managers');
         });
 }
 
 // =====================================================
+// FILTER AND RENDER TABLE
+// =====================================================
+function filterAndRenderTable() {
+    const searchQuery = $('#searchInput').val().toLowerCase().trim();
+    
+    // Filter managers
+    if (searchQuery) {
+        managers = allManagers.filter(m => 
+            m.name.toLowerCase().includes(searchQuery) ||
+            m.email.toLowerCase().includes(searchQuery) ||
+            m.tags.some(t => t.tag_name.toLowerCase().includes(searchQuery))
+        );
+    } else {
+        managers = [...allManagers];
+    }
+
+    // Paginate
+    const perPage = 10;
+    const total = managers.length;
+    const lastPage = Math.ceil(total / perPage) || 1;
+    const from = total > 0 ? ((currentPage - 1) * perPage) + 1 : 0;
+    const to = Math.min(currentPage * perPage, total);
+    
+    const paginatedManagers = managers.slice((currentPage - 1) * perPage, currentPage * perPage);
+
+    renderTable(paginatedManagers, { 
+        current_page: currentPage, 
+        last_page: lastPage, 
+        from: from, 
+        to: to, 
+        total: total,
+        per_page: perPage
+    });
+
+    $('#totalCount').text(total);
+}
+
+// =====================================================
 // RENDER TABLE
 // =====================================================
-function renderTable() {
+function renderTable(managersToRender, paginationData) {
     const tbody = $('#managerTableBody');
     
-    if (managers.length === 0) {
+    if (!managersToRender || managersToRender.length === 0) {
         tbody.html(`
-            <tr>
-                <td colspan="5" class="text-center py-4 text-muted">
-                    <i class="bi bi-inbox fs-4 d-block mb-2"></i>
-                    No managers found. Click "Assign Tags" to add.
-                </td>
-            </tr>
+            <tr><td colspan="5" class="text-center py-5 text-muted">
+                <i class="bi bi-inbox fs-1 d-block mb-2"></i>No managers found. Click "Assign Tags" to add.
+            </td></tr>
         `);
+        $('#paginationInfo').text('Showing 0 of 0');
+        $('#pagination').html('');
         return;
     }
 
     let html = '';
-    managers.forEach((manager, index) => {
+    managersToRender.forEach((manager, index) => {
+        const rowNum = paginationData.from + index;
+        
         const tags = manager.tags.map(t => 
-            `<span class="badge bg-primary me-1 mb-1">${t.tag_name}</span>`
+            `<span class="badge-tag">${t.tag_name}</span>`
         ).join('');
 
         html += `
             <tr>
-                <td>${index + 1}</td>
-                <td><strong>${manager.name}</strong></td>
+                <td class="ps-3">${rowNum}</td>
+                <td>
+                    <div class="fw-medium">${manager.name}</div>
+                </td>
                 <td>${manager.email}</td>
                 <td>${tags || '<span class="text-muted">No tags assigned</span>'}</td>
-                <td>
-                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editManager(${manager.id})">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteManager(${manager.id})">
-                        <i class="bi bi-trash"></i>
-                    </button>
+                <td class="text-center">
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-primary" onclick="editManager(${manager.id})" title="Edit">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-outline-danger" onclick="deleteManager(${manager.id})" title="Delete">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
                 </td>
             </tr>
         `;
     });
 
     tbody.html(html);
+    renderPagination(paginationData);
+}
+
+// =====================================================
+// PAGINATION
+// =====================================================
+function renderPagination(data) {
+    $('#paginationInfo').text(`Showing ${data.from || 0} to ${data.to || 0} of ${data.total || 0}`);
+    
+    const container = $('#pagination');
+    if (data.last_page <= 1) {
+        container.html('');
+        return;
+    }
+
+    let html = `
+        <li class="page-item ${data.current_page === 1 ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="goToPage(${data.current_page - 1}); return false;">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+        </li>
+    `;
+
+    for (let i = 1; i <= data.last_page; i++) {
+        if (i === 1 || i === data.last_page || (i >= data.current_page - 1 && i <= data.current_page + 1)) {
+            html += `
+                <li class="page-item ${i === data.current_page ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="goToPage(${i}); return false;">${i}</a>
+                </li>
+            `;
+        } else if (i === data.current_page - 2 || i === data.current_page + 2) {
+            html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+        }
+    }
+
+    html += `
+        <li class="page-item ${data.current_page === data.last_page ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="goToPage(${data.current_page + 1}); return false;">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </li>
+    `;
+
+    container.html(html);
+}
+
+function goToPage(page) {
+    currentPage = page;
+    filterAndRenderTable();
 }
 
 // =====================================================
@@ -229,7 +430,7 @@ function openModal() {
 // EDIT MANAGER
 // =====================================================
 function editManager(userId) {
-    const manager = managers.find(m => m.id === userId);
+    const manager = allManagers.find(m => m.id === userId);
     if (!manager) return;
 
     $('#managerSelect').val(userId);
@@ -245,7 +446,7 @@ function saveTags() {
     const userId = $('#managerSelect').val();
     
     if (!userId) {
-        Toast.error('Please select a manager');
+        Toast.warning('Please select a manager');
         return;
     }
 
@@ -259,13 +460,13 @@ function saveTags() {
     });
 
     if (tags.length === 0) {
-        Toast.error('Please select at least one tag');
+        Toast.warning('Please select at least one tag');
         return;
     }
 
     axios.post(API_BASE, { user_id: userId, tags: tags })
         .then(response => {
-            Toast.success('Tags assigned successfully');
+            Toast.success('Tags assigned successfully!');
             assignModal.hide();
             loadManagers();
         })
@@ -282,7 +483,7 @@ function deleteManager(userId) {
 
     axios.delete(`${API_BASE}/${userId}`)
         .then(response => {
-            Toast.success('Tags removed successfully');
+            Toast.success('Tags removed successfully!');
             loadManagers();
         })
         .catch(error => {

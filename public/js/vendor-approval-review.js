@@ -30,11 +30,11 @@
                 populateAllSections();
                 updateActionButtons();
             } else {
-                showAlert('danger', 'Failed to load vendor details.');
+                Toast.error('Failed to load vendor details.');
             }
         } catch (error) {
             console.error('Error loading vendor details:', error);
-            showAlert('danger', 'Error loading vendor details. Please try again.');
+            Toast.error('Error loading vendor details. Please try again.');
         }
     }
 
@@ -94,15 +94,11 @@
         document.getElementById('view_designation').textContent = data.designation || '-';
         document.getElementById('view_mobile').textContent = data.mobile ? `+91 ${data.mobile}` : '-';
         document.getElementById('view_contact_email').textContent = data.email || '-';
-        document.getElementById('view_alternate_mobile').textContent = data.alternate_mobile || '-';
-        document.getElementById('view_landline').textContent = data.landline || '-';
 
         document.getElementById('edit_contact_person').value = data.contact_person || '';
         document.getElementById('edit_designation').value = data.designation || '';
         document.getElementById('edit_mobile').value = data.mobile || '';
         document.getElementById('edit_contact_email').value = data.email || '';
-        document.getElementById('edit_alternate_mobile').value = data.alternate_mobile || '';
-        document.getElementById('edit_landline').value = data.landline || '';
     }
 
     function populateStatutorySection() {
@@ -120,10 +116,13 @@
         document.getElementById('edit_gstin').value = data.gstin || '';
         document.getElementById('edit_cin').value = data.cin || '';
         document.getElementById('edit_msme_registered').value = data.msme_registered || '';
+
+
+
     }
 
     function populateBankSection() {
-        const data = vendorData.bank_details || {};
+        const data = vendorData.bank_details || vendorData.bankDetails || {};
         originalData.bank = { ...data };
 
         document.getElementById('view_bank_name').textContent = data.bank_name || '-';
@@ -139,6 +138,17 @@
         document.getElementById('edit_account_number').value = data.account_number || '';
         document.getElementById('edit_ifsc_code').value = data.ifsc_code || '';
         document.getElementById('edit_account_type').value = data.account_type || '';
+
+
+        // Cancelled Cheque
+const cancelledCheque = document.getElementById('view_cancelled_cheque');
+if (cancelledCheque) {
+    if (data.cancelled_cheque_path) {
+        cancelledCheque.innerHTML = `<button class="btn btn-sm btn-outline-primary" onclick="viewDocument('${data.cancelled_cheque_path}', 'Cancelled Cheque')"><i class="bi bi-eye me-1"></i>View</button>`;
+    } else {
+        cancelledCheque.textContent = '-';
+    }
+}
     }
 
     function populateTaxSection() {
@@ -152,26 +162,29 @@
         document.getElementById('edit_tax_residency').value = data.tax_residency || '';
         document.getElementById('edit_gst_reverse_charge').value = data.gst_reverse_charge || '';
         document.getElementById('edit_sez_status').value = data.sez_status || '';
+
+
+        // TDS Exemption Certificate
+const tdsCert = document.getElementById('view_tds_certificate');
+if (tdsCert) {
+    if (data.tds_exemption_path) {
+        tdsCert.innerHTML = `<button class="btn btn-sm btn-outline-primary" onclick="viewDocument('${data.tds_exemption_path}', 'TDS Exemption Certificate')"><i class="bi bi-eye me-1"></i>View</button>`;
+    } else {
+        tdsCert.textContent = '-';
+    }
+}
     }
 
-    function populateBusinessSection() {
-        const data = vendorData.business_profile || {};
-        originalData.business = { ...data };
+   function populateBusinessSection() {
+    const data = vendorData.business_profile || {};
+    originalData.business = { ...data };
 
-        document.getElementById('view_core_activities').textContent = data.core_activities || '-';
-        document.getElementById('view_employee_count').textContent = data.employee_count || '-';
-        document.getElementById('view_credit_period').textContent = data.credit_period || '-';
-        document.getElementById('view_turnover_fy1').textContent = data.turnover_fy1 || '-';
-        document.getElementById('view_turnover_fy2').textContent = data.turnover_fy2 || '-';
-        document.getElementById('view_turnover_fy3').textContent = data.turnover_fy3 || '-';
+    document.getElementById('view_core_activities').textContent = data.core_activities || '-';
+    document.getElementById('view_employee_count').textContent = data.employee_count || '-';
 
-        document.getElementById('edit_core_activities').value = data.core_activities || '';
-        document.getElementById('edit_employee_count').value = data.employee_count || '';
-        document.getElementById('edit_credit_period').value = data.credit_period || '';
-        document.getElementById('edit_turnover_fy1').value = data.turnover_fy1 || '';
-        document.getElementById('edit_turnover_fy2').value = data.turnover_fy2 || '';
-        document.getElementById('edit_turnover_fy3').value = data.turnover_fy3 || '';
-    }
+    document.getElementById('edit_core_activities').value = data.core_activities || '';
+    document.getElementById('edit_employee_count').value = data.employee_count || '';
+}
 
     function populateDocumentsSection() {
         const documents = vendorData.documents || [];
@@ -322,7 +335,7 @@
             const response = await axios.put(`${apiBaseUrl}/${vendorId}/${endpoint}`, data);
 
             if (response.data.success) {
-                showAlert('success', response.data.message || 'Data saved successfully!');
+                Toast.success(response.data.message || 'Data saved successfully!');
                 await loadVendorDetails();
                 
                 const viewMode = document.getElementById(`${section}ViewMode`);
@@ -337,12 +350,12 @@
                 cancelBtn.classList.add('d-none');
                 editBtnText.textContent = 'Edit';
             } else {
-                showAlert('danger', response.data.message || 'Failed to save data.');
+                Toast.error(response.data.message || 'Failed to save data.');
             }
         } catch (error) {
             console.error('Error saving section:', error);
             const message = error.response?.data?.message || 'Error saving data. Please try again.';
-            showAlert('danger', message);
+            Toast.error(message);
         }
     };
 
@@ -363,9 +376,7 @@
                     contact_person: document.getElementById('edit_contact_person').value,
                     designation: document.getElementById('edit_designation').value,
                     mobile: document.getElementById('edit_mobile').value,
-                    email: document.getElementById('edit_contact_email').value,
-                    alternate_mobile: document.getElementById('edit_alternate_mobile').value,
-                    landline: document.getElementById('edit_landline').value
+                    email: document.getElementById('edit_contact_email').value
                 };
             case 'statutory':
                 return {
@@ -394,10 +405,7 @@
                 return {
                     core_activities: document.getElementById('edit_core_activities').value,
                     employee_count: document.getElementById('edit_employee_count').value,
-                    credit_period: document.getElementById('edit_credit_period').value,
-                    turnover_fy1: document.getElementById('edit_turnover_fy1').value,
-                    turnover_fy2: document.getElementById('edit_turnover_fy2').value,
-                    turnover_fy3: document.getElementById('edit_turnover_fy3').value
+                  
                 };
             default:
                 return {};
@@ -427,30 +435,42 @@
 
     window.confirmApproval = async function() {
         const notes = document.getElementById('approvalNotes').value;
+        const btn = document.getElementById('confirmApproveBtn');
+        const originalText = btn.innerHTML;
+
+        // Loading state
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Approving...';
 
         try {
             const response = await axios.post(`${apiBaseUrl}/${vendorId}/approve`, { notes });
 
             if (response.data.success) {
-                showAlert('success', 'Vendor approved successfully!');
+                Toast.success('Vendor approved successfully!');
                 bootstrap.Modal.getInstance(document.getElementById('approveModal')).hide();
                 await loadVendorDetails();
             } else {
-                showAlert('danger', response.data.message || 'Failed to approve vendor.');
+                Toast.error(response.data.message || 'Failed to approve vendor.');
             }
         } catch (error) {
             console.error('Error approving vendor:', error);
-            showAlert('danger', 'Error approving vendor. Please try again.');
+            Toast.error('Error approving vendor. Please try again.');
+        } finally {
+            // Reset button
+            btn.disabled = false;
+            btn.innerHTML = originalText;
         }
     };
 
     // =====================================================
-    // 🔥 CONFIRM REJECT FUNCTION (FIXED)
+    // CONFIRM REJECT FUNCTION
     // =====================================================
     
     window.confirmReject = async function() {
         const reason = document.getElementById('rejectReason').value.trim();
         const reasonInput = document.getElementById('rejectReason');
+        const btn = document.querySelector('#rejectModal .btn-danger');
+        const originalText = btn.innerHTML;
 
         // Validation
         if (!reason) {
@@ -458,6 +478,10 @@
             return;
         }
         reasonInput.classList.remove('is-invalid');
+
+        // Loading state
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Rejecting...';
 
         try {
             const response = await axios.post(`${apiBaseUrl}/${vendorId}/reject`, { rejection_reason: reason });
@@ -467,7 +491,7 @@
                 const emailMsg = response.data.email_sent 
                     ? 'Vendor rejected successfully! Email sent to vendor.' 
                     : 'Vendor rejected successfully!';
-                showAlert('success', emailMsg);
+                Toast.success(emailMsg);
                 
                 bootstrap.Modal.getInstance(document.getElementById('rejectModal')).hide();
                 
@@ -477,37 +501,15 @@
                 // Reload vendor data
                 await loadVendorDetails();
             } else {
-                showAlert('danger', response.data.message || 'Failed to reject vendor.');
+                Toast.error(response.data.message || 'Failed to reject vendor.');
             }
         } catch (error) {
             console.error('Error rejecting vendor:', error);
-            showAlert('danger', 'Error rejecting vendor. Please try again.');
-        }
-    };
-
-    window.requestRevision = async function() {
-        const notes = document.getElementById('revisionNotes').value.trim();
-        const notesInput = document.getElementById('revisionNotes');
-
-        if (!notes) {
-            notesInput.classList.add('is-invalid');
-            return;
-        }
-        notesInput.classList.remove('is-invalid');
-
-        try {
-            const response = await axios.post(`${apiBaseUrl}/${vendorId}/request-revision`, { revision_notes: notes });
-
-            if (response.data.success) {
-                showAlert('success', 'Revision request sent successfully!');
-                bootstrap.Modal.getInstance(document.getElementById('revisionModal')).hide();
-                await loadVendorDetails();
-            } else {
-                showAlert('danger', response.data.message || 'Failed to request revision.');
-            }
-        } catch (error) {
-            console.error('Error requesting revision:', error);
-            showAlert('danger', 'Error requesting revision. Please try again.');
+            Toast.error('Error rejecting vendor. Please try again.');
+        } finally {
+            // Reset button
+            btn.disabled = false;
+            btn.innerHTML = originalText;
         }
     };
 
@@ -573,66 +575,6 @@
                 </div>
             `;
         }
-    }
-
-    function showAlert(type, message) {
-        const container = document.getElementById('alertContainer');
-        const alertId = 'alert-' + Date.now();
-
-        let bgColor, borderColor, textColor, icon;
-        
-        if (type === 'success') {
-            bgColor = '#d1fae5';
-            borderColor = '#10b981';
-            textColor = '#065f46';
-            icon = 'bi-check-circle-fill';
-        } else if (type === 'danger' || type === 'error') {
-            bgColor = '#fce7f3';
-            borderColor = '#fb7185';
-            textColor = '#9f1239';
-            icon = 'bi-exclamation-circle-fill';
-        } else if (type === 'warning') {
-            bgColor = '#fef3c7';
-            borderColor = '#f59e0b';
-            textColor = '#92400e';
-            icon = 'bi-exclamation-triangle-fill';
-        } else {
-            bgColor = '#dbeafe';
-            borderColor = '#3b82f6';
-            textColor = '#1e40af';
-            icon = 'bi-info-circle-fill';
-        }
-
-        const alertHtml = `
-            <div class="alert alert-dismissible fade show" 
-                 role="alert" 
-                 id="${alertId}"
-                 style="background-color: ${bgColor}; 
-                        border-left: 4px solid ${borderColor}; 
-                        color: ${textColor};
-                        border-radius: 8px;
-                        padding: 16px 20px;
-                        margin-bottom: 20px;
-                        box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                <i class="bi ${icon} me-2" style="color: ${borderColor};"></i>
-                <strong>${escapeHtml(message)}</strong>
-                <button type="button" 
-                        class="btn-close" 
-                        data-bs-dismiss="alert" 
-                        aria-label="Close"
-                        style="filter: brightness(0.8);"></button>
-            </div>
-        `;
-
-        container.innerHTML = alertHtml;
-
-        setTimeout(() => {
-            const alertElement = document.getElementById(alertId);
-            if (alertElement) {
-                const bsAlert = new bootstrap.Alert(alertElement);
-                bsAlert.close();
-            }
-        }, 5000);
     }
 
     // =====================================================
@@ -707,4 +649,3 @@
     }
 
 })();
-

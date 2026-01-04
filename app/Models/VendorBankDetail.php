@@ -33,12 +33,6 @@ class VendorBankDetail extends Model
         'verified_at' => 'datetime',
     ];
 
-    /**
-     * Hidden fields for security
-     */
-    protected $hidden = [
-        'account_number',
-    ];
 
     /**
      * Relationship: Vendor

@@ -229,7 +229,7 @@
                         {{-- Vendor --}}
                         <div class="mb-3">
                             <label class="form-label mb-1"><strong>Vendor <span class="text-danger">*</span></strong></label>
-                            <select id="adhoc_vendor_id" class="form-select form-select-sm" required>
+                         <select id="adhoc_vendor_id" class="form-select form-select-sm">
                                 <option value="">– Select Vendor –</option>
                                 @foreach($vendors as $vendor)
                                     @php
@@ -246,11 +246,11 @@
                         <div class="row g-2 mb-3">
                             <div class="col-md-6">
                                 <label class="form-label mb-1"><strong>Start Date <span class="text-danger">*</span></strong></label>
-                                <input type="date" id="adhoc_start_date" class="form-control form-control-sm" required>
+                               <input type="date" id="adhoc_start_date" class="form-control form-control-sm">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label mb-1"><strong>End Date <span class="text-danger">*</span></strong></label>
-                                <input type="date" id="adhoc_end_date" class="form-control form-control-sm" required>
+                            <input type="date" id="adhoc_end_date" class="form-control form-control-sm">
                             </div>
                         </div>
 
@@ -282,8 +282,8 @@
                             <label class="form-label mb-1"><strong>SOW Value <span class="text-danger">*</span></strong></label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text">₹</span>
-                                <input type="number" id="adhoc_sow_value" class="form-control form-control-sm" 
-                                       min="0" step="0.01" placeholder="Enter SOW value" required>
+                               <input type="number" id="adhoc_sow_value" class="form-control form-control-sm" 
+       min="0" step="0.01" placeholder="Enter SOW value">
                             </div>
                         </div>
 

@@ -19,24 +19,31 @@ class VendorController extends Controller
     }
 
     // Store new vendor
-    public function store(Request $request)
-    {
-        $request->validate([
-            'vendor_name' => 'required|string|max:255|unique:vendors,vendor_name',
-            'vendor_email' => 'required|email|max:255'
-        ], [
-            'vendor_name.unique' => 'A vendor with this name already exists!',
-        ]);
+public function store(Request $request)
+{
+    $request->validate([
+        'vendor_name' => 'required|string|max:255|unique:vendors,vendor_name',
+        'vendor_email' => 'required|email|max:255',
+        'template_id' => 'nullable|exists:mail_templates,id'
+    ], [
+        'vendor_name.unique' => 'A vendor with this name already exists!',
+    ]);
 
-        $vendor = Vendor::create([
-            'vendor_name' => $request->vendor_name,
-            'vendor_email' => $request->vendor_email,
-            'status' => 'pending',
-            'token' => Vendor::generateToken(),
-        ]);
+    $vendor = Vendor::create([
+        'vendor_name' => $request->vendor_name,
+        'vendor_email' => $request->vendor_email,
+        'template_id' => $request->template_id,
+        'status' => 'pending',
+        'token' => Vendor::generateToken(),
+    ]);
 
-        return redirect()->route('vendors.index')->with('success', 'Vendor created successfully! Please select a template to send email.');
-    }
+    return response()->json([
+        'success' => true,
+        'message' => 'Vendor created successfully!',
+        'vendor' => $vendor
+    ]);
+}
+
 
     // Update template
     public function updateTemplate(Request $request, $id)

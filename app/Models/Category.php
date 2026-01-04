@@ -16,8 +16,13 @@ class Category extends Model
         'hsn_sac_code',
         'status',
         'zoho_account_id',      // 👈 NEW
-        'zoho_account_name',    // 👈 NEW
+        'zoho_account_name', 
+         'is_travel_category',    // 👈 NEW
     ];
+
+protected $casts = [
+    'is_travel_category' => 'boolean',
+];
 
     // =====================================================
     // CONSTANTS

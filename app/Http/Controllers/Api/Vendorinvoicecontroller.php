@@ -676,15 +676,77 @@ class VendorInvoiceController extends Controller
             }
 
             // Determine status (resubmitted if was rejected before)
-            $newStatus = $invoice->status === 'rejected' ? 'resubmitted' : 'submitted';
+          $newStatus = 'pending_rm';
 
-            $invoice->update([
-                'status' => $newStatus,
-                'submitted_at' => now(),
-                'rejection_reason' => null, // Clear rejection reason on resubmit
-                'requires_ceo_approval' => $requiresCeo, // Store this for approval flow
-            ]);
 
+
+
+// =====================================================
+// ASSIGN TAGS TO ITEMS & FIND RM
+// =====================================================
+
+$firstTagId = null;
+$firstTagName = null;
+
+// Find first item with tag
+foreach ($invoice->items as $item) {
+    if (!empty($item->tag_id)) {
+        $firstTagId = $item->tag_id;
+        $firstTagName = $item->tag_name;
+        break;
+    }
+    if ($item->contractItem && !empty($item->contractItem->tag_id)) {
+        $firstTagId = $item->contractItem->tag_id;
+        $firstTagName = $item->contractItem->tag_name;
+        break;
+    }
+}
+
+// Assign tags to all items
+foreach ($invoice->items as $item) {
+    $itemTagId = $item->tag_id;
+    $itemTagName = $item->tag_name;
+    
+    if (empty($itemTagId) && $item->contractItem) {
+        $itemTagId = $item->contractItem->tag_id;
+        $itemTagName = $item->contractItem->tag_name;
+    }
+    
+    if (empty($itemTagId)) {
+        $itemTagId = $firstTagId;
+        $itemTagName = $firstTagName;
+    }
+    
+    $item->update([
+        'tag_id' => $itemTagId,
+        'tag_name' => $itemTagName,
+        'rm_approved' => false,
+        'rm_approved_by' => null,
+        'rm_approved_at' => null,
+    ]);
+}
+
+// Find RM for first tag
+$assignedRmId = null;
+if ($firstTagId) {
+    $managerTag = \App\Models\ManagerTag::where('tag_id', $firstTagId)->first();
+    if ($managerTag) {
+        $assignedRmId = $managerTag->user_id;
+    }
+}
+
+
+$invoice->update([
+    'status' => 'pending_rm',
+    'submitted_at' => now(),
+    'rejection_reason' => null,
+    'requires_ceo_approval' => $requiresCeo,
+    'current_approver_role' => 'rm',
+    'exceeds_contract' => $requiresCeo,
+    'assigned_rm_id' => $assignedRmId,
+    'assigned_tag_id' => $firstTagId,
+    'assigned_tag_name' => $firstTagName,
+]);
             return response()->json([
                 'success' => true,
                 'message' => 'Invoice submitted successfully.',

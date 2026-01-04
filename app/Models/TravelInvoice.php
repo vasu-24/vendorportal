@@ -29,6 +29,7 @@ class TravelInvoice extends Model
         'tag_id',
         'tag_name',
         'project_code',
+        'category_id',
         
         // Travel Details
         'location',
@@ -45,6 +46,7 @@ class TravelInvoice extends Model
         'tds_percent',
         'tds_amount',
         'net_amount',
+        'tds_tax_id',
         
         // Status & Approval
         'status',
@@ -166,6 +168,14 @@ class TravelInvoice extends Model
     {
         return $this->belongsTo(TravelBatch::class, 'batch_id');
     }
+
+/**
+ * Get the category (travel type)
+ */
+public function category()
+{
+    return $this->belongsTo(Category::class, 'category_id');
+}
 
     public function vendor()
     {

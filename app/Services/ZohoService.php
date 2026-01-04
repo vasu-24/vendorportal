@@ -805,56 +805,107 @@ class ZohoService
     // CHART OF ACCOUNTS METHODS - NEW!
     // =====================================================
 
-    /**
-     * 🔥 Get Chart of Accounts from Zoho Books
-     * Used for Category → Zoho Account mapping dropdown
-     */
-    public function getChartOfAccounts(string $accountType = null): array
-    {
-        $accessToken = $this->getValidToken();
-        $organizationId = $this->getOrganizationId();
+   
+   /**
+ * Get Chart of Accounts from Zoho Books
+ * Returns ONLY Expense type accounts
+ */
+public function getChartOfAccounts(string $accountType = null): array
+{
+    $accessToken = $this->getValidToken();
+    $organizationId = $this->getOrganizationId();
 
-        if (!$accessToken) {
-            throw new Exception('Not connected to Zoho');
-        }
-
-        if (!$organizationId) {
-            throw new Exception('Organization ID not set');
-        }
-
-        $url = "{$this->apiUrl}/books/v3/chartofaccounts?organization_id={$organizationId}";
-        
-        // Filter by account type if provided (expense, income, asset, liability, equity)
-        if ($accountType) {
-            $url .= "&account_type={$accountType}";
-        }
-
-        $response = Http::withHeaders([
-            'Authorization' => "Zoho-oauthtoken {$accessToken}",
-        ])->get($url);
-
-        if ($response->failed()) {
-            Log::error('Zoho Get Chart of Accounts Error', ['response' => $response->json()]);
-            throw new Exception('Failed to get chart of accounts from Zoho');
-        }
-
-        $result = $response->json();
-
-        Log::info('Fetched Chart of Accounts from Zoho', [
-            'count' => count($result['chartofaccounts'] ?? []),
-        ]);
-
-        return $result['chartofaccounts'] ?? [];
+    if (!$accessToken) {
+        throw new Exception('Not connected to Zoho');
     }
 
-    /**
-     * Get only Expense accounts from Zoho
-     * Most commonly used for bill line items
-     */
-    public function getExpenseAccounts(): array
-    {
-        return $this->getChartOfAccounts('expense');
+    if (!$organizationId) {
+        throw new Exception('Organization ID not set');
     }
+
+    $url = "{$this->apiUrl}/books/v3/chartofaccounts?organization_id={$organizationId}";
+
+    $response = Http::withHeaders([
+        'Authorization' => "Zoho-oauthtoken {$accessToken}",
+    ])->get($url);
+
+    if ($response->failed()) {
+        Log::error('Zoho Get Chart of Accounts Error', ['response' => $response->json()]);
+        throw new Exception('Failed to get chart of accounts from Zoho');
+    }
+
+    $result = $response->json();
+    $allAccounts = $result['chartofaccounts'] ?? [];
+
+    // 🔥 FILTER ONLY EXPENSE ACCOUNTS
+    $expenseTypes = ['expense', 'other_expense', 'cost_of_goods_sold'];
+
+    $filteredAccounts = [];
+    foreach ($allAccounts as $account) {
+        $type = strtolower($account['account_type'] ?? '');
+        if (in_array($type, $expenseTypes)) {
+            $filteredAccounts[] = $account;
+        }
+    }
+
+    Log::info('Fetched Expense Accounts from Zoho', [
+        'total' => count($allAccounts),
+        'filtered' => count($filteredAccounts),
+    ]);
+
+    return $filteredAccounts;
+}
+
+  /**
+ * Get only Expense accounts from Zoho
+ * Filters: expense, other_expense, cost_of_goods_sold
+ */
+public function getExpenseAccounts(): array
+{
+    $accessToken = $this->getValidToken();
+    $organizationId = $this->getOrganizationId();
+
+    if (!$accessToken) {
+        throw new Exception('Not connected to Zoho');
+    }
+
+    if (!$organizationId) {
+        throw new Exception('Organization ID not set');
+    }
+
+    $url = "{$this->apiUrl}/books/v3/chartofaccounts?organization_id={$organizationId}";
+
+    $response = Http::withHeaders([
+        'Authorization' => "Zoho-oauthtoken {$accessToken}",
+    ])->get($url);
+
+    if ($response->failed()) {
+        Log::error('Zoho Get Chart of Accounts Error', ['response' => $response->json()]);
+        throw new Exception('Failed to get chart of accounts from Zoho');
+    }
+
+    $result = $response->json();
+    $allAccounts = $result['chartofaccounts'] ?? [];
+
+    // Filter only Expense type accounts
+    $expenseTypes = [
+        'expense',
+        'other_expense',
+        'cost_of_goods_sold',
+    ];
+
+    $filteredAccounts = array_filter($allAccounts, function($account) use ($expenseTypes) {
+        $accountType = strtolower($account['account_type'] ?? '');
+        return in_array($accountType, $expenseTypes);
+    });
+
+    Log::info('Fetched Expense Accounts from Zoho', [
+        'total' => count($allAccounts),
+        'filtered' => count($filteredAccounts),
+    ]);
+
+    return array_values($filteredAccounts); // Re-index array
+}
 
     /**
      * Get single account details from Zoho

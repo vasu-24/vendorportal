@@ -46,6 +46,55 @@ class ZohoController extends Controller
         return redirect($authUrl);
     }
 
+
+
+
+
+/**
+ * Get Chart of Accounts (Only Expense Accounts)
+ */
+public function getChartOfAccounts()
+{
+    try {
+        if (!$this->zohoService->isConnected()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Zoho not connected'
+            ], 400);
+        }
+
+        // Get all accounts from Zoho
+        $allAccounts = $this->zohoService->getChartOfAccounts();
+
+        // Filter only Expense type accounts
+        $expenseTypes = [
+            'expense',
+            'other_expense',
+            'cost_of_goods_sold',
+        ];
+
+        $filteredAccounts = array_filter($allAccounts, function($account) use ($expenseTypes) {
+            $accountType = strtolower($account['account_type'] ?? '');
+            return in_array($accountType, $expenseTypes);
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => array_values($filteredAccounts)
+        ]);
+
+    } catch (Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to load accounts: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+
+
+
+
     /**
      * Handle callback from Zoho OAuth
      */

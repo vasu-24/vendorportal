@@ -4,245 +4,172 @@
 
 @section('content')
 <style>
-    .page-header {
+    .card { border: none; border-radius: 8px; }
+    
+    /* Page Header */
+    .page-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 8px;
+        background: #eef4ff;
+        color: #1d4ed8;
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        margin-bottom: 20px;
+        justify-content: center;
+        font-size: 20px;
     }
-    .stats-row {
-        display: flex;
-        gap: 15px;
-        margin-bottom: 20px;
-    }
-    .stat-card {
-        flex: 1;
-        background: #fff;
-        border-radius: 8px;
-        padding: 15px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-    .stat-card .number {
-        font-size: 28px;
+    .page-title {
+        font-size: 22px;
         font-weight: 700;
-        color: #333;
+        color: #174081;
+        margin: 0;
     }
-    .stat-card .label {
+    .page-subtitle {
         font-size: 13px;
-        color: #666;
-    }
-    .stat-card.active { border-left: 4px solid #28a745; }
-    .stat-card.inactive { border-left: 4px solid #dc3545; }
-    .stat-card.total { border-left: 4px solid #007bff; }
-
-    .filter-section {
-        background: #fff;
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-    .filter-row {
-        display: flex;
-        gap: 15px;
-        flex-wrap: wrap;
-    }
-    .filter-row .form-group {
-        flex: 1;
-        min-width: 180px;
+        color: #6b7280;
+        margin: 0;
     }
 
-    .table-container {
-        background: #fff;
-        border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        overflow: hidden;
-    }
-    .table {
-        margin-bottom: 0;
-    }
-    .table th {
+    /* Table */
+    .index-table th { 
+        color: #174081;
         background: #f8f9fa;
-        font-weight: 600;
-        font-size: 13px;
-        padding: 12px;
         border-bottom: 2px solid #dee2e6;
+        font-size: 12px;
+        font-weight: 600;
     }
-    .table td {
-        padding: 12px;
-        vertical-align: middle;
-        font-size: 14px;
+    .index-table td { 
+        vertical-align: middle; 
+        font-size: 14px; 
+        color: #495057; 
     }
-    .table tr:hover {
-        background: #f8f9fa;
+    .index-table tbody tr:hover { 
+        background-color: #f1f5f9; 
     }
 
+    /* Badges */
     .badge-active {
-        background: #28a745;
-        color: #fff;
+        background: #d4edda;
+        color: #155724;
         padding: 4px 10px;
         border-radius: 12px;
-        font-size: 12px;
+        font-size: 11px;
+        font-weight: 500;
     }
     .badge-inactive {
-        background: #dc3545;
-        color: #fff;
+        background: #f8d7da;
+        color: #721c24;
         padding: 4px 10px;
         border-radius: 12px;
-        font-size: 12px;
+        font-size: 11px;
+        font-weight: 500;
     }
     .badge-project {
         background: #e7f3ff;
         color: #0d6efd;
         padding: 4px 10px;
         border-radius: 12px;
-        font-size: 12px;
-    }
-
-    .btn-sm {
-        padding: 5px 10px;
-        font-size: 12px;
-    }
-    .action-btns {
-        display: flex;
-        gap: 5px;
-    }
-
-    .empty-state {
-        text-align: center;
-        padding: 60px 20px;
-        color: #666;
-    }
-    .empty-state i {
-        font-size: 48px;
-        color: #ddd;
-        margin-bottom: 15px;
-    }
-
-    .pagination-container {
-        padding: 15px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-top: 1px solid #dee2e6;
+        font-size: 11px;
+        font-weight: 500;
     }
 </style>
 
-<div class="container-fluid">
-    <!-- Page Header -->
-    <div class="page-header">
-        <div>
-            <h4 class="mb-1">Travel Employee Master</h4>
-            <p class="text-muted mb-0">Manage employees for travel invoices</p>
+<div class="container-fluid py-3">
+
+    {{-- Page Header --}}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex align-items-center gap-3">
+            <div class="page-icon">
+                <i class="bi bi-people"></i>
+            </div>
+            <div>
+                <h2 class="page-title">Travel Employee Master</h2>
+                <p class="page-subtitle">Manage employees for travel invoices</p>
+            </div>
         </div>
-        <button class="btn btn-primary" onclick="showAddModal()">
-            <i class="fas fa-plus me-1"></i> Add Employee
+        <button class="btn btn-primary btn-sm" onclick="showAddModal()">
+            <i class="bi bi-plus-lg me-1"></i>Add Employee
         </button>
     </div>
 
-    <!-- Stats Row -->
-    <div class="stats-row">
-        <div class="stat-card total">
-            <div class="number" id="statTotal">0</div>
-            <div class="label">Total Employees</div>
+    {{-- Main Card --}}
+    <div class="card shadow-sm">
+        
+        {{-- Search Only --}}
+        <div class="card-header bg-white py-2">
+            <div class="row align-items-center">
+                <div class="col-md-4">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="bi bi-search text-muted"></i>
+                        </span>
+                        <input type="text" class="form-control border-start-0" id="searchInput" 
+                               placeholder="Search employees...">
+                    </div>
+                </div>
+                <div class="col-md-8 text-end">
+                    <small class="text-muted">Total: <strong id="totalCount">0</strong> employees</small>
+                </div>
+            </div>
         </div>
-        <div class="stat-card active">
-            <div class="number" id="statActive">0</div>
-            <div class="label">Active</div>
-        </div>
-        <div class="stat-card inactive">
-            <div class="number" id="statInactive">0</div>
-            <div class="label">Inactive</div>
-        </div>
-    </div>
 
-    <!-- Filter Section -->
-    <div class="filter-section">
-        <div class="filter-row">
-            <div class="form-group">
-                <label class="form-label">Search</label>
-                <input type="text" class="form-control" id="searchInput" placeholder="Name, code, email...">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Project</label>
-                <select class="form-select" id="filterProject">
-                    <option value="">All Projects</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Status</label>
-                <select class="form-select" id="filterStatus">
-                    <option value="all">All Status</option>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                </select>
-            </div>
-            <div class="form-group d-flex align-items-end">
-                <button class="btn btn-secondary" onclick="resetFilters()">
-                    <i class="fas fa-redo me-1"></i> Reset
-                </button>
-            </div>
+        {{-- Table --}}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 index-table">
+                <thead>
+                    <tr>
+                        <th class="ps-3" style="width: 50px;">#</th>
+                        <th>Employee Name</th>
+                        <th>Code</th>
+                        <th>Project</th>
+                        <th>Manager</th>
+                        <th>Designation</th>
+                        <th>Status</th>
+                        <th class="text-center" style="width: 130px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <tr>
+                        <td colspan="8" class="text-center py-4">
+                            <div class="spinner-border spinner-border-sm text-primary"></div>
+                            <span class="ms-2 text-muted">Loading...</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
-    </div>
 
-    <!-- Table -->
-    <div class="table-container">
-        <table class="table" id="employeesTable">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Employee Name</th>
-                    <th>Code</th>
-                    <th>Project</th>
-                    <th>Manager</th>
-                    <th>Designation</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="tableBody">
-                <tr>
-                    <td colspan="8" class="text-center py-4">
-                        <div class="spinner-border text-primary" role="status"></div>
-                        <div class="mt-2">Loading...</div>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-
-        <!-- Pagination -->
-        <div class="pagination-container">
-            <div id="paginationInfo">Showing 0 of 0</div>
-            <nav>
-                <ul class="pagination mb-0" id="pagination"></ul>
-            </nav>
+        {{-- Footer with Pagination --}}
+        <div class="card-footer bg-white py-2 d-flex justify-content-between align-items-center">
+            <small class="text-muted" id="paginationInfo">Showing 0 of 0</small>
+            <ul class="pagination pagination-sm mb-0" id="pagination"></ul>
         </div>
     </div>
 </div>
 
-<!-- Add/Edit Modal -->
+{{-- Add/Edit Modal --}}
 <div class="modal fade" id="employeeModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="modalTitle">Add Employee</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <div class="modal-header py-2 bg-light">
+                <h6 class="modal-title fw-semibold" id="modalTitle">Add Employee</h6>
+                <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="employeeId">
                 
                 <div class="mb-3">
-                    <label class="form-label">Employee Name <span class="text-danger">*</span></label>
+                    <label class="form-label small fw-semibold">Employee Name <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" id="employeeName" placeholder="Enter employee name">
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Employee Code</label>
+                    <label class="form-label small fw-semibold">Employee Code</label>
                     <input type="text" class="form-control" id="employeeCode" placeholder="Enter code (optional)">
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Project <span class="text-danger">*</span></label>
+                    <label class="form-label small fw-semibold">Project <span class="text-danger">*</span></label>
                     <select class="form-select" id="projectSelect">
                         <option value="">Select Project</option>
                     </select>
@@ -250,291 +177,277 @@
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Designation</label>
+                        <label class="form-label small fw-semibold">Designation</label>
                         <input type="text" class="form-control" id="designation" placeholder="Designation">
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Department</label>
+                        <label class="form-label small fw-semibold">Department</label>
                         <input type="text" class="form-control" id="department" placeholder="Department">
                     </div>
                 </div>
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Email</label>
+                        <label class="form-label small fw-semibold">Email</label>
                         <input type="email" class="form-control" id="email" placeholder="Email">
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Phone</label>
+                        <label class="form-label small fw-semibold">Phone</label>
                         <input type="text" class="form-control" id="phone" placeholder="Phone">
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="saveBtn" onclick="saveEmployee()">
-                    <i class="fas fa-save me-1"></i> Save
+            <div class="modal-footer py-2 bg-light">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary btn-sm" id="saveBtn" onclick="saveEmployee()">
+                    <i class="bi bi-check-lg me-1"></i>Save
                 </button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Toast -->
-<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 9999">
-    <div id="toast" class="toast align-items-center text-white border-0" role="alert">
-        <div class="d-flex">
-            <div class="toast-body" id="toastMessage"></div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-        </div>
-    </div>
-</div>
+@endsection
 
+@push('scripts')
 <script>
 const API_BASE = '/api/admin/travel-employees';
 let employees = [];
 let projects = [];
 let currentPage = 1;
-let lastPage = 1;
 
-document.addEventListener('DOMContentLoaded', function() {
+$(document).ready(function() {
     loadProjects();
-    loadStatistics();
     loadEmployees();
 
     // Search debounce
     let searchTimeout;
-    document.getElementById('searchInput').addEventListener('input', function() {
+    $('#searchInput').on('input', function() {
         clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => loadEmployees(), 500);
+        searchTimeout = setTimeout(() => {
+            currentPage = 1;
+            loadEmployees();
+        }, 300);
     });
-
-    document.getElementById('filterProject').addEventListener('change', () => loadEmployees());
-    document.getElementById('filterStatus').addEventListener('change', () => loadEmployees());
 });
 
+// =====================================================
+// LOAD PROJECTS (for dropdown)
+// =====================================================
 function loadProjects() {
     axios.get(`${API_BASE}/projects`)
         .then(res => {
             if (res.data.success) {
                 projects = res.data.data;
-                renderProjectDropdowns();
+                const selectHtml = '<option value="">Select Project</option>' + 
+                    projects.map(p => `<option value="${p.tag_id}" data-name="${p.tag_name}">${p.tag_name} (${p.manager_name})</option>`).join('');
+                $('#projectSelect').html(selectHtml);
             }
         })
         .catch(err => console.error('Failed to load projects'));
 }
 
-function renderProjectDropdowns() {
-    const filterHtml = '<option value="">All Projects</option>' + 
-        projects.map(p => `<option value="${p.tag_id}">${p.tag_name}</option>`).join('');
-    
-    const selectHtml = '<option value="">Select Project</option>' + 
-        projects.map(p => `<option value="${p.tag_id}" data-name="${p.tag_name}">${p.tag_name} (${p.manager_name})</option>`).join('');
-    
-    document.getElementById('filterProject').innerHTML = filterHtml;
-    document.getElementById('projectSelect').innerHTML = selectHtml;
-}
+// =====================================================
+// LOAD EMPLOYEES
+// =====================================================
+function loadEmployees() {
+    const tbody = $('#tableBody');
+    tbody.html(`
+        <tr><td colspan="8" class="text-center py-4">
+            <div class="spinner-border spinner-border-sm text-primary"></div>
+            <span class="ms-2 text-muted">Loading...</span>
+        </td></tr>
+    `);
 
-function loadStatistics() {
-    axios.get(`${API_BASE}/statistics`)
-        .then(res => {
-            if (res.data.success) {
-                const stats = res.data.data;
-                document.getElementById('statTotal').textContent = stats.total || 0;
-                document.getElementById('statActive').textContent = stats.active || 0;
-                document.getElementById('statInactive').textContent = stats.inactive || 0;
-            }
-        })
-        .catch(err => console.error('Failed to load statistics'));
-}
-
-function loadEmployees(page = 1) {
-    currentPage = page;
-    
     const params = new URLSearchParams({
-        page: page,
-        per_page: 15,
-        search: document.getElementById('searchInput').value,
-        tag_id: document.getElementById('filterProject').value,
-        status: document.getElementById('filterStatus').value
+        page: currentPage,
+        per_page: 10,
+        search: $('#searchInput').val()
     });
-
-    document.getElementById('tableBody').innerHTML = `
-        <tr>
-            <td colspan="8" class="text-center py-4">
-                <div class="spinner-border text-primary" role="status"></div>
-            </td>
-        </tr>
-    `;
 
     axios.get(`${API_BASE}?${params}`)
         .then(res => {
             if (res.data.success) {
                 employees = res.data.data.data;
-                lastPage = res.data.data.last_page;
-                renderTable();
+                renderTable(res.data.data);
                 renderPagination(res.data.data);
+                $('#totalCount').text(res.data.data.total || 0);
             }
         })
         .catch(err => {
-            console.error('Failed to load employees');
-            document.getElementById('tableBody').innerHTML = `
-                <tr>
-                    <td colspan="8" class="text-center py-4 text-danger">Failed to load data</td>
-                </tr>
-            `;
+            tbody.html(`<tr><td colspan="8" class="text-center py-4 text-danger">Failed to load data</td></tr>`);
+            Toast.error('Failed to load employees');
         });
 }
 
-function renderTable() {
-    if (employees.length === 0) {
-        document.getElementById('tableBody').innerHTML = `
+// =====================================================
+// RENDER TABLE
+// =====================================================
+function renderTable(data) {
+    const tbody = $('#tableBody');
+    
+    if (!employees || employees.length === 0) {
+        tbody.html(`
+            <tr><td colspan="8" class="text-center py-5 text-muted">
+                <i class="bi bi-inbox fs-1 d-block mb-2"></i>No employees found
+            </td></tr>
+        `);
+        return;
+    }
+
+    let html = '';
+    employees.forEach((emp, idx) => {
+        const rowNum = ((data.current_page - 1) * data.per_page) + idx + 1;
+        
+        html += `
             <tr>
-                <td colspan="8">
-                    <div class="empty-state">
-                        <i class="fas fa-users"></i>
-                        <div>No employees found</div>
+                <td class="ps-3">${rowNum}</td>
+                <td>
+                    <div class="fw-medium">${emp.employee_name}</div>
+                    ${emp.email ? `<small class="text-muted">${emp.email}</small>` : ''}
+                </td>
+                <td>${emp.employee_code || '-'}</td>
+                <td><span class="badge-project">${emp.tag_name || '-'}</span></td>
+                <td>${emp.manager_name || '-'}</td>
+                <td>${emp.designation || '-'}</td>
+                <td>
+                    <span class="badge-${emp.is_active ? 'active' : 'inactive'}">
+                        ${emp.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                </td>
+                <td class="text-center">
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-primary" onclick="editEmployee(${emp.id})" title="Edit">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-outline-${emp.is_active ? 'warning' : 'success'}" 
+                                onclick="toggleStatus(${emp.id})" 
+                                title="${emp.is_active ? 'Deactivate' : 'Activate'}">
+                            <i class="bi bi-${emp.is_active ? 'pause-circle' : 'check-circle'}"></i>
+                        </button>
+                        <button class="btn btn-outline-danger" onclick="deleteEmployee(${emp.id})" title="Delete">
+                            <i class="bi bi-trash"></i>
+                        </button>
                     </div>
                 </td>
             </tr>
         `;
+    });
+
+    tbody.html(html);
+}
+
+// =====================================================
+// PAGINATION
+// =====================================================
+function renderPagination(data) {
+    $('#paginationInfo').text(`Showing ${data.from || 0} to ${data.to || 0} of ${data.total || 0}`);
+    
+    const container = $('#pagination');
+    if (data.last_page <= 1) {
+        container.html('');
         return;
     }
 
-    const html = employees.map((emp, idx) => `
-        <tr>
-            <td>${(currentPage - 1) * 15 + idx + 1}</td>
-            <td>
-                <strong>${emp.employee_name}</strong>
-                ${emp.email ? `<div class="text-muted small">${emp.email}</div>` : ''}
-            </td>
-            <td>${emp.employee_code || '-'}</td>
-            <td><span class="badge-project">${emp.tag_name || '-'}</span></td>
-            <td>${emp.manager_name || '-'}</td>
-            <td>${emp.designation || '-'}</td>
-            <td>
-                <span class="badge-${emp.is_active ? 'active' : 'inactive'}">
-                    ${emp.is_active ? 'Active' : 'Inactive'}
-                </span>
-            </td>
-            <td>
-                <div class="action-btns">
-                    <button class="btn btn-sm btn-outline-primary" onclick="editEmployee(${emp.id})" title="Edit">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-${emp.is_active ? 'warning' : 'success'}" 
-                            onclick="toggleStatus(${emp.id})" 
-                            title="${emp.is_active ? 'Deactivate' : 'Activate'}">
-                        <i class="fas fa-${emp.is_active ? 'ban' : 'check'}"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteEmployee(${emp.id})" title="Delete">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </td>
-        </tr>
-    `).join('');
-
-    document.getElementById('tableBody').innerHTML = html;
-}
-
-function renderPagination(data) {
-    const info = `Showing ${data.from || 0} to ${data.to || 0} of ${data.total || 0}`;
-    document.getElementById('paginationInfo').textContent = info;
-
-    let paginationHtml = '';
-    
-    // Previous
-    paginationHtml += `
+    let html = `
         <li class="page-item ${data.current_page === 1 ? 'disabled' : ''}">
-            <a class="page-link" href="#" onclick="loadEmployees(${data.current_page - 1})">«</a>
+            <a class="page-link" href="#" onclick="goToPage(${data.current_page - 1}); return false;">
+                <i class="bi bi-chevron-left"></i>
+            </a>
         </li>
     `;
 
-    // Pages
     for (let i = 1; i <= data.last_page; i++) {
-        if (i === 1 || i === data.last_page || (i >= data.current_page - 2 && i <= data.current_page + 2)) {
-            paginationHtml += `
+        if (i === 1 || i === data.last_page || (i >= data.current_page - 1 && i <= data.current_page + 1)) {
+            html += `
                 <li class="page-item ${i === data.current_page ? 'active' : ''}">
-                    <a class="page-link" href="#" onclick="loadEmployees(${i})">${i}</a>
+                    <a class="page-link" href="#" onclick="goToPage(${i}); return false;">${i}</a>
                 </li>
             `;
-        } else if (i === data.current_page - 3 || i === data.current_page + 3) {
-            paginationHtml += `<li class="page-item disabled"><a class="page-link">...</a></li>`;
+        } else if (i === data.current_page - 2 || i === data.current_page + 2) {
+            html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
         }
     }
 
-    // Next
-    paginationHtml += `
+    html += `
         <li class="page-item ${data.current_page === data.last_page ? 'disabled' : ''}">
-            <a class="page-link" href="#" onclick="loadEmployees(${data.current_page + 1})">»</a>
+            <a class="page-link" href="#" onclick="goToPage(${data.current_page + 1}); return false;">
+                <i class="bi bi-chevron-right"></i>
+            </a>
         </li>
     `;
 
-    document.getElementById('pagination').innerHTML = paginationHtml;
+    container.html(html);
 }
 
+function goToPage(page) {
+    currentPage = page;
+    loadEmployees();
+}
+
+// =====================================================
+// MODAL FUNCTIONS
+// =====================================================
 function showAddModal() {
-    document.getElementById('modalTitle').textContent = 'Add Employee';
-    document.getElementById('employeeId').value = '';
-    document.getElementById('employeeName').value = '';
-    document.getElementById('employeeCode').value = '';
-    document.getElementById('projectSelect').value = '';
-    document.getElementById('designation').value = '';
-    document.getElementById('department').value = '';
-    document.getElementById('email').value = '';
-    document.getElementById('phone').value = '';
+    $('#modalTitle').text('Add Employee');
+    $('#employeeId').val('');
+    $('#employeeName').val('');
+    $('#employeeCode').val('');
+    $('#projectSelect').val('');
+    $('#designation').val('');
+    $('#department').val('');
+    $('#email').val('');
+    $('#phone').val('');
     
-    new bootstrap.Modal(document.getElementById('employeeModal')).show();
+    new bootstrap.Modal('#employeeModal').show();
 }
 
 function editEmployee(id) {
     const emp = employees.find(e => e.id === id);
     if (!emp) return;
 
-    document.getElementById('modalTitle').textContent = 'Edit Employee';
-    document.getElementById('employeeId').value = emp.id;
-    document.getElementById('employeeName').value = emp.employee_name;
-    document.getElementById('employeeCode').value = emp.employee_code || '';
-    document.getElementById('projectSelect').value = emp.tag_id || '';
-    document.getElementById('designation').value = emp.designation || '';
-    document.getElementById('department').value = emp.department || '';
-    document.getElementById('email').value = emp.email || '';
-    document.getElementById('phone').value = emp.phone || '';
+    $('#modalTitle').text('Edit Employee');
+    $('#employeeId').val(emp.id);
+    $('#employeeName').val(emp.employee_name);
+    $('#employeeCode').val(emp.employee_code || '');
+    $('#projectSelect').val(emp.tag_id || '');
+    $('#designation').val(emp.designation || '');
+    $('#department').val(emp.department || '');
+    $('#email').val(emp.email || '');
+    $('#phone').val(emp.phone || '');
 
-    new bootstrap.Modal(document.getElementById('employeeModal')).show();
+    new bootstrap.Modal('#employeeModal').show();
 }
 
 function saveEmployee() {
-    const id = document.getElementById('employeeId').value;
-    const name = document.getElementById('employeeName').value.trim();
+    const id = $('#employeeId').val();
+    const name = $('#employeeName').val().trim();
     const projectSelect = document.getElementById('projectSelect');
     const tagId = projectSelect.value;
     const tagName = projectSelect.options[projectSelect.selectedIndex]?.dataset?.name || '';
 
     if (!name) {
-        showToast('error', 'Employee name is required');
+        Toast.warning('Employee name is required');
         return;
     }
     if (!tagId) {
-        showToast('error', 'Please select a project');
+        Toast.warning('Please select a project');
         return;
     }
 
     const data = {
         employee_name: name,
-        employee_code: document.getElementById('employeeCode').value.trim(),
+        employee_code: $('#employeeCode').val().trim(),
         tag_id: tagId,
         tag_name: tagName,
-        designation: document.getElementById('designation').value.trim(),
-        department: document.getElementById('department').value.trim(),
-        email: document.getElementById('email').value.trim(),
-        phone: document.getElementById('phone').value.trim()
+        designation: $('#designation').val().trim(),
+        department: $('#department').val().trim(),
+        email: $('#email').val().trim(),
+        phone: $('#phone').val().trim()
     };
 
-    const btn = document.getElementById('saveBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving...';
+    const btn = $('#saveBtn');
+    btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
 
     const request = id 
         ? axios.put(`${API_BASE}/${id}`, data)
@@ -544,20 +457,21 @@ function saveEmployee() {
         .then(res => {
             if (res.data.success) {
                 bootstrap.Modal.getInstance(document.getElementById('employeeModal')).hide();
-                showToast('success', id ? 'Employee updated' : 'Employee created');
-                loadStatistics();
-                loadEmployees(currentPage);
+                Toast.success(id ? 'Employee updated!' : 'Employee created!');
+                loadEmployees();
             }
         })
         .catch(err => {
-            showToast('error', err.response?.data?.message || 'Failed to save');
+            Toast.error(err.response?.data?.message || 'Failed to save');
         })
         .finally(() => {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-save me-1"></i> Save';
+            btn.prop('disabled', false).html('<i class="bi bi-check-lg me-1"></i>Save');
         });
 }
 
+// =====================================================
+// OTHER ACTIONS
+// =====================================================
 function toggleStatus(id) {
     const emp = employees.find(e => e.id === id);
     if (!emp) return;
@@ -568,12 +482,11 @@ function toggleStatus(id) {
     axios.post(`${API_BASE}/${id}/toggle-status`)
         .then(res => {
             if (res.data.success) {
-                showToast('success', res.data.message);
-                loadStatistics();
-                loadEmployees(currentPage);
+                Toast.success(res.data.message);
+                loadEmployees();
             }
         })
-        .catch(err => showToast('error', 'Failed to update status'));
+        .catch(err => Toast.error('Failed to update status'));
 }
 
 function deleteEmployee(id) {
@@ -582,30 +495,11 @@ function deleteEmployee(id) {
     axios.delete(`${API_BASE}/${id}`)
         .then(res => {
             if (res.data.success) {
-                showToast('success', 'Employee deleted');
-                loadStatistics();
-                loadEmployees(currentPage);
+                Toast.success('Employee deleted!');
+                loadEmployees();
             }
         })
-        .catch(err => showToast('error', err.response?.data?.message || 'Failed to delete'));
-}
-
-function resetFilters() {
-    document.getElementById('searchInput').value = '';
-    document.getElementById('filterProject').value = '';
-    document.getElementById('filterStatus').value = 'all';
-    loadEmployees();
-}
-
-function showToast(type, message) {
-    const toast = document.getElementById('toast');
-    const toastMessage = document.getElementById('toastMessage');
-    
-    toast.classList.remove('bg-success', 'bg-danger', 'bg-warning');
-    toast.classList.add(type === 'success' ? 'bg-success' : type === 'error' ? 'bg-danger' : 'bg-warning');
-    toastMessage.textContent = message;
-    
-    new bootstrap.Toast(toast).show();
+        .catch(err => Toast.error(err.response?.data?.message || 'Failed to delete'));
 }
 </script>
-@endsection
+@endpush

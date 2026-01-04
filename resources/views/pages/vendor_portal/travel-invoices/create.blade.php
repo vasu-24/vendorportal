@@ -461,13 +461,12 @@
                             <option value="credit_note">Credit Note</option>
                         </select>
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label small">Travel Type</label>
-                        <select class="form-select form-select-sm travel-type">
-                            <option value="domestic">Domestic</option>
-                            <option value="international">International</option>
-                        </select>
-                    </div>
+                 <div class="col-md-4">
+    <label class="form-label small">Travel Type</label>
+    <select class="form-select form-select-sm travel-type">
+        <option value="">Select Travel Type</option>
+    </select>
+</div>
                 </div>
             </div>
 
@@ -613,6 +612,7 @@ let BATCH_ID = urlParams.get('batch_id');
 let BATCH_NUMBER = null;
 
 let employees = [];
+let travelCategories = [];
 let invoiceCounter = 0;
 let expenseCounters = {};
 let savedInvoiceIds = new Set();
@@ -633,7 +633,7 @@ let lastInvoiceData = {
 // INITIALIZATION
 // =====================================================
 $(document).ready(function() {
-    Promise.all([loadEmployees(), loadSubmittedInvoices()]).then(() => {
+    Promise.all([loadEmployees(), loadSubmittedInvoices(), loadTravelCategories()]).then(() => {
         initializeBatch();
     });
 });
@@ -733,6 +733,26 @@ function loadSubmittedInvoices() {
         });
 }
 
+
+
+// Load Travel Categories from Category Master
+function loadTravelCategories() {
+    return axios.get('/api/admin/categories/travel')
+        .then(res => {
+            if (res.data.success) {
+                travelCategories = res.data.data;
+                return travelCategories;
+            }
+            return [];
+        })
+        .catch(err => {
+            console.error('Failed to load travel categories:', err);
+            return [];
+        });
+}
+
+
+
 function updateLastInvoiceData(invoice) {
     if (invoice) {
         lastInvoiceData = {
@@ -823,6 +843,15 @@ function addNewInvoice() {
         options += `<option value="${emp.id}" data-project="${emp.tag_name || ''}">${emp.employee_name}${emp.employee_code ? ` (${emp.employee_code})` : ''}</option>`;
     });
     card.find('.employee-select').html(options);
+
+    // Populate travel type dropdown
+let travelOptions = '<option value="">Select Travel Type</option>';
+travelCategories.forEach(cat => {
+    travelOptions += `<option value="${cat.id}" data-zoho-account-id="${cat.zoho_account_id}" data-zoho-account-name="${cat.zoho_account_name}">${cat.name}</option>`;
+});
+card.find('.travel-type').html(travelOptions);
+
+
     
     // Populate reference invoice dropdown
     populateReferenceInvoiceDropdown(index);
@@ -891,6 +920,13 @@ function loadExistingInvoice(invoice) {
         empOptions += `<option value="${emp.id}" data-project="${emp.tag_name || ''}">${emp.employee_name}${emp.employee_code ? ` (${emp.employee_code})` : ''}</option>`;
     });
     card.find('.employee-select').html(empOptions);
+
+    // Populate travel type dropdown
+let travelOptions = '<option value="">Select Travel Type</option>';
+travelCategories.forEach(cat => {
+    travelOptions += `<option value="${cat.id}" data-zoho-account-id="${cat.zoho_account_id}" data-zoho-account-name="${cat.zoho_account_name}">${cat.name}</option>`;
+});
+card.find('.travel-type').html(travelOptions);
     populateReferenceInvoiceDropdown(index);
     
     // Fill values
@@ -1333,7 +1369,8 @@ function collectUnsavedInvoices() {
             invoice_number: invoiceNumber,
             invoice_date: invoiceDate,
             invoice_type: invoiceType,
-            travel_type: card.find('.travel-type').val(),
+         category_id: card.find('.travel-type').val(),
+travel_type: card.find('.travel-type option:selected').text() || 'Domestic',
             location: location,
             travel_date: card.find('.travel-date').val() || null,
             tds_percent: parseFloat(card.find('.tds-percent').val()) || 5,
@@ -1416,7 +1453,8 @@ async function saveInvoices(invoices, submitAfter) {
             formData.append('invoice_number', inv.invoice_number);
             formData.append('invoice_date', inv.invoice_date);
             formData.append('invoice_type', inv.invoice_type);
-            formData.append('travel_type', inv.travel_type);
+         formData.append('category_id', inv.category_id);
+formData.append('travel_type', inv.travel_type);
             formData.append('location', inv.location);
             formData.append('travel_date', inv.travel_date || '');
             formData.append('tds_percent', inv.tds_percent);

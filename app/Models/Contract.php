@@ -12,7 +12,7 @@ class Contract extends Model
     protected $fillable = [
         'contract_number',
             'contract_type',      
-
+'is_signed',
         'template_file',
         'company_id',
         'company_name',
@@ -39,7 +39,9 @@ class Contract extends Model
         'end_date' => 'date',
         'contract_value' => 'decimal:2',
         'is_visible_to_vendor' => 'boolean',
-    ];
+         'is_signed' => 'boolean',
+];
+    
 
     // =====================================================
     // CONSTANTS

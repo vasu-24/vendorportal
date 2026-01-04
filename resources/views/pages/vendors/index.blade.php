@@ -21,6 +21,12 @@
         background-color: #f1f5f9; 
     }
 
+
+    .badge-imported { 
+    background-color: #e0e7ff; 
+    color: #3730a3; 
+    font-weight: 500; 
+}
     /* Soft Badge Colors */
     .badge-pending { background-color: #fff3cd; color: #856404; font-weight: 500; }
     .badge-approved { background-color: #d4edda; color: #155724; font-weight: 500; }
@@ -48,31 +54,8 @@
         letter-spacing: 0.3px;
         margin: 0;
     }
-    .page-subtitle {
-        font-size: 13px;
-        color: #6b7280;
-        margin: 0;
-    }
 
-    /* Header Stats */
-    .header-stats {
-        display: flex;
-        gap: 1rem;
-        align-items: center;
-    }
-    .header-stat {
-        display: flex;
-        align-items: center;
-        gap: 0.35rem;
-        font-size: 13px;
-        color: #6b7280;
-    }
-    .header-stat .count {
-        font-weight: 600;
-        color: #1f2937;
-    }
-
-    /* Clean Tabs with Curved Underline */
+    /* Clean Tabs */
     .nav-tabs {
         border-bottom: none;
     }
@@ -113,9 +96,6 @@
         background-color: #0d6efd;
         border-radius: 3px 3px 0 0;
     }
-    .nav-tabs .nav-link:hover:not(.active) {
-        color: #495057;
-    }
 
     .table th {
         color: var(--primary-blue) !important;
@@ -149,48 +129,49 @@
         font-weight: 500;
         color: #198754;
     }
+
+    /* Template Info Box */
+    .template-info-box {
+        background: linear-gradient(135deg, #f0f7ff 0%, #e8f4fd 100%);
+        border: 1px solid #c7dffb;
+        border-radius: 8px;
+        padding: 12px 16px;
+    }
+    .template-info-box .template-label {
+        font-size: 11px;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+    }
+    .template-info-box .template-name {
+        font-weight: 600;
+        color: #1e40af;
+        font-size: 14px;
+    }
+    .template-info-box .template-subject {
+        font-size: 12px;
+        color: #64748b;
+        margin-top: 2px;
+    }
 </style>
 
 <div class="container-fluid py-3">
 
-    {{-- Page Header with Stats --}}
-    <div class="d-flex justify-content-between align-items-start mb-4">
-        <div class="d-flex align-items-start gap-3">
+    {{-- Page Header --}}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex align-items-center gap-3">
             <div class="page-icon">
                 <i class="bi bi-people"></i>
             </div>
-            <div>
-                <h2 class="page-title">Vendor Management</h2>
-                <div class="header-stats mt-1">
-                    <span class="header-stat">
-                        <i class="bi bi-send text-secondary"></i>
-                        <span class="count" id="statInvited">0</span> Invited
-                    </span>
-                    <span class="header-stat">
-                        <i class="bi bi-clock text-warning"></i>
-                        <span class="count" id="statPending">0</span> Pending
-                    </span>
-                    <span class="header-stat">
-                        <i class="bi bi-check-circle text-success"></i>
-                        <span class="count" id="statApproved">0</span> Approved
-                    </span>
-                    <span class="header-stat">
-                        <i class="bi bi-x-circle text-danger"></i>
-                        <span class="count" id="statRejected">0</span> Rejected
-                    </span>
-                    <span class="header-stat">
-                        <i class="bi bi-arrow-repeat text-primary"></i>
-                        <span class="count" id="statRevision">0</span> Revision
-                    </span>
-                </div>
-            </div>
+            <h2 class="page-title">Vendor Management</h2>
         </div>
         <div class="d-flex gap-2">
             <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#importVendorModal">
                 <i class="bi bi-upload me-1"></i>Import
             </button>
-            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addVendorModal">
-                <i class="bi bi-plus-lg me-1"></i>Invite Vendor
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#inviteVendorModal">
+                <i class="bi bi-send me-1"></i>Invite Vendor
             </button>
         </div>
     </div>
@@ -198,23 +179,28 @@
     {{-- Main Card --}}
     <div class="card shadow-sm">
         
-        {{-- Tabs --}}
+        {{-- Tabs with Counts --}}
         <div class="card-header bg-white py-0">
             <ul class="nav nav-tabs border-0" id="vendorTabs">
                 <li class="nav-item">
-                    <a class="nav-link active" href="#" data-tab="invited">Invited</a>
+                    <a class="nav-link active" href="#" data-tab="invited">
+                        Invited <span class="badge bg-light text-dark ms-1" id="tabCountInvited">0</span>
+                    </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#" data-tab="pending_approval">Pending Approval</a>
+                    <a class="nav-link" href="#" data-tab="pending_approval">
+                        Pending Approval <span class="badge bg-light text-dark ms-1" id="tabCountPending">0</span>
+                    </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#" data-tab="approved">Approved</a>
+                    <a class="nav-link" href="#" data-tab="approved">
+                        Approved <span class="badge bg-light text-dark ms-1" id="tabCountApproved">0</span>
+                    </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#" data-tab="rejected">Rejected</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#" data-tab="revision_requested">Revision</a>
+                    <a class="nav-link" href="#" data-tab="rejected">
+                        Rejected <span class="badge bg-light text-dark ms-1" id="tabCountRejected">0</span>
+                    </a>
                 </li>
             </ul>
         </div>
@@ -243,36 +229,88 @@
             </table>
         </div>
 
-        {{-- Footer --}}
-        <div class="card-footer bg-white py-2">
-            <small class="text-muted" id="tableInfo">Showing 0 vendors</small>
-        </div>
+       {{-- Footer --}}
+<div class="card-footer bg-white py-2 d-flex justify-content-between align-items-center">
+    <small class="text-muted" id="paginationInfo">Showing 0 of 0</small>
+    <ul class="pagination pagination-sm mb-0" id="pagination"></ul>
+</div>
     </div>
 </div>
 
-{{-- ADD VENDOR MODAL --}}
-<div class="modal fade" id="addVendorModal" tabindex="-1">
+{{-- INVITE VENDOR MODAL (Single Step - Auto Template) --}}
+<div class="modal fade" id="inviteVendorModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header py-2 bg-light">
-                <h6 class="modal-title fw-semibold">Invite New Vendor</h6>
-                <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+            <div class="modal-header py-2 bg-primary text-white">
+                <h6 class="modal-title fw-semibold">
+                    <i class="bi bi-send me-2"></i>Invite Vendor
+                </h6>
+                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
             </div>
-            <form id="addVendorForm">
+            <form id="inviteVendorForm">
                 <div class="modal-body">
+                    {{-- Vendor Details --}}
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Vendor Name <span class="text-danger">*</span></label>
-                        <input type="text" name="vendor_name" id="vendorName" class="form-control" placeholder="Enter vendor name" required>
+                        <label class="form-label small fw-semibold">
+                            Vendor Name <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" name="vendor_name" id="inviteVendorName" 
+                               class="form-control" placeholder="Enter vendor name" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Vendor Email <span class="text-danger">*</span></label>
-                        <input type="email" name="vendor_email" id="vendorEmail" class="form-control" placeholder="vendor@example.com" required>
+                        <label class="form-label small fw-semibold">
+                            Vendor Email <span class="text-danger">*</span>
+                        </label>
+                        <input type="email" name="vendor_email" id="inviteVendorEmail" 
+                               class="form-control" placeholder="vendor@example.com" required>
                     </div>
+
+                    {{-- Auto Selected Template Info with Preview --}}
+                    @if(isset($templates) && count($templates) > 0)
+                        @php $defaultTemplate = $templates->first(); @endphp
+                        <div class="template-info-box mb-3">
+                            <div class="template-label">
+                                <i class="bi bi-envelope-check me-1"></i>Email Template
+                            </div>
+                            <div class="template-name">{{ $defaultTemplate->name }}</div>
+                        </div>
+                        
+                        {{-- Template Preview (Read Only) --}}
+                        <div class="border rounded">
+                            <div class="bg-light px-3 py-2 border-bottom">
+                                <small class="text-muted fw-semibold">
+                                    <i class="bi bi-eye me-1"></i>Email Preview
+                                </small>
+                            </div>
+                            <div class="p-3">
+                                <div class="mb-2">
+                                    <label class="small text-muted d-block mb-1">Subject:</label>
+                                    <div class="form-control form-control-sm bg-light" readonly style="pointer-events: none;">
+                                        {{ $defaultTemplate->subject }}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="small text-muted d-block mb-1">Body:</label>
+                                    <div class="bg-light border rounded p-2" style="min-height: 120px; max-height: 180px; overflow-y: scroll; white-space: pre-line; font-size: 13px;">{{ $defaultTemplate->body }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <input type="hidden" id="defaultTemplateId" value="{{ $defaultTemplate->id }}">
+                    @else
+                        <div class="alert alert-warning py-2 mb-0">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            No email template available. Please create one first.
+                        </div>
+                    @endif
                 </div>
                 <div class="modal-footer py-2 bg-light">
-                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary btn-sm" id="addVendorBtn">
-                        <i class="bi bi-plus-lg me-1"></i>Add Vendor
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary btn-sm" id="inviteVendorBtn" 
+                            @if(!isset($templates) || count($templates) == 0) disabled @endif>
+                        <i class="bi bi-send me-1"></i>Send Invite
                     </button>
                 </div>
             </form>
@@ -291,10 +329,9 @@
             <div class="modal-body">
                 {{-- Download Template --}}
                 <div class="mb-3">
-                  {{-- Change this line in Import Modal --}}
-<a href="{{ asset('templates/vendor_import_template.xlsx') }}" class="btn btn-outline-success btn-sm">
-    <i class="bi bi-download me-1"></i>Download Excel Template
-</a>
+                    <a href="{{ asset('templates/vendor_import_template.xlsx') }}" class="btn btn-outline-success btn-sm">
+                        <i class="bi bi-download me-1"></i>Download Excel Template
+                    </a>
                     <small class="text-muted d-block mt-1">Fill the template and upload below</small>
                 </div>
 
@@ -343,63 +380,44 @@
     </div>
 </div>
 
-{{-- SEND MAIL MODAL --}}
-<div class="modal fade" id="sendMailModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+
+
+{{-- VIEW VENDOR MODAL --}}
+<div class="modal fade" id="viewVendorModal" tabindex="-1">
+    <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header py-2 bg-light">
-                <h6 class="modal-title fw-semibold">Send Invitation Email</h6>
+                <h6 class="modal-title fw-semibold">
+                    <i class="bi bi-eye me-2"></i>Vendor Details
+                </h6>
                 <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <input type="hidden" id="sendMailVendorId">
-                
-                {{-- Vendor Info --}}
-                <div class="row g-2 mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label mb-1 small text-muted">Vendor Name</label>
-                        <input type="text" id="sendMailVendorName" class="form-control form-control-sm bg-light" readonly>
+                <div class="mb-3">
+                    <label class="small text-muted d-block mb-1">Vendor Name</label>
+                    <div class="form-control bg-light" id="viewVendorName" style="pointer-events: none;"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="small text-muted d-block mb-1">Vendor Email</label>
+                    <div class="form-control bg-light" id="viewVendorEmail" style="pointer-events: none;"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="small text-muted d-block mb-1">Template</label>
+                    <div class="form-control bg-light" id="viewVendorTemplate" style="pointer-events: none;"></div>
+                </div>
+                <div class="row g-3">
+                    <div class="col-6">
+                        <label class="small text-muted d-block mb-1">Status</label>
+                        <div id="viewVendorStatus"></div>
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label mb-1 small text-muted">Email</label>
-                        <input type="text" id="sendMailVendorEmail" class="form-control form-control-sm bg-light" readonly>
+                    <div class="col-6">
+                        <label class="small text-muted d-block mb-1">Email Sent</label>
+                        <div class="form-control bg-light" id="viewVendorEmailSent" style="pointer-events: none;"></div>
                     </div>
-                </div>
-
-                <hr>
-
-                {{-- Template Selection --}}
-                <div class="mb-3">
-                    <label class="form-label small fw-semibold">Select Template <span class="text-danger">*</span></label>
-                    <select id="sendMailTemplate" class="form-select form-select-sm">
-                        <option value="">-- Choose Template --</option>
-                        @foreach($templates ?? [] as $template)
-                            <option value="{{ $template->id }}" 
-                                    data-subject="{{ $template->subject }}" 
-                                    data-body="{{ $template->body }}">
-                                {{ $template->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
-                {{-- Subject Preview --}}
-                <div class="mb-3">
-                    <label class="form-label mb-1 small text-muted">Email Subject</label>
-                    <div class="p-2 bg-light rounded border small" id="templateSubjectPreview">Select a template to preview</div>
-                </div>
-
-                {{-- Body Preview --}}
-                <div class="mb-3">
-                    <label class="form-label mb-1 small text-muted">Email Content</label>
-                    <div class="p-3 bg-light rounded border small" id="templateBodyPreview" style="max-height: 200px; overflow-y: auto; white-space: pre-line;">Select a template to preview</div>
                 </div>
             </div>
             <div class="modal-footer py-2 bg-light">
-                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary btn-sm" id="sendMailBtn" disabled>
-                    <i class="bi bi-send me-1"></i>Send Email
-                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -409,11 +427,13 @@
 
 @push('scripts')
 <script>
-    const API_BASE = '/api/vendor/approval';
-    let currentTab = 'invited';
-    let invitedVendors = @json($vendors ?? []);
-    let templates = @json($templates ?? []);
-    let selectedImportFile = null;
+  const API_BASE = '/api/vendor/approval';
+let currentTab = 'invited';
+let currentPage = 1;
+let searchQuery = '';
+let invitedVendors = @json($vendors ?? []);
+let templates = @json($templates ?? []);
+let selectedImportFile = null;
 
     // =====================================================
     // INIT
@@ -430,37 +450,113 @@
     // =====================================================
     function bindEvents() {
         // Tab click
-        $('#vendorTabs .nav-link').on('click', function(e) {
+       // Tab click
+$('#vendorTabs .nav-link').on('click', function(e) {
+    e.preventDefault();
+    $('#vendorTabs .nav-link').removeClass('active');
+    $(this).addClass('active');
+    currentTab = $(this).data('tab');
+    currentPage = 1; // Reset to page 1
+    updateTableHeaders();
+    loadVendors();
+});
+
+        // Invite Vendor Form (Single Step)
+        $('#inviteVendorForm').on('submit', function(e) {
             e.preventDefault();
-            $('#vendorTabs .nav-link').removeClass('active');
-            $(this).addClass('active');
-            currentTab = $(this).data('tab');
-            updateTableHeaders();
-            loadVendors();
+            inviteAndSendEmail();
         });
 
-        // Add Vendor Form
-        $('#addVendorForm').on('submit', function(e) {
-            e.preventDefault();
-            addVendor();
-        });
+        // Resend Mail button
+        $('#resendMailBtn').on('click', resendMail);
 
-        // Template selection in Send Mail modal
-        $('#sendMailTemplate').on('change', function() {
-            const opt = this.options[this.selectedIndex];
-            if (this.value) {
-                $('#templateSubjectPreview').text(opt.dataset.subject || 'No subject');
-                $('#templateBodyPreview').text(opt.dataset.body || 'No content');
-                $('#sendMailBtn').prop('disabled', false);
-            } else {
-                $('#templateSubjectPreview').text('Select a template to preview');
-                $('#templateBodyPreview').text('Select a template to preview');
-                $('#sendMailBtn').prop('disabled', true);
-            }
-        });
+        // Search with debounce
+let searchTimeout;
+$('#searchInput').on('keyup', function() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        searchQuery = $(this).val();
+        currentPage = 1;
+        loadVendors();
+    }, 300);
+});
+    }
 
-        // Send Mail button
-        $('#sendMailBtn').on('click', sendMail);
+    // =====================================================
+    // INVITE AND SEND EMAIL (Single Step)
+    // =====================================================
+    function inviteAndSendEmail() {
+        const btn = $('#inviteVendorBtn');
+        const vendorName = $('#inviteVendorName').val().trim();
+        const vendorEmail = $('#inviteVendorEmail').val().trim();
+        const templateId = $('#defaultTemplateId').val();
+
+        if (!vendorName || !vendorEmail) {
+            Toast.warning('Please fill all fields');
+            return;
+        }
+
+        if (!templateId) {
+            Toast.error('No email template available');
+            return;
+        }
+
+        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Sending...');
+
+        // Step 1: Create vendor with template
+        axios.post('{{ route("vendors.store") }}', {
+            vendor_name: vendorName,
+            vendor_email: vendorEmail,
+            template_id: templateId
+        })
+        .then(res => {
+            const vendorId = res.data.data?.id || res.data.vendor?.id || res.data.id;
+            
+            // Step 2: Send email immediately
+            return axios.post(`/vendors/${vendorId}/send-email`);
+        })
+        .then(res => {
+            bootstrap.Modal.getInstance('#inviteVendorModal').hide();
+            Toast.success('Vendor invited and email sent successfully!');
+            $('#inviteVendorForm')[0].reset();
+            setTimeout(() => location.reload(), 1000);
+        })
+        .catch(err => {
+            Toast.error(err.response?.data?.message || 'Failed to invite vendor');
+        })
+        .finally(() => {
+            btn.prop('disabled', false).html('<i class="bi bi-send me-1"></i>Send Invite');
+        });
+    }
+
+    // =====================================================
+    // RESEND MAIL (For existing vendors)
+    // =====================================================
+    function openResendModal(vendorId, vendorName, vendorEmail) {
+        $('#resendVendorId').val(vendorId);
+        $('#resendVendorName').text(vendorName);
+        $('#resendVendorEmail').text(vendorEmail);
+        new bootstrap.Modal('#resendMailModal').show();
+    }
+
+    function resendMail() {
+        const vendorId = $('#resendVendorId').val();
+        const btn = $('#resendMailBtn');
+
+        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Sending...');
+
+        axios.post(`/vendors/${vendorId}/send-email`)
+            .then(res => {
+                bootstrap.Modal.getInstance('#resendMailModal').hide();
+                Toast.success('Email resent successfully!');
+                setTimeout(() => location.reload(), 1000);
+            })
+            .catch(err => {
+                Toast.error(err.response?.data?.message || 'Failed to resend email');
+            })
+            .finally(() => {
+                btn.prop('disabled', false).html('<i class="bi bi-send me-1"></i>Resend Email');
+            });
     }
 
     // =====================================================
@@ -470,17 +566,14 @@
         const dropzone = document.getElementById('importDropzone');
         const fileInput = document.getElementById('importFile');
 
-        // Click to browse
         dropzone.addEventListener('click', () => fileInput.click());
 
-        // File selected
         fileInput.addEventListener('change', (e) => {
             if (e.target.files.length > 0) {
                 handleFileSelect(e.target.files[0]);
             }
         });
 
-        // Drag & Drop
         dropzone.addEventListener('dragover', (e) => {
             e.preventDefault();
             dropzone.classList.add('dragover');
@@ -498,10 +591,7 @@
             }
         });
 
-        // Import button
         $('#importBtn').on('click', importVendors);
-
-        // Reset on modal close
         $('#importVendorModal').on('hidden.bs.modal', resetImportModal);
     }
 
@@ -554,7 +644,6 @@
                 $('#importSuccessAlert').show();
                 $('#importSuccessMsg').text(res.data.message);
 
-                // Show details
                 const data = res.data.data;
                 let detailsHtml = `
                     <div class="row text-center mt-2">
@@ -577,7 +666,6 @@
                     </div>
                 `;
 
-                // Show errors if any
                 if (data.errors && data.errors.length > 0) {
                     detailsHtml += `<div class="mt-3"><strong class="text-danger">Errors:</strong><ul class="mb-0 small">`;
                     data.errors.forEach(err => {
@@ -587,11 +675,7 @@
                 }
 
                 $('#importDetails').html(detailsHtml);
-
-                // Reload after 2 seconds
-                setTimeout(() => {
-                    location.reload();
-                }, 2000);
+                setTimeout(() => location.reload(), 2000);
             } else {
                 $('#importErrorAlert').show();
                 $('#importErrorMsg').text(res.data.message || 'Import failed');
@@ -619,19 +703,20 @@
     }
 
     // =====================================================
-    // LOAD STATISTICS
+    // LOAD STATISTICS (Update Tab Counts)
     // =====================================================
     function loadStatistics() {
-        $('#statInvited').text(invitedVendors.filter(v => v.status === 'pending').length);
+        // Invited count from local data
+        $('#tabCountInvited').text(invitedVendors.filter(v => v.status === 'pending').length);
 
+        // Get other counts from API
         axios.get(`${API_BASE}/statistics`)
             .then(res => {
                 if (res.data.success) {
                     const stats = res.data.data;
-                    $('#statPending').text(stats.pending_approval || 0);
-                    $('#statApproved').text(stats.approved || 0);
-                    $('#statRejected').text(stats.rejected || 0);
-                    $('#statRevision').text(stats.revision_requested || 0);
+                    $('#tabCountPending').text(stats.pending_approval || 0);
+                    $('#tabCountApproved').text(stats.approved || 0);
+                    $('#tabCountRejected').text(stats.rejected || 0);
                 }
             })
             .catch(err => console.error('Stats error:', err));
@@ -640,207 +725,264 @@
     // =====================================================
     // LOAD VENDORS
     // =====================================================
-    function loadVendors() {
-        const tbody = $('#vendorsTableBody');
+    // =====================================================
+// LOAD VENDORS
+// =====================================================
+function loadVendors() {
+    const tbody = $('#vendorsTableBody');
+    
+    tbody.html(`
+        <tr><td colspan="6" class="text-center py-4">
+            <div class="spinner-border spinner-border-sm text-primary"></div>
+            <span class="ms-2 text-muted">Loading...</span>
+        </td></tr>
+    `);
+
+    if (currentTab === 'invited') {
+        // Filter invited vendors locally (from blade data)
+        let filtered = invitedVendors.filter(v => v.status === 'pending' || v.email_sent_at);
         
-        tbody.html(`
-            <tr><td colspan="6" class="text-center py-4">
-                <div class="spinner-border spinner-border-sm text-primary"></div>
-                <span class="ms-2 text-muted">Loading...</span>
-            </td></tr>
-        `);
-
-        if (currentTab === 'invited') {
-            renderInvitedVendors(invitedVendors);
-        } else {
-            axios.get(`${API_BASE}/status/${currentTab}`)
-                .then(res => {
-                    if (res.data.success) {
-                        renderApprovalVendors(res.data.data);
-                    }
-                })
-                .catch(err => {
-                    tbody.html(`<tr><td colspan="6" class="text-center py-4 text-danger">Failed to load vendors</td></tr>`);
-                });
+        // Apply search filter
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase();
+            filtered = filtered.filter(v => 
+                (v.vendor_name && v.vendor_name.toLowerCase().includes(query)) ||
+                (v.vendor_email && v.vendor_email.toLowerCase().includes(query))
+            );
         }
+        
+        // Paginate locally
+        const perPage = 10;
+        const total = filtered.length;
+        const lastPage = Math.ceil(total / perPage) || 1;
+        const from = total > 0 ? ((currentPage - 1) * perPage) + 1 : 0;
+        const to = Math.min(currentPage * perPage, total);
+        
+        const paginatedVendors = filtered.slice((currentPage - 1) * perPage, currentPage * perPage);
+        
+        renderInvitedVendors(paginatedVendors, { 
+            current_page: currentPage, 
+            last_page: lastPage, 
+            from: from, 
+            to: to, 
+            total: total 
+        });
+    } else {
+        // Build API URL with pagination
+        const params = new URLSearchParams({
+            page: currentPage,
+            per_page: 10
+        });
+        if (searchQuery) params.append('search', searchQuery);
+        
+        axios.get(`${API_BASE}/status/${currentTab}?${params}`)
+            .then(res => {
+                if (res.data.success) {
+                    const data = res.data.data;
+                    
+                    // Check if paginated response or array
+                    if (Array.isArray(data)) {
+                        // Not paginated - paginate locally
+                        let filtered = data;
+                        if (searchQuery) {
+                            const query = searchQuery.toLowerCase();
+                            filtered = data.filter(v => 
+                                (v.vendor_name && v.vendor_name.toLowerCase().includes(query)) ||
+                                (v.vendor_email && v.vendor_email.toLowerCase().includes(query))
+                            );
+                        }
+                        
+                        const perPage = 10;
+                        const total = filtered.length;
+                        const lastPage = Math.ceil(total / perPage) || 1;
+                        const from = total > 0 ? ((currentPage - 1) * perPage) + 1 : 0;
+                        const to = Math.min(currentPage * perPage, total);
+                        
+                        const paginatedVendors = filtered.slice((currentPage - 1) * perPage, currentPage * perPage);
+                        
+                        renderApprovalVendors(paginatedVendors, {
+                            current_page: currentPage,
+                            last_page: lastPage,
+                            from: from,
+                            to: to,
+                            total: total
+                        });
+                    } else {
+                        // Already paginated from API
+                        renderApprovalVendors(data.data || [], data);
+                    }
+                }
+            })
+            .catch(err => {
+                tbody.html(`<tr><td colspan="6" class="text-center py-4 text-danger">Failed to load vendors</td></tr>`);
+            });
     }
-
+}
     // =====================================================
     // RENDER INVITED VENDORS
     // =====================================================
-    function renderInvitedVendors(vendors) {
-        const tbody = $('#vendorsTableBody');
+    // =====================================================
+// RENDER INVITED VENDORS
+// =====================================================
+function renderInvitedVendors(vendors, paginationData = null) {
+    const tbody = $('#vendorsTableBody');
 
-        if (!vendors || vendors.length === 0) {
-            tbody.html(`<tr><td colspan="6" class="text-center py-4 text-muted">
-                <i class="bi bi-inbox fs-3 d-block mb-2"></i>No invited vendors
-            </td></tr>`);
-            $('#tableInfo').text('Showing 0 vendors');
-            return;
+    if (!vendors || vendors.length === 0) {
+        tbody.html(`<tr><td colspan="6" class="text-center py-4 text-muted">
+            <i class="bi bi-inbox fs-3 d-block mb-2"></i>No invited vendors
+        </td></tr>`);
+        $('#paginationInfo').text('Showing 0 of 0');
+        $('#pagination').html('');
+        return;
+    }
+
+    let html = '';
+    const startIndex = paginationData ? (paginationData.from || 1) : 1;
+    
+    vendors.forEach((v, i) => {
+        const statusBadge = v.status === 'pending' 
+            ? '<span class="badge badge-invited">Invited</span>'
+            : '<span class="badge badge-accepted">Accepted</span>';
+
+        // Check if imported vendor (approved but no email sent)
+        let emailSent;
+        if (v.approval_status === 'approved' && !v.email_sent_at) {
+            emailSent = '<span class="badge badge-imported"><i class="bi bi-file-earmark-arrow-up me-1"></i>Imported</span>';
+        } else if (v.email_sent_at) {
+            emailSent = `<i class="bi bi-check-circle text-success me-1"></i>${formatDate(v.email_sent_at)}`;
+        } else {
+            emailSent = '<span class="text-muted"><i class="bi bi-clock me-1"></i>Pending</span>';
         }
 
-        let html = '';
-        vendors.forEach((v, i) => {
-            const statusBadge = v.status === 'pending' 
-                ? '<span class="badge badge-invited">Invited</span>'
-                : '<span class="badge badge-accepted">Accepted</span>';
+        const templateName = v.template ? v.template.name : '<span class="text-muted">-</span>';
 
-            const emailSent = v.email_sent_at 
-                ? `<i class="bi bi-check-circle text-success me-1"></i>${formatDate(v.email_sent_at)}`
-                : '<span class="text-muted"><i class="bi bi-x-circle me-1"></i>Not sent</span>';
+        // Show resend button for pending vendors who already got email
+        let actions = '';
+        if (v.status === 'pending') {
+            if (v.email_sent_at) {
+                actions = `<button class="btn btn-sm btn-outline-secondary" onclick="openResendModal(${v.id}, '${escapeHtml(v.vendor_name)}', '${escapeHtml(v.vendor_email)}')">
+                    <i class="bi bi-arrow-repeat me-1"></i>Resend
+                </button>`;
+            } else {
+                actions = `<span class="text-muted small">Email queued</span>`;
+            }
+        } else {
+            actions = `<button class="btn btn-sm btn-outline-secondary" onclick="viewVendor(${v.id})">
+                <i class="bi bi-eye"></i>
+            </button>`;
+        }
 
-            const templateName = v.template ? v.template.name : '<span class="text-muted">Not selected</span>';
+        html += `
+            <tr>
+                <td class="ps-3">${startIndex + i}</td>
+                <td>
+                    <div class="fw-medium">${escapeHtml(v.vendor_name)}</div>
+                    <small class="text-muted">${escapeHtml(v.vendor_email)}</small>
+                </td>
+                <td>${templateName}</td>
+                <td class="small">${emailSent}</td>
+                <td>${statusBadge}</td>
+                <td class="text-center">${actions}</td>
+            </tr>
+        `;
+    });
 
-            const actions = v.status === 'pending' 
-                ? `<button class="btn btn-sm btn-outline-primary" onclick="openSendMailModal(${v.id}, '${escapeHtml(v.vendor_name)}', '${escapeHtml(v.vendor_email)}', ${v.template_id || 'null'})">
-                        <i class="bi bi-send me-1"></i>Send Mail
-                   </button>`
-                : `<button class="btn btn-sm btn-outline-secondary" onclick="viewVendor(${v.id})">
-                        <i class="bi bi-eye"></i>
-                   </button>`;
-
-            html += `
-                <tr>
-                    <td class="ps-3">${i + 1}</td>
-                    <td>
-                        <div class="fw-medium">${escapeHtml(v.vendor_name)}</div>
-                        <small class="text-muted">${escapeHtml(v.vendor_email)}</small>
-                    </td>
-                    <td>${templateName}</td>
-                    <td class="small">${emailSent}</td>
-                    <td>${statusBadge}</td>
-                    <td class="text-center">${actions}</td>
-                </tr>
-            `;
-        });
-
-        tbody.html(html);
-        $('#tableInfo').text(`Showing ${vendors.length} vendors`);
+    tbody.html(html);
+    
+    // Render pagination
+    if (paginationData) {
+        renderPagination(paginationData);
     }
+}
 
     // =====================================================
     // RENDER APPROVAL VENDORS
     // =====================================================
-    function renderApprovalVendors(vendors) {
-        const tbody = $('#vendorsTableBody');
+   // =====================================================
+// RENDER APPROVAL VENDORS
+// =====================================================
+function renderApprovalVendors(vendors, paginationData = null) {
+    const tbody = $('#vendorsTableBody');
 
-        if (!vendors || vendors.length === 0) {
-            tbody.html(`<tr><td colspan="6" class="text-center py-4 text-muted">
-                <i class="bi bi-inbox fs-3 d-block mb-2"></i>No vendors found
-            </td></tr>`);
-            $('#tableInfo').text('Showing 0 vendors');
-            return;
-        }
-
-        let html = '';
-        vendors.forEach((v, i) => {
-            const companyName = v.company_info?.legal_entity_name || '-';
-            const submittedDate = v.registration_completed_at ? formatDate(v.registration_completed_at) : '-';
-
-            html += `
-                <tr>
-                    <td class="ps-3">${i + 1}</td>
-                    <td>
-                        <div class="fw-medium">${escapeHtml(v.vendor_name)}</div>
-                        <small class="text-muted">${escapeHtml(v.vendor_email)}</small>
-                    </td>
-                    <td>${escapeHtml(companyName)}</td>
-                    <td class="small">${submittedDate}</td>
-                    <td>${getStatusBadge(v.approval_status)}</td>
-                    <td class="text-center">
-                        <a href="/vendors/approval/review/${v.id}" class="btn btn-sm btn-outline-primary">
-                            Review
-                        </a>
-                    </td>
-                </tr>
-            `;
-        });
-
-        tbody.html(html);
-        $('#tableInfo').text(`Showing ${vendors.length} vendors`);
+    if (!vendors || vendors.length === 0) {
+        tbody.html(`<tr><td colspan="6" class="text-center py-4 text-muted">
+            <i class="bi bi-inbox fs-3 d-block mb-2"></i>No vendors found
+        </td></tr>`);
+        $('#paginationInfo').text('Showing 0 of 0');
+        $('#pagination').html('');
+        return;
     }
 
-    // =====================================================
-    // ADD VENDOR
-    // =====================================================
-    function addVendor() {
-        const btn = $('#addVendorBtn');
-        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Adding...');
-
-        axios.post('{{ route("vendors.store") }}', {
-            vendor_name: $('#vendorName').val(),
-            vendor_email: $('#vendorEmail').val()
-        })
-        .then(res => {
-            bootstrap.Modal.getInstance('#addVendorModal').hide();
-            Toast.success('Vendor added successfully!');
-            $('#addVendorForm')[0].reset();
-            setTimeout(() => location.reload(), 1000);
-        })
-        .catch(err => {
-            Toast.error(err.response?.data?.message || 'Failed to add vendor');
-        })
-        .finally(() => {
-            btn.prop('disabled', false).html('<i class="bi bi-plus-lg me-1"></i>Add Vendor');
-        });
-    }
-
-    // =====================================================
-    // OPEN SEND MAIL MODAL
-    // =====================================================
-    function openSendMailModal(vendorId, vendorName, vendorEmail, templateId) {
-        $('#sendMailVendorId').val(vendorId);
-        $('#sendMailVendorName').val(vendorName);
-        $('#sendMailVendorEmail').val(vendorEmail);
+    let html = '';
+    const startIndex = paginationData ? (paginationData.from || 1) : 1;
+    
+    vendors.forEach((v, i) => {
+        const companyName = v.company_info?.legal_entity_name || '-';
         
-        // Auto-select template
-        if (templateId) {
-            $('#sendMailTemplate').val(templateId).trigger('change');
+        // Check if imported vendor (approved but no email sent)
+        let submittedDate;
+        if (v.approval_status === 'approved' && !v.email_sent_at) {
+            submittedDate = '<span class="badge badge-imported"><i class="bi bi-file-earmark-arrow-up me-1"></i>Imported</span>';
+        } else if (v.registration_completed_at) {
+            submittedDate = formatDate(v.registration_completed_at);
         } else {
-            const firstTemplateId = $('#sendMailTemplate option:eq(1)').val();
-            if (firstTemplateId) {
-                $('#sendMailTemplate').val(firstTemplateId).trigger('change');
-            }
-        }
-        
-        new bootstrap.Modal('#sendMailModal').show();
-    }
-
-    // =====================================================
-    // SEND MAIL
-    // =====================================================
-    function sendMail() {
-        const vendorId = $('#sendMailVendorId').val();
-        const templateId = $('#sendMailTemplate').val();
-
-        if (!templateId) {
-            Toast.warning('Please select a template');
-            return;
+            submittedDate = '-';
         }
 
-        const btn = $('#sendMailBtn');
-        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Sending...');
+        html += `
+            <tr>
+                <td class="ps-3">${startIndex + i}</td>
+                <td>
+                    <div class="fw-medium">${escapeHtml(v.vendor_name)}</div>
+                    <small class="text-muted">${escapeHtml(v.vendor_email)}</small>
+                </td>
+                <td>${escapeHtml(companyName)}</td>
+                <td class="small">${submittedDate}</td>
+                <td>${getStatusBadge(v.approval_status)}</td>
+                <td class="text-center">
+                    <a href="/vendors/approval/review/${v.id}" class="btn btn-sm btn-outline-primary">
+                        Review
+                    </a>
+                </td>
+            </tr>
+        `;
+    });
 
-        axios.post(`/vendors/${vendorId}/update-template`, { template_id: templateId })
-            .then(() => axios.post(`/vendors/${vendorId}/send-email`))
-            .then(res => {
-                bootstrap.Modal.getInstance('#sendMailModal').hide();
-                Toast.success('Email sent successfully!');
-                setTimeout(() => location.reload(), 1000);
-            })
-            .catch(err => {
-                Toast.error(err.response?.data?.message || 'Failed to send email');
-            })
-            .finally(() => {
-                btn.prop('disabled', false).html('<i class="bi bi-send me-1"></i>Send Email');
-            });
+    tbody.html(html);
+    
+    // Render pagination
+    if (paginationData) {
+        renderPagination(paginationData);
     }
-
+}
     // =====================================================
     // VIEW VENDOR
     // =====================================================
     function viewVendor(id) {
-        Toast.info('View details coming soon');
+        const vendor = invitedVendors.find(v => v.id === id);
+        
+        if (!vendor) {
+            Toast.error('Vendor not found');
+            return;
+        }
+
+        $('#viewVendorName').text(vendor.vendor_name || '-');
+        $('#viewVendorEmail').text(vendor.vendor_email || '-');
+        $('#viewVendorTemplate').text(vendor.template ? vendor.template.name : 'Not selected');
+        
+        // Status badge
+        const statusBadge = vendor.status === 'pending' 
+            ? '<span class="badge badge-invited">Invited</span>'
+            : '<span class="badge badge-accepted">Accepted</span>';
+        $('#viewVendorStatus').html(statusBadge);
+        
+        // Email sent date
+        const emailSent = vendor.email_sent_at 
+            ? formatDate(vendor.email_sent_at)
+            : 'Not sent';
+        $('#viewVendorEmailSent').text(emailSent);
+
+        new bootstrap.Modal('#viewVendorModal').show();
     }
 
     // =====================================================
@@ -867,5 +1009,65 @@
         };
         return badges[status] || `<span class="badge badge-invited">${status}</span>`;
     }
+
+
+
+    // =====================================================
+// PAGINATION
+// =====================================================
+function renderPagination(data) {
+    const container = $('#pagination');
+    
+    // Update info text
+    $('#paginationInfo').text(`Showing ${data.from || 0} to ${data.to || 0} of ${data.total || 0}`);
+    
+    // Hide pagination if only 1 page
+    if (!data.last_page || data.last_page <= 1) {
+        container.html('');
+        return;
+    }
+
+    let html = '';
+
+    // Previous button
+    html += `
+        <li class="page-item ${data.current_page === 1 ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="goToPage(${data.current_page - 1}); return false;">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+        </li>
+    `;
+
+    // Page numbers
+    for (let i = 1; i <= data.last_page; i++) {
+        if (i === 1 || i === data.last_page || (i >= data.current_page - 1 && i <= data.current_page + 1)) {
+            html += `
+                <li class="page-item ${i === data.current_page ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="goToPage(${i}); return false;">${i}</a>
+                </li>
+            `;
+        } else if (i === data.current_page - 2 || i === data.current_page + 2) {
+            html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+        }
+    }
+
+    // Next button
+    html += `
+        <li class="page-item ${data.current_page === data.last_page ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="goToPage(${data.current_page + 1}); return false;">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </li>
+    `;
+
+    container.html(html);
+}
+
+function goToPage(page) {
+    currentPage = page;
+    loadVendors();
+}
+
+
 </script>
 @endpush

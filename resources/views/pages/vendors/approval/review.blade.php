@@ -4,7 +4,7 @@
 
 
 
-
+@include('components.toast')
 @section('content')
 <div class="container-fluid">
 
@@ -38,7 +38,7 @@
             <span class="badge bg-warning text-dark px-3 py-2" id="vendorStatusBadge">
                 <i class="bi bi-clock me-1"></i>Loading...
             </span>
-            <a href="{{ route('vendors.approval.queue') }}" class="btn btn-outline-secondary">
+            <a href="{{ route('vendors.index') }}" class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-left me-1"></i>Back
             </a>
         </div>
@@ -224,14 +224,7 @@
                                 <label class="form-label text-muted small">Email</label>
                                 <p class="fw-medium mb-0" id="view_contact_email">-</p>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label text-muted small">Alternate Mobile</label>
-                                <p class="fw-medium mb-0" id="view_alternate_mobile">-</p>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label text-muted small">Landline</label>
-                                <p class="fw-medium mb-0" id="view_landline">-</p>
-                            </div>
+
                         </div>
                     </div>
 
@@ -254,14 +247,8 @@
                                 <label class="form-label">Email</label>
                                 <input type="email" class="form-control" id="edit_contact_email">
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Alternate Mobile</label>
-                                <input type="text" class="form-control" id="edit_alternate_mobile" maxlength="10">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Landline</label>
-                                <input type="text" class="form-control" id="edit_landline">
-                            </div>
+                          
+                           
                         </div>
                     </div>
 
@@ -318,6 +305,12 @@
                                 <label class="form-label text-muted small">MSME Registered</label>
                                 <p class="fw-medium mb-0" id="view_msme_registered">-</p>
                             </div>
+
+
+                            <div class="col-md-6">
+    <label class="form-label text-muted small">Udyam Certificate</label>
+    <p class="fw-medium mb-0" id="view_udyam_certificate">-</p>
+</div>
                         </div>
                     </div>
 
@@ -408,6 +401,10 @@
                                 <label class="form-label text-muted small">Account Type</label>
                                 <p class="fw-medium mb-0" id="view_account_type">-</p>
                             </div>
+                            <div class="col-md-6">
+    <label class="form-label text-muted small">Cancelled Cheque</label>
+    <p class="fw-medium mb-0" id="view_cancelled_cheque">-</p>
+</div>
                         </div>
                     </div>
 
@@ -490,6 +487,10 @@
                                 <label class="form-label text-muted small">SEZ Status</label>
                                 <p class="fw-medium mb-0" id="view_sez_status">-</p>
                             </div>
+                            <div class="col-md-6">
+    <label class="form-label text-muted small">TDS Exemption Certificate</label>
+    <p class="fw-medium mb-0" id="view_tds_certificate">-</p>
+</div>
                         </div>
                     </div>
 
@@ -564,22 +565,7 @@
                                 <label class="form-label text-muted small">Employee Count</label>
                                 <p class="fw-medium mb-0" id="view_employee_count">-</p>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label text-muted small">Credit Period</label>
-                                <p class="fw-medium mb-0" id="view_credit_period">-</p>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label text-muted small">Turnover FY 2022-23</label>
-                                <p class="fw-medium mb-0" id="view_turnover_fy1">-</p>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label text-muted small">Turnover FY 2023-24</label>
-                                <p class="fw-medium mb-0" id="view_turnover_fy2">-</p>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label text-muted small">Turnover FY 2024-25</label>
-                                <p class="fw-medium mb-0" id="view_turnover_fy3">-</p>
-                            </div>
+                            
                         </div>
                     </div>
 
@@ -602,30 +588,8 @@
                                     <option value="1000+">1000+</option>
                                 </select>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Credit Period</label>
-                                <select class="form-select" id="edit_credit_period">
-                                    <option value="">-- Select --</option>
-                                    <option value="Immediate">Immediate</option>
-                                    <option value="15 Days">15 Days</option>
-                                    <option value="30 Days">30 Days</option>
-                                    <option value="45 Days">45 Days</option>
-                                    <option value="60 Days">60 Days</option>
-                                    <option value="90 Days">90 Days</option>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Turnover FY 2022-23</label>
-                                <input type="text" class="form-control" id="edit_turnover_fy1">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Turnover FY 2023-24</label>
-                                <input type="text" class="form-control" id="edit_turnover_fy2">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Turnover FY 2024-25</label>
-                                <input type="text" class="form-control" id="edit_turnover_fy3">
-                            </div>
+                            
+                            
                         </div>
                     </div>
 
@@ -685,9 +649,7 @@
                 <button class="btn btn-danger btn-lg px-4" id="btnReject" data-bs-toggle="modal" data-bs-target="#rejectModal">
                     <i class="bi bi-x-circle me-2"></i>Reject Vendor
                 </button>
-                <button class="btn btn-info btn-lg px-4" id="btnRevision" data-bs-toggle="modal" data-bs-target="#revisionModal">
-                    <i class="bi bi-arrow-repeat me-2"></i>Request Revision
-                </button>
+                
             </div>
         </div>
     </div>

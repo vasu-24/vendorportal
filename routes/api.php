@@ -141,11 +141,13 @@ Route::put('/{id}/update', [InvoiceController::class, 'updateInvoice'])->middlew
         Route::get('/statistics', [CategoryController::class, 'getStatistics'])->middleware('permission:view-categories');
         Route::get('/active', [CategoryController::class, 'getActive'])->middleware('permission:view-categories');
         Route::get('/', [CategoryController::class, 'index'])->middleware('permission:view-categories');
+        Route::get('/travel', [CategoryController::class, 'getTravelCategories']);
         Route::get('/{id}', [CategoryController::class, 'show'])->middleware('permission:view-categories');
         Route::post('/', [CategoryController::class, 'store'])->middleware('permission:create-categories');
         Route::put('/{id}', [CategoryController::class, 'update'])->middleware('permission:edit-categories');
         Route::delete('/{id}', [CategoryController::class, 'destroy'])->middleware('permission:delete-categories');
         Route::post('/{id}/toggle-status', [CategoryController::class, 'toggleStatus'])->middleware('permission:edit-categories');
+      
     });
 
     // =====================================================
@@ -280,6 +282,7 @@ Route::prefix('travel-invoices')->group(function () {
     Route::get('/statistics', [App\Http\Controllers\Api\TravelInvoiceController::class, 'getStatistics']);
     Route::get('/batches', [App\Http\Controllers\Api\TravelInvoiceController::class, 'getBatches']);
     Route::get('/batches/{batchId}/summary', [App\Http\Controllers\Api\TravelInvoiceController::class, 'getBatchSummary']);
+    Route::put('/admin/travel-invoices/{id}/update', [TravelInvoiceController::class, 'updateInvoice']);
     Route::get('/{id}', [App\Http\Controllers\Api\TravelInvoiceController::class, 'show']);
 
     

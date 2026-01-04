@@ -128,7 +128,9 @@ class CategoryController extends Controller
                 'hsn_sac_code' => 'nullable|string|max:20',
                 'status' => 'nullable|in:active,inactive',
                 'zoho_account_id' => 'nullable|string|max:100',      // 👈 NEW
-                'zoho_account_name' => 'nullable|string|max:255',    // 👈 NEW
+                'zoho_account_name' => 'nullable|string|max:255',
+                        'is_travel_category' => 'nullable|boolean',  // 👈 ADD THIS
+    // 👈 NEW
             ]);
 
             if ($validator->fails()) {
@@ -139,15 +141,16 @@ class CategoryController extends Controller
                 ], 422);
             }
 
-            $category = Category::create([
-                'name' => $request->name,
-                'code' => $request->code,
-                'description' => $request->description,
-                'hsn_sac_code' => $request->hsn_sac_code,
-                'status' => $request->status ?? 'active',
-                'zoho_account_id' => $request->zoho_account_id,      // 👈 NEW
-                'zoho_account_name' => $request->zoho_account_name,  // 👈 NEW
-            ]);
+          $category = Category::create([
+    'name' => $request->name,
+    'code' => $request->code,
+    'description' => $request->description,
+    'hsn_sac_code' => $request->hsn_sac_code,
+    'status' => $request->status ?? 'active',
+    'zoho_account_id' => $request->zoho_account_id,
+    'zoho_account_name' => $request->zoho_account_name,
+    'is_travel_category' => (bool) $request->input('is_travel_category', false),  // 👈 ADD THIS
+]);
 
             return response()->json([
                 'success' => true,
@@ -180,7 +183,8 @@ class CategoryController extends Controller
                 'hsn_sac_code' => 'nullable|string|max:20',
                 'status' => 'nullable|in:active,inactive',
                 'zoho_account_id' => 'nullable|string|max:100',      // 👈 NEW
-                'zoho_account_name' => 'nullable|string|max:255',    // 👈 NEW
+                'zoho_account_name' => 'nullable|string|max:255',
+                   'is_travel_category' => 'nullable|boolean',    // 👈 NEW
             ]);
 
             if ($validator->fails()) {
@@ -191,16 +195,16 @@ class CategoryController extends Controller
                 ], 422);
             }
 
-            $category->update([
-                'name' => $request->name,
-                'code' => $request->code,
-                'description' => $request->description,
-                'hsn_sac_code' => $request->hsn_sac_code,
-                'status' => $request->status ?? $category->status,
-                'zoho_account_id' => $request->zoho_account_id,      // 👈 NEW
-                'zoho_account_name' => $request->zoho_account_name,  // 👈 NEW
-            ]);
-
+          $category->update([
+    'name' => $request->name,
+    'code' => $request->code,
+    'description' => $request->description,
+    'hsn_sac_code' => $request->hsn_sac_code,
+    'status' => $request->status ?? $category->status,
+    'zoho_account_id' => $request->zoho_account_id,
+    'zoho_account_name' => $request->zoho_account_name,
+    'is_travel_category' => (bool) $request->input('is_travel_category', false),  // 👈 ADD THIS
+]);
             return response()->json([
                 'success' => true,
                 'message' => 'Category updated successfully',
@@ -313,7 +317,21 @@ public function getStatistics()
             'error' => $e->getMessage()
         ], 500);
     }
+}
+/**
+ * Get only travel categories (for Travel Invoice dropdown)
+ */
+public function getTravelCategories()
+{
+    $categories = Category::where('is_travel_category', true)
+        ->where('status', 'active')
+        ->select('id', 'name', 'code', 'zoho_account_id', 'zoho_account_name')
+        ->get();
 
+    return response()->json([
+        'success' => true,
+        'data' => $categories
+    ]);
+}
 
-
-}}
+}

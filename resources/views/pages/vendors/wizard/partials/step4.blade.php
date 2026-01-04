@@ -88,11 +88,7 @@
     </div>
     --}}
     
-    <div class="row g-2">
-        <div class="col-md-6">
-            <label class="form-label form-label-sm">Digital Signature {{-- <span class="text-danger">*</span> --}}</label>
-            <input type="text" name="digital_signature" class="form-control form-control-sm" placeholder="Type your full name" {{-- required --}}>
-        </div>
+   
         
         <div class="col-md-6">
             <label class="form-label form-label-sm">Submission Date</label>

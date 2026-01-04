@@ -46,8 +46,7 @@
     .btn-action { padding: 10px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
     .btn-approve { background: #059669; color: white; }
     .btn-approve:hover { background: #047857; color: white; }
-    .btn-review { background: #3b82f6; color: white; }
-    .btn-review:hover { background: #2563eb; color: white; }
+
     .btn-reject { background: white; color: #dc2626; border: 1px solid #dc2626; }
     .btn-reject:hover { background: #dc2626; color: white; }
     .btn-summary { background: #3B82F6; color: white; border: none; padding: 8px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; }
@@ -117,6 +116,15 @@
     .rejected-table th { background: #fee2e2 !important; color: #991b1b !important; }
     .rejected-table td { background: #fef2f2; }
     .amount-row.rejected-amount { color: #dc2626; border-top: 1px dashed #fecaca; margin-top: 10px; padding-top: 10px; }
+
+    /* Edit Modal Styles */
+    .edit-expense-table { width: 100%; font-size: 11px; }
+    .edit-expense-table th { background: #f3f4f6; padding: 8px 6px; font-weight: 600; }
+    .edit-expense-table td { padding: 6px 4px; vertical-align: middle; }
+    .edit-expense-table input, .edit-expense-table select { font-size: 11px; padding: 4px 6px; }
+    .edit-field-sm { width: 70px !important; }
+    .edit-field-md { width: 100px !important; }
+    .tds-select { min-width: 200px; }
 </style>
 
 <div class="page-container">
@@ -192,7 +200,7 @@
                                             <th>Type</th>
                                             <th>Status</th>
                                             <th class="text-end">Amount</th>
-                                            <th class="text-end" style="width: 140px;">Action</th>
+                                            <th class="text-end" style="width: 160px;">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody id="invoicesTableBody">
@@ -425,6 +433,94 @@
     </div>
 </div>
 
+<!-- Edit Invoice Modal (Finance Only) -->
+<div class="modal fade" id="editInvoiceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" style="border-radius: 10px;">
+            <div class="modal-header bg-warning text-dark py-2">
+                <h6 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Edit Invoice - <span id="editInvNumber">INV-001</span></h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editInvoiceId">
+                
+                <!-- Basic Info -->
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label small text-muted">Employee</label>
+                        <input type="text" class="form-control form-control-sm bg-light" id="editEmpName" readonly>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small text-muted">Location</label>
+                        <input type="text" class="form-control form-control-sm" id="editLocation">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small text-muted">Travel Date</label>
+                        <input type="date" class="form-control form-control-sm" id="editTravelDate">
+                    </div>
+                </div>
+                
+                <!-- Expense Items -->
+                <h6 class="fw-bold mb-2"><i class="bi bi-list-ul me-1"></i>Expense Items</h6>
+                <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+                    <table class="table table-sm table-bordered edit-expense-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 100px;">Mode</th>
+                                <th>Particulars</th>
+                                <th style="width: 80px;">Basic</th>
+                                <th style="width: 70px;">Taxes</th>
+                                <th style="width: 70px;">Service</th>
+                                <th style="width: 70px;">GST</th>
+                                <th style="width: 85px;">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="editItemsBody"></tbody>
+                        <tfoot>
+                            <tr class="table-success">
+                                <td colspan="2" class="text-end fw-bold">Totals:</td>
+                                <td class="fw-bold" id="editTotalBasic">₹0</td>
+                                <td class="fw-bold" id="editTotalTaxes">₹0</td>
+                                <td class="fw-bold" id="editTotalService">₹0</td>
+                                <td class="fw-bold" id="editTotalGst">₹0</td>
+                                <td class="fw-bold" id="editTotalGross">₹0</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                
+                <!-- TDS Section -->
+                <div class="row mt-3 p-2 bg-light rounded align-items-end">
+                    <div class="col-md-5">
+                        <label class="form-label small mb-1">TDS Type (from Zoho)</label>
+                        <select class="form-select form-select-sm tds-select" id="editTdsSelect" onchange="onTdsSelectChange()">
+                            <option value="">Loading...</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small mb-1">TDS %</label>
+                        <input type="number" class="form-control form-control-sm" id="editTdsPercent" min="0" max="100" step="0.01" onchange="calculateEditTotals()">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small mb-1">TDS Amount</label>
+                        <input type="text" class="form-control form-control-sm bg-light text-danger fw-bold" id="editTdsAmount" readonly>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small mb-1">Net Payable</label>
+                        <input type="text" class="form-control form-control-sm bg-success text-white fw-bold" id="editNetAmount" readonly>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-sm btn-warning" id="saveEditBtn" onclick="saveInvoiceEdit()">
+                    <i class="bi bi-check-lg me-1"></i>Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')
@@ -437,16 +533,39 @@ let batchData = null;
 let invoices = [];
 let summary = {};
 let approvableCount = 0;
-let canStartReview = false;
+
 let activeInvoices = [];
 let rejectedInvoices = [];
 
-
+// For Finance Edit
+let zohoTdsTaxes = [];
+let currentEditInvoice = null;
 
 $(document).ready(function() {
     if (BATCH_ID) loadBatch();
+    loadZohoTds();
 });
 
+// =====================================================
+// LOAD ZOHO TDS
+// =====================================================
+function loadZohoTds() {
+    axios.get('/api/zoho/taxes')
+        .then(res => {
+            if (res.data.success) {
+                zohoTdsTaxes = res.data.data.tds || [];
+                console.log('Loaded TDS from Zoho:', zohoTdsTaxes.length);
+            }
+        })
+        .catch(err => {
+            console.error('Failed to load Zoho TDS:', err);
+            zohoTdsTaxes = [];
+        });
+}
+
+// =====================================================
+// LOAD BATCH
+// =====================================================
 function loadBatch() {
     axios.get(`${API_BASE}/batches/${BATCH_ID}/summary`)
         .then(res => {
@@ -455,10 +574,10 @@ function loadBatch() {
                 invoices = res.data.data.invoices || [];
                 summary = res.data.data.summary || {};
                 approvableCount = res.data.data.approvable_count || 0;
-                canStartReview = res.data.data.can_start_review || false;
-                // SEPARATE ACTIVE AND REJECTED INVOICES
-activeInvoices = invoices.filter(inv => inv.status !== 'rejected');
-rejectedInvoices = invoices.filter(inv => inv.status === 'rejected');
+              
+                // Separate active and rejected invoices
+                activeInvoices = invoices.filter(inv => inv.status !== 'rejected');
+                rejectedInvoices = invoices.filter(inv => inv.status === 'rejected');
                 renderPage();
             }
         })
@@ -468,6 +587,9 @@ rejectedInvoices = invoices.filter(inv => inv.status === 'rejected');
         });
 }
 
+// =====================================================
+// RENDER PAGE
+// =====================================================
 function renderPage() {
     // Header
     $('#pageBatchNumber').text(batchData.batch_number);
@@ -483,17 +605,20 @@ function renderPage() {
     
     // Vendor Info
     $('#vendorName').text(batchData.vendor?.vendor_name || '-');
- $('#vendorCompany').text(batchData.vendor?.company_info?.legal_entity_name || '-');
+    $('#vendorCompany').text(batchData.vendor?.company_info?.legal_entity_name || '-');
     $('#vendorEmail').text(batchData.vendor?.vendor_email || '-');
-$('#vendorPhone').text(batchData.vendor?.contact?.mobile || '-');  
+    $('#vendorPhone').text(batchData.vendor?.contact?.mobile || '-');  
 
-renderInvoicesTable();
-renderRejectedInvoicesTable();  
+    renderInvoicesTable();
+    renderRejectedInvoicesTable();  
     renderAmountSummary();
     renderAttachments();
     renderActions();
 }
 
+// =====================================================
+// RENDER INVOICES TABLE
+// =====================================================
 function renderInvoicesTable() {
     $('#invoicesCount').text(activeInvoices.length);  
     
@@ -503,8 +628,9 @@ function renderInvoicesTable() {
     }
     
     let html = '';
-   activeInvoices.forEach((inv, i) => {  
+    activeInvoices.forEach((inv, i) => {  
         const canAct = canUserActOnInvoice(inv);
+        const canEditInv = canUserEditInvoice(inv);
         
         html += `
             <tr>
@@ -520,6 +646,7 @@ function renderInvoicesTable() {
                 <td class="text-end fw-semibold text-success">₹${formatNum(inv.gross_amount)}</td>
                 <td class="text-end">
                     <button class="btn btn-sm btn-outline-primary btn-sm-action me-1" onclick="viewInvoice(${inv.id})" title="View"><i class="bi bi-eye"></i></button>
+                    ${canEditInv ? `<button class="btn btn-sm btn-outline-warning btn-sm-action me-1" onclick="openEditModal(${inv.id})" title="Edit"><i class="bi bi-pencil"></i></button>` : ''}
                     ${canAct ? `
                         <button class="btn btn-sm btn-success btn-sm-action me-1" onclick="approveSingle(${inv.id})" title="Approve"><i class="bi bi-check"></i></button>
                         <button class="btn btn-sm btn-outline-danger btn-sm-action" onclick="showRejectSingleModal(${inv.id})" title="Reject"><i class="bi bi-x"></i></button>
@@ -532,11 +659,9 @@ function renderInvoicesTable() {
     $('#invoicesTableBody').html(html);
 }
 
-
-
-
-
-
+// =====================================================
+// RENDER REJECTED INVOICES TABLE
+// =====================================================
 function renderRejectedInvoicesTable() {
     if (rejectedInvoices.length === 0) {
         $('#rejectedSection').hide();
@@ -565,23 +690,20 @@ function renderRejectedInvoicesTable() {
     $('#rejectedInvoicesTableBody').html(html);
 }
 
-
-
-
-
 function toggleRejectedSection() {
     $('#rejectedContent').toggleClass('show');
     $('#rejectedChevron').toggleClass('bi-chevron-down bi-chevron-up');
 }
 
-
-
+// =====================================================
+// PERMISSION CHECKS
+// =====================================================
 function canUserActOnInvoice(invoice) {
     const status = invoice.status;
     
     if (['approved', 'rejected', 'paid', 'draft'].includes(status)) return false;
     if (USER_ROLE === 'super-admin') return true;
-    if (USER_ROLE === 'manager' && ['submitted', 'resubmitted', 'pending_rm'].includes(status)) return true;
+    if (USER_ROLE === 'manager' && status === 'pending_rm') return true;
     if (USER_ROLE === 'vp' && status === 'pending_vp') return true;
     if (USER_ROLE === 'ceo' && status === 'pending_ceo') return true;
     if (USER_ROLE === 'finance' && status === 'pending_finance') return true;
@@ -589,13 +711,18 @@ function canUserActOnInvoice(invoice) {
     return false;
 }
 
+function canUserEditInvoice(invoice) {
+    // Only Finance (and super-admin) can edit at pending_finance stage
+    return (USER_ROLE === 'finance' || USER_ROLE === 'super-admin') && invoice.status === 'pending_finance';
+}
 
-
-
+// =====================================================
+// RENDER AMOUNT SUMMARY
+// =====================================================
 function renderAmountSummary() {
     let basic = 0, taxes = 0, service = 0, gst = 0, gross = 0, tds = 0, net = 0;
     
- activeInvoices.forEach(inv => {  // 👈 CHANGE THIS
+    activeInvoices.forEach(inv => {
         basic += parseFloat(inv.basic_total) || 0;
         taxes += parseFloat(inv.taxes_total) || 0;
         service += parseFloat(inv.service_charge_total) || 0;
@@ -613,7 +740,7 @@ function renderAmountSummary() {
     $('#sumTds').text('-₹' + formatNum(tds));
     $('#sumNet').text('₹' + formatNum(net));
 
-// Show rejected amount
+    // Show rejected amount
     let rejectedAmount = 0;
     rejectedInvoices.forEach(inv => {
         rejectedAmount += parseFloat(inv.gross_amount) || 0;
@@ -625,13 +752,14 @@ function renderAmountSummary() {
     } else {
         $('#rejectedAmountRow').hide();
     }
-
-
 }
 
+// =====================================================
+// RENDER ATTACHMENTS
+// =====================================================
 function renderAttachments() {
     let allBills = [];
-  activeInvoices.forEach(inv => {  
+    activeInvoices.forEach(inv => {  
         if (inv.bills && inv.bills.length > 0) {
             inv.bills.forEach(bill => allBills.push({ ...bill, invoice_number: inv.invoice_number }));
         }
@@ -666,6 +794,9 @@ function renderAttachments() {
     $('#attachmentsContainer').html(html);
 }
 
+// =====================================================
+// RENDER ACTIONS
+// =====================================================
 function renderActions() {
     const status = batchData.status;
     
@@ -680,17 +811,12 @@ function renderActions() {
         return;
     }
     
-    // Check if user can start review (for submitted batches)
-    const canUserReview = canStartReview && ['super-admin', 'manager'].includes(USER_ROLE);
-    
-    // Check if user has invoices to approve (for pending_rm, pending_vp, etc.)
+    // Check if user has invoices to approve
     const hasApprovable = approvableCount > 0;
     
     // No actions available for this user
-    if (!canUserReview && !hasApprovable) {
+    if (!hasApprovable) {
         const pendingLabels = {
-            'submitted': 'Awaiting RM to Start Review',
-            'resubmitted': 'Awaiting RM to Start Review',
             'pending_rm': 'Pending RM Approval',
             'pending_vp': 'Pending VOO Approval',
             'pending_ceo': 'Pending CEO Approval',
@@ -701,57 +827,25 @@ function renderActions() {
         return;
     }
     
-    // User can take action
+    // User can take action - Show Approve/Reject buttons
     let html = '<div class="d-flex gap-2 flex-wrap">';
     
-    if (canUserReview) {
-        // Show Start Review button for submitted batches
-        const submittedCount = invoices.filter(i => ['submitted', 'resubmitted'].includes(i.status)).length;
-        html += `
-            <button class="btn-action btn-review flex-grow-1" onclick="startReview()">
-                <i class="bi bi-play-circle"></i>Start Review (${submittedCount})
-            </button>
-        `;
-    } else if (hasApprovable) {
-        // Show Approve button for pending invoices
-        html += `
-            <button class="btn-action btn-approve flex-grow-1" onclick="approveAll()">
-                <i class="bi bi-check-all"></i>Approve All (${approvableCount})
-            </button>
-        `;
-    }
-    
-    // Reject button (always shown if user can act)
-    if (canUserReview || hasApprovable) {
-        html += `
-            <button class="btn-action btn-reject" onclick="showRejectAllModal()">
-                <i class="bi bi-x-lg"></i>Reject All
-            </button>
-        `;
-    }
+    html += `
+        <button class="btn-action btn-approve flex-grow-1" onclick="approveAll()">
+            <i class="bi bi-check-all"></i>Approve All (${approvableCount})
+        </button>
+        <button class="btn-action btn-reject" onclick="showRejectAllModal()">
+            <i class="bi bi-x-lg"></i>Reject All
+        </button>
+    `;
     
     html += '</div>';
     $('#actionsContainer').html(html);
 }
 
 // =====================================================
-// ACTIONS
+// ACTIONS - APPROVE / REJECT
 // =====================================================
-
-function startReview() {
-    const submittedCount = invoices.filter(i => ['submitted', 'resubmitted'].includes(i.status)).length;
-    if (!confirm(`Start review for ${submittedCount} invoices?`)) return;
-    
-    axios.post(`${API_BASE}/batches/${BATCH_ID}/start-review`)
-        .then(res => {
-            if (res.data.success) {
-                Toast.success(res.data.message || 'Review started');
-                loadBatch();
-            }
-        })
-        .catch(err => Toast.error(err.response?.data?.message || 'Failed to start review'));
-}
-
 function approveSingle(id) {
     if (!confirm('Approve this invoice?')) return;
     
@@ -801,8 +895,7 @@ function approveAll() {
 }
 
 function showRejectAllModal() {
-    const rejectCount = canStartReview ? invoices.filter(i => ['submitted', 'resubmitted'].includes(i.status)).length : approvableCount;
-    $('#rejectAllCount').text(rejectCount);
+    $('#rejectAllCount').text(approvableCount);
     $('#rejectAllReasonInput').val('');
     new bootstrap.Modal(document.getElementById('rejectAllModal')).show();
 }
@@ -822,6 +915,9 @@ function confirmRejectAll() {
         .catch(err => Toast.error(err.response?.data?.message || 'Failed'));
 }
 
+// =====================================================
+// VIEW INVOICE MODAL
+// =====================================================
 function viewInvoice(id) {
     const inv = invoices.find(i => i.id === id);
     if (!inv) return;
@@ -866,9 +962,201 @@ function viewInvoice(id) {
 }
 
 // =====================================================
-// SUMMARY MODAL
+// FINANCE EDIT FUNCTIONALITY
 // =====================================================
 
+// Open Edit Modal
+function openEditModal(invoiceId) {
+    const inv = invoices.find(i => i.id === invoiceId);
+    if (!inv) return;
+    
+    currentEditInvoice = inv;
+    
+    // Fill basic info
+    $('#editInvoiceId').val(inv.id);
+    $('#editInvNumber').text(inv.invoice_number);
+    $('#editEmpName').val(inv.employee?.employee_name || '-');
+    $('#editLocation').val(inv.location || '');
+    $('#editTravelDate').val(inv.travel_date ? inv.travel_date.split('T')[0] : '');
+    $('#editTdsPercent').val(inv.tds_percent || 5);
+    
+    // Populate TDS dropdown
+    populateTdsDropdown(inv.tds_percent);
+    
+    // Render expense items
+    renderEditItems(inv.items || []);
+    
+    // Calculate totals
+    calculateEditTotals();
+    
+    // Show modal
+    new bootstrap.Modal(document.getElementById('editInvoiceModal')).show();
+}
+
+// Populate TDS dropdown from Zoho
+function populateTdsDropdown(currentPercent) {
+    let options = '<option value="">-- Select TDS --</option>';
+    
+    if (zohoTdsTaxes.length === 0) {
+        // Fallback if Zoho not loaded
+        options += `
+            <option value="1" ${currentPercent == 1 ? 'selected' : ''}>TDS 1%</option>
+            <option value="2" ${currentPercent == 2 ? 'selected' : ''}>TDS 2%</option>
+            <option value="5" ${currentPercent == 5 ? 'selected' : ''}>TDS 5%</option>
+            <option value="10" ${currentPercent == 10 ? 'selected' : ''}>TDS 10%</option>
+        `;
+    } else {
+        zohoTdsTaxes.forEach(tax => {
+            const selected = parseFloat(tax.tax_percentage) === parseFloat(currentPercent) ? 'selected' : '';
+            options += `<option value="${tax.tax_percentage}" data-tax-id="${tax.tax_id}" ${selected}>${tax.tax_name} (${tax.tax_percentage}%)</option>`;
+        });
+    }
+    
+    $('#editTdsSelect').html(options);
+}
+
+// When TDS dropdown changes
+function onTdsSelectChange() {
+    const selectedPercent = $('#editTdsSelect').val();
+    if (selectedPercent) {
+        $('#editTdsPercent').val(selectedPercent);
+        calculateEditTotals();
+    }
+}
+
+// Render expense items in edit modal
+function renderEditItems(items) {
+    const modes = {
+        'flight': 'Flight', 'train': 'Train', 'cabs': 'Cabs',
+        'accommodation': 'Hotel', 'insurance': 'Insurance', 'visa': 'Visa', 'other': 'Other'
+    };
+    
+    let html = '';
+    items.forEach((item, i) => {
+        let modeOptions = '';
+        Object.entries(modes).forEach(([key, label]) => {
+            modeOptions += `<option value="${key}" ${item.mode === key ? 'selected' : ''}>${label}</option>`;
+        });
+        
+        html += `
+            <tr data-item-id="${item.id}">
+                <td>
+                    <select class="form-select form-select-sm edit-mode">${modeOptions}</select>
+                </td>
+                <td>
+                    <input type="text" class="form-control form-control-sm edit-particulars" value="${item.particulars || ''}">
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm edit-basic edit-field-sm" value="${item.basic || 0}" min="0" onchange="calculateEditTotals()">
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm edit-taxes edit-field-sm" value="${item.taxes || 0}" min="0" onchange="calculateEditTotals()">
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm edit-service edit-field-sm" value="${item.service_charge || 0}" min="0" onchange="calculateEditTotals()">
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm edit-gst edit-field-sm" value="${item.gst || 0}" min="0" onchange="calculateEditTotals()">
+                </td>
+                <td>
+                    <input type="text" class="form-control form-control-sm bg-light edit-row-total" value="₹0" readonly>
+                </td>
+            </tr>
+        `;
+    });
+    
+    if (items.length === 0) {
+        html = '<tr><td colspan="7" class="text-center text-muted py-3">No items</td></tr>';
+    }
+    
+    $('#editItemsBody').html(html);
+}
+
+// Calculate totals in edit modal
+function calculateEditTotals() {
+    let totalBasic = 0, totalTaxes = 0, totalService = 0, totalGst = 0;
+    
+    $('#editItemsBody tr').each(function() {
+        const basic = parseFloat($(this).find('.edit-basic').val()) || 0;
+        const taxes = parseFloat($(this).find('.edit-taxes').val()) || 0;
+        const service = parseFloat($(this).find('.edit-service').val()) || 0;
+        const gst = parseFloat($(this).find('.edit-gst').val()) || 0;
+        const rowTotal = basic + taxes + service + gst;
+        
+        $(this).find('.edit-row-total').val('₹' + formatNum(rowTotal));
+        
+        totalBasic += basic;
+        totalTaxes += taxes;
+        totalService += service;
+        totalGst += gst;
+    });
+    
+    const grossTotal = totalBasic + totalTaxes + totalService + totalGst;
+    const tdsPercent = parseFloat($('#editTdsPercent').val()) || 0;
+    const tdsAmount = (totalBasic * tdsPercent) / 100;
+    const netAmount = grossTotal - tdsAmount;
+    
+    $('#editTotalBasic').text('₹' + formatNum(totalBasic));
+    $('#editTotalTaxes').text('₹' + formatNum(totalTaxes));
+    $('#editTotalService').text('₹' + formatNum(totalService));
+    $('#editTotalGst').text('₹' + formatNum(totalGst));
+    $('#editTotalGross').text('₹' + formatNum(grossTotal));
+    $('#editTdsAmount').val('-₹' + formatNum(tdsAmount));
+    $('#editNetAmount').val('₹' + formatNum(netAmount));
+}
+
+// Save Invoice Edit
+function saveInvoiceEdit() {
+    const invoiceId = $('#editInvoiceId').val();
+    if (!invoiceId) return;
+    
+    const btn = $('#saveEditBtn');
+    btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
+    
+    // Collect data
+    const data = {
+        location: $('#editLocation').val(),
+        travel_date: $('#editTravelDate').val(),
+        tds_percent: parseFloat($('#editTdsPercent').val()) || 0,
+        tds_tax_id: $('#editTdsSelect option:selected').data('tax-id') || null,
+        items: []
+    };
+    
+    // Collect items
+    $('#editItemsBody tr').each(function() {
+        const itemId = $(this).data('item-id');
+        if (itemId) {
+            data.items.push({
+                id: itemId,
+                mode: $(this).find('.edit-mode').val(),
+                particulars: $(this).find('.edit-particulars').val(),
+                basic: parseFloat($(this).find('.edit-basic').val()) || 0,
+                taxes: parseFloat($(this).find('.edit-taxes').val()) || 0,
+                service_charge: parseFloat($(this).find('.edit-service').val()) || 0,
+                gst: parseFloat($(this).find('.edit-gst').val()) || 0
+            });
+        }
+    });
+    
+    axios.put(`${API_BASE}/${invoiceId}/update`, data)
+        .then(res => {
+            if (res.data.success) {
+                bootstrap.Modal.getInstance(document.getElementById('editInvoiceModal')).hide();
+                Toast.success('Invoice updated successfully!');
+                loadBatch(); // Reload data
+            }
+        })
+        .catch(err => {
+            Toast.error(err.response?.data?.message || 'Failed to save');
+        })
+        .finally(() => {
+            btn.prop('disabled', false).html('<i class="bi bi-check-lg me-1"></i>Save Changes');
+        });
+}
+
+// =====================================================
+// SUMMARY MODAL
+// =====================================================
 function openSummaryModal() {
     $('#modalBatchNumber').text(batchData.batch_number);
     $('#modalVendorName').text(batchData.vendor?.vendor_name || '-');
@@ -887,7 +1175,7 @@ function openSummaryModal() {
 }
 
 function renderApprovalFlow() {
-    // Check if CEO is needed (only if auto-escalated or pending_ceo)
+    // Check if CEO is needed
     const needsCeo = batchData.status === 'pending_ceo' || 
                      batchData.ceo_approved_at ||
                      invoices.some(inv => inv.status === 'pending_ceo' || inv.ceo_approved_at || inv.auto_escalated);
@@ -898,32 +1186,25 @@ function renderApprovalFlow() {
         { key: 'vp', label: 'VOO', icon: 'bi-person-badge' },
     ];
     
-    // Add CEO only if needed
     if (needsCeo) {
         steps.push({ key: 'ceo', label: 'CEO', icon: 'bi-person-fill' });
     }
     
-    // Always add Finance at end
     steps.push({ key: 'finance', label: 'Finance', icon: 'bi-bank' });
     
-    // Status order mapping (dynamic based on CEO)
+    // Status order mapping
     let statusOrder;
     if (needsCeo) {
         statusOrder = {
             'submitted': 0, 'resubmitted': 0, 'pending_rm': 0,
-            'pending_vp': 1,
-            'pending_ceo': 2,
-            'pending_finance': 3,
-            'approved': 4, 'paid': 4,
-            'rejected': -1
+            'pending_vp': 1, 'pending_ceo': 2, 'pending_finance': 3,
+            'approved': 4, 'paid': 4, 'rejected': -1
         };
     } else {
         statusOrder = {
             'submitted': 0, 'resubmitted': 0, 'pending_rm': 0,
-            'pending_vp': 1,
-            'pending_finance': 2,
-            'approved': 3, 'paid': 3,
-            'rejected': -1
+            'pending_vp': 1, 'pending_finance': 2,
+            'approved': 3, 'paid': 3, 'rejected': -1
         };
     }
     
@@ -950,37 +1231,24 @@ function renderApprovalFlow() {
 function renderActivityTimeline() {
     let html = '';
     
-    // Batch submitted
     if (batchData.submitted_at) {
         html += createActivityItem('blue', 'Batch Submitted', batchData.submitted_at);
     }
-    
-    // RM approved
     if (batchData.rm_approved_at) {
         html += createActivityItem('green', 'RM Approved', batchData.rm_approved_at);
     }
-    
-    // VP approved
     if (batchData.vp_approved_at) {
         html += createActivityItem('green', 'VOO Approved', batchData.vp_approved_at);
     }
-    
-    // CEO approved (if applicable)
     if (batchData.ceo_approved_at) {
         html += createActivityItem('green', 'CEO Approved', batchData.ceo_approved_at);
     }
-    
-    // Finance approved
     if (batchData.finance_approved_at) {
         html += createActivityItem('green', 'Finance Approved', batchData.finance_approved_at);
     }
-    
-    // Rejected
     if (batchData.rejected_at) {
         html += createActivityItem('red', `Rejected by ${batchData.rejected_by_role || 'Unknown'}`, batchData.rejected_at);
     }
-    
-    // Paid
     if (batchData.paid_at) {
         html += createActivityItem('green', 'Payment Completed', batchData.paid_at);
     }
@@ -1030,7 +1298,6 @@ function createActivityItem(color, label, datetime) {
 // =====================================================
 // HELPERS
 // =====================================================
-
 function getStatusBadge(status) {
     const labels = { 'draft': 'Draft', 'submitted': 'Submitted', 'resubmitted': 'Resubmitted', 'pending_rm': 'Pending RM', 'pending_vp': 'Pending VOO', 'pending_ceo': 'Pending CEO', 'pending_finance': 'Pending Finance', 'approved': 'Approved', 'rejected': 'Rejected', 'paid': 'Paid', 'partial': 'Partial' };
     return `<span class="badge-status badge-${status}">${labels[status] || status}</span>`;

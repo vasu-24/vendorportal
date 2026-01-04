@@ -487,7 +487,7 @@
                         <div class="flow-step">
                             <div class="step-box">
                                 <div class="step-icon vp"><i class="bi bi-person-check"></i></div>
-                                <span class="step-label">VOO</span>
+                                <span class="step-label">COO</span>
                                 <span class="step-sublabel">Approve</span>
                             </div>
                             <i class="bi bi-arrow-right step-arrow"></i>
@@ -564,7 +564,7 @@
                         </div>
                         <div class="info-item">
                             <span class="label">CEO Trigger</span>
-                            <span class="value">VOO No Response (7 Days)</span>
+                            <span class="value">COO No Response (7 Days)</span>
                         </div>
                     </div>
                     
@@ -598,7 +598,7 @@
                         <div class="flow-step">
                             <div class="step-box">
                                 <div class="step-icon vp"><i class="bi bi-person-check"></i></div>
-                                <span class="step-label">VOO</span>
+                                <span class="step-label">COO</span>
                                 <span class="step-sublabel">Approve</span>
                             </div>
                             <i class="bi bi-arrow-right step-arrow"></i>
@@ -640,7 +640,7 @@
                     <div class="notes-section">
                         <div class="note-box warning">
                             <i class="bi bi-clock-history"></i>
-                            <div class="text"><strong>CEO Approval:</strong> Required when VOO does not respond within <strong>7 days</strong></div>
+                            <div class="text"><strong>CEO Approval:</strong> Required when COO does not respond within <strong>7 days</strong></div>
                         </div>
                         <div class="note-box info">
                             <i class="bi bi-info-circle"></i>
@@ -709,7 +709,7 @@
                         <div class="flow-step">
                             <div class="step-box">
                                 <div class="step-icon vp"><i class="bi bi-person-check"></i></div>
-                                <span class="step-label">VOO</span>
+                                <span class="step-label">COO</span>
                                 <span class="step-sublabel">Approve</span>
                             </div>
                             <i class="bi bi-arrow-right step-arrow"></i>

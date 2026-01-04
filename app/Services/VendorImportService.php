@@ -9,17 +9,15 @@ use App\Models\VendorStatutoryInfo;
 use App\Models\VendorBankDetail;
 use App\Models\VendorTaxInfo;
 use App\Models\VendorBusinessProfile;
-use App\Services\ZohoService;
+use App\Jobs\SyncVendorToZoho;
+use App\Jobs\SendVendorPasswordEmail;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Exception;
 
 class VendorImportService
 {
-    protected $zohoService;
     protected $results;
 
     // Column mapping (Excel column index => field info)
@@ -57,9 +55,8 @@ class VendorImportService
         30 => ['table' => 'business_profile', 'field' => 'turnover_fy3'],
     ];
 
-    public function __construct(ZohoService $zohoService)
+    public function __construct()
     {
-        $this->zohoService = $zohoService;
         $this->resetResults();
     }
 
@@ -69,10 +66,7 @@ class VendorImportService
             'total_rows' => 0,
             'imported' => 0,
             'skipped' => 0,
-            'zoho_synced' => 0,
-            'zoho_failed' => 0,
-            'emails_sent' => 0,
-            'emails_failed' => 0,
+            'queued_jobs' => 0,
             'errors' => [],
         ];
     }
@@ -107,7 +101,7 @@ class VendorImportService
 
             return [
                 'success' => true,
-                'message' => "Imported {$this->results['imported']} vendors successfully",
+                'message' => "Imported {$this->results['imported']} vendors successfully. {$this->results['queued_jobs']} background jobs queued.",
                 'data' => $this->results,
             ];
 
@@ -192,11 +186,10 @@ class VendorImportService
             DB::commit();
             $this->results['imported']++;
 
-            // Sync to Zoho
-            $this->syncToZoho($vendor);
-
-            // Send set password email
-            $this->sendSetPasswordEmail($vendor);
+            // 🔥 DISPATCH JOBS TO QUEUE (runs in background - NO TIMEOUT!)
+            SyncVendorToZoho::dispatch($vendor);
+            SendVendorPasswordEmail::dispatch($vendor);
+            $this->results['queued_jobs'] += 2;
 
         } catch (Exception $e) {
             DB::rollBack();
@@ -242,66 +235,61 @@ class VendorImportService
     /**
      * Parse row data into table-specific arrays
      */
-    /**
- * Parse row data into table-specific arrays
- */
-protected function parseRowData(array $row): array
-{
-    $data = [
-        'vendor' => [],
-        'company_info' => [],
-        'contact' => [],
-        'statutory_info' => [],
-        'bank_details' => [],
-        'tax_info' => [],
-        'business_profile' => [],
-    ];
-
-    foreach ($this->columnMapping as $colIndex => $mapping) {
-        $value = $row[$colIndex] ?? '';
-        
-        // Clean the value - remove ALL extra spaces
-        if (is_string($value)) {
-            $value = trim($value);
-            $value = preg_replace('/\s+/', ' ', $value);
-        }
-        
-        // Convert to string and trim again (for numeric values from Excel)
-        $value = trim((string) $value);
-
-        if (empty($value)) {
-            continue;
-        }
-
-        // Handle date fields
-        if (isset($mapping['type']) && $mapping['type'] === 'date') {
-            $value = $this->parseDate($value);
-        }
-
-        // Truncate to safe lengths to prevent DB errors
-        $maxLengths = [
-            'pan_number' => 10,
-            'tan_number' => 10,
-            'gstin' => 15,
-            'cin' => 21,
-            'ifsc_code' => 11,
-            'mobile' => 15,
-            'account_number' => 20,
+    protected function parseRowData(array $row): array
+    {
+        $data = [
+            'vendor' => [],
+            'company_info' => [],
+            'contact' => [],
+            'statutory_info' => [],
+            'bank_details' => [],
+            'tax_info' => [],
+            'business_profile' => [],
         ];
-        
-        $field = $mapping['field'];
-        if (isset($maxLengths[$field])) {
-            $value = substr($value, 0, $maxLengths[$field]);
+
+        foreach ($this->columnMapping as $colIndex => $mapping) {
+            $value = $row[$colIndex] ?? '';
+            
+            // Clean the value - remove ALL extra spaces
+            if (is_string($value)) {
+                $value = trim($value);
+                $value = preg_replace('/\s+/', ' ', $value);
+            }
+            
+            // Convert to string and trim again (for numeric values from Excel)
+            $value = trim((string) $value);
+
+            if (empty($value)) {
+                continue;
+            }
+
+            // Handle date fields
+            if (isset($mapping['type']) && $mapping['type'] === 'date') {
+                $value = $this->parseDate($value);
+            }
+
+            // Truncate to safe lengths to prevent DB errors
+            $maxLengths = [
+                'pan_number' => 10,
+                'tan_number' => 10,
+                'gstin' => 15,
+                'cin' => 21,
+                'ifsc_code' => 11,
+                'mobile' => 15,
+                'account_number' => 20,
+            ];
+            
+            $field = $mapping['field'];
+            if (isset($maxLengths[$field])) {
+                $value = substr($value, 0, $maxLengths[$field]);
+            }
+
+            $table = $mapping['table'];
+            $data[$table][$field] = $value;
         }
 
-        $table = $mapping['table'];
-        $data[$table][$field] = $value;
+        return $data;
     }
-
-    return $data;
-}
-
-
 
     /**
      * Parse date from various formats
@@ -330,69 +318,4 @@ protected function parseRowData(array $row): array
 
         return null;
     }
-
-    /**
-     * Sync vendor to Zoho Books
-     */
-    protected function syncToZoho(Vendor $vendor): void
-    {
-        try {
-            if (!$this->zohoService->isConnected()) {
-                $this->results['zoho_failed']++;
-                $this->results['errors'][] = "Row: Zoho not connected for vendor '{$vendor->vendor_name}'";
-                return;
-            }
-
-            $vendor->load(['companyInfo', 'contact', 'statutoryInfo', 'bankDetails']);
-            $this->zohoService->createVendor($vendor);
-            $this->results['zoho_synced']++;
-
-        } catch (Exception $e) {
-            $this->results['zoho_failed']++;
-            $this->results['errors'][] = "Zoho sync failed for '{$vendor->vendor_name}': " . $e->getMessage();
-            Log::error('Zoho sync failed', [
-                'vendor_id' => $vendor->id,
-                'error' => $e->getMessage()
-            ]);
-        }
-    }
-
- /**
- * Send set password email to vendor
- */
-protected function sendSetPasswordEmail(Vendor $vendor): void
-{
-    try {
-        // Generate password reset token
-        $token = Str::random(64);
-        
-        // Update vendor with token only (no link_expires_at)
-        $vendor->update([
-            'token' => $token,
-        ]);
-
-        $setPasswordUrl = route('vendor.password.show', $token);
-
-        // Send email
-        Mail::send('emails.vendor-set-password', [
-            'vendor' => $vendor,
-            'vendorName' => $vendor->vendor_name,
-            'vendorEmail' => $vendor->vendor_email,
-            'setPasswordUrl' => $setPasswordUrl,
-        ], function ($message) use ($vendor) {
-            $message->to($vendor->vendor_email)
-                    ->subject('Set Your Password - Vendor Portal');
-        });
-
-        // ✅ THIS LINE WAS MISSING!
-        $this->results['emails_sent']++;
-
-    } catch (Exception $e) {
-        $this->results['emails_failed']++;
-        Log::error('Set password email failed', [
-            'vendor_id' => $vendor->id,
-            'vendor_email' => $vendor->vendor_email,
-            'error' => $e->getMessage()
-        ]);
-    }
-}}
+}
