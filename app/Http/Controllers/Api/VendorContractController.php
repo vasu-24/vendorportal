@@ -19,10 +19,18 @@ class VendorContractController extends Controller
         try {
             $vendorId = Auth::guard('vendor')->id();
 
-          $query = Contract::with(['items.category'])
+$query = Contract::with(['items.category'])
     ->where('vendor_id', $vendorId)
     ->where('is_visible_to_vendor', true)
-    ->where('is_signed', true);  // Only show signed contracts
+    ->where(function($q) {
+        // Normal contracts: must be signed
+        $q->where(function($q2) {
+            $q2->where('contract_type', '!=', 'adhoc')
+               ->where('is_signed', true);
+        })
+        // ADHOC contracts: always visible (no signing needed)
+        ->orWhere('contract_type', 'adhoc');
+    });
 
             // Filter by status
             if ($request->has('status') && $request->status !== 'all') {
@@ -157,16 +165,25 @@ public function getContractItems($id)
     // =====================================================
     // GET CONTRACTS FOR DROPDOWN (Invoice form)
     // =====================================================
-
 public function getContractsDropdown()
 {
     try {
         $vendorId = Auth::guard('vendor')->id();
 
-      $contracts = Contract::where('vendor_id', $vendorId)
-    ->where('is_visible_to_vendor', true)
-    ->where('is_signed', true)  // Only signed contracts
-    ->whereIn('status', ['signed', 'active'])
+        $contracts = Contract::where('vendor_id', $vendorId)
+            ->where('is_visible_to_vendor', true)
+            ->where(function($q) {
+                // Normal contracts: must be signed + status signed/active
+                $q->where(function($q2) {
+                    $q2->where('is_signed', true)
+                       ->whereIn('status', ['signed', 'active']);
+                })
+                // ADHOC contracts: any active status (no signing needed)
+                ->orWhere(function($q2) {
+                    $q2->where('contract_type', 'adhoc')
+                       ->whereIn('status', ['draft', 'active', 'signed']);
+                });
+            })
             ->orderBy('contract_number', 'desc')
             ->get(['id', 'contract_number', 'contract_type', 'contract_value', 'sow_value']);
 

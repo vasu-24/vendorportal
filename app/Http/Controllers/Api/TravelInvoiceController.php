@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class TravelInvoiceController extends Controller
 {
@@ -560,20 +561,38 @@ public function getBatchSummary($batchId)
     /**
      * Sync invoice to Zoho (TODO: Implement later)
      */
-    private function syncToZoho($invoice)
-    {
-        try {
-            // TODO: Implement Zoho sync for Travel Invoices later
-            Log::info('Zoho sync pending for travel invoice', ['invoice_id' => $invoice->id]);
-            return false;
-        } catch (\Exception $e) {
-            Log::error('Zoho sync failed', [
+ /**
+ * Sync invoice to Zoho
+ */
+private function syncToZoho($invoice)
+{
+    try {
+        $zohoService = app(ZohoService::class);
+        
+        if (!$zohoService->isConnected()) {
+            Log::warning('Zoho not connected, skipping travel bill sync', [
                 'invoice_id' => $invoice->id,
-                'error' => $e->getMessage()
             ]);
+            return false;
         }
+        
+        $zohoService->createTravelBill($invoice);
+        
+        Log::info('Travel Invoice pushed to Zoho', [
+            'invoice_id' => $invoice->id,
+            'zoho_bill_id' => $invoice->fresh()->zoho_bill_id,
+        ]);
+        
+        return true;
+        
+    } catch (\Exception $e) {
+        Log::error('Zoho sync failed for travel invoice', [
+            'invoice_id' => $invoice->id,
+            'error' => $e->getMessage()
+        ]);
         return false;
     }
+}
 
     /**
      * Get bulk approval message based on status

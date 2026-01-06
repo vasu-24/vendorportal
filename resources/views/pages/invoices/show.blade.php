@@ -394,6 +394,26 @@
     .contract-item-value.warning { color: #f59e0b; }
     .contract-item-value.danger { color: #dc2626; }
     
+    /* Contract Type Badge */
+    .contract-type-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 600;
+        margin-left: 8px;
+    }
+    
+    .contract-type-badge.normal {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+    
+    .contract-type-badge.adhoc {
+        background: #fef3c7;
+        color: #92400e;
+    }
+    
     /* Activity Timeline */
     .activity-item {
         display: flex;
@@ -427,6 +447,28 @@
         padding: 2px 6px;
         border: 1px solid #d1d5db;
         border-radius: 4px;
+    }
+    
+    /* ADHOC Info Box */
+    .adhoc-info-box {
+        background: #fffbeb;
+        border: 1px solid #fcd34d;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 12px;
+    }
+    
+    .adhoc-info-box .label {
+        font-size: 10px;
+        color: #92400e;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    .adhoc-info-box .value {
+        font-size: 14px;
+        font-weight: 700;
+        color: #78350f;
     }
 </style>
 
@@ -636,7 +678,10 @@
         <div class="modal-content">
             <div class="modal-header">
                 <div>
-                    <h5 class="modal-title fw-bold" id="modalInvoiceNumber">Invoice Summary</h5>
+                    <h5 class="modal-title fw-bold">
+                        <span id="modalInvoiceNumber">Invoice Summary</span>
+                        <span class="contract-type-badge" id="contractTypeBadge"></span>
+                    </h5>
                     <small class="opacity-75" id="modalVendorName">Vendor</small>
                 </div>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -656,13 +701,13 @@
                 <!-- Contract vs Invoice -->
                 <div class="summary-section">
                     <div class="summary-title">
-                        <i class="bi bi-file-diff"></i>Contract vs Invoice Comparison
+                        <i class="bi bi-file-diff"></i><span id="comparisonTitle">Contract vs Invoice Comparison</span>
                     </div>
                     
-                    <!-- Contract Summary -->
+                    <!-- Contract/SOW Summary -->
                     <div class="contract-summary mb-3" id="contractSummaryBox">
                         <div class="contract-item">
-                            <div class="contract-item-label">Contract Value</div>
+                            <div class="contract-item-label" id="valueLabel">Contract Value</div>
                             <div class="contract-item-value" id="contractValue">₹0</div>
                         </div>
                         <div class="contract-item">
@@ -679,22 +724,40 @@
                         </div>
                     </div>
                     
-                    <!-- Line Items Comparison -->
-                    <table class="comparison-table">
-                        <thead>
-                            <tr>
-                                <th>Category</th>
-                                <th class="text-center">Con. Qty</th>
-                                <th class="text-center">Inv. Qty</th>
-                                <th class="text-end">Con. Rate</th>
-                                <th class="text-end">Inv. Rate</th>
-                                <th class="text-center">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="comparisonBody">
-                            <!-- Dynamic -->
-                        </tbody>
-                    </table>
+                    <!-- Line Items Comparison (Only for Normal Contracts) -->
+                    <div id="comparisonTableContainer">
+                        <table class="comparison-table">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th class="text-center">Con. Qty</th>
+                                    <th class="text-center">Inv. Qty</th>
+                                    <th class="text-end">Con. Rate</th>
+                                    <th class="text-end">Inv. Rate</th>
+                                    <th class="text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="comparisonBody">
+                                <!-- Dynamic -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- ADHOC Info (Only for ADHOC Contracts) -->
+                    <div id="adhocInfoContainer" style="display: none;">
+                        <div class="adhoc-info-box">
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="label">Category</div>
+                                    <div class="value" id="adhocCategory">-</div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="label">Tag / Manager</div>
+                                    <div class="value" id="adhocTag">-</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Activity Timeline -->
@@ -830,13 +893,35 @@ function loadTags() {
 }
 
 // =====================================================
+// CHECK IF CONTRACT IS ADHOC
+// =====================================================
+function isAdhocContract() {
+    return contractData && contractData.contract_type === 'adhoc';
+}
+
+// =====================================================
+// GET CONTRACT/SOW VALUE
+// =====================================================
+function getContractOrSowValue() {
+    if (!contractData) return 0;
+    
+    if (isAdhocContract()) {
+        // For ADHOC: use sow_value or contract_value (they store SOW value in contract_value)
+        return parseFloat(contractData.sow_value) || parseFloat(contractData.contract_value) || 0;
+    }
+    
+    // For Normal: use contract_value
+    return parseFloat(contractData.contract_value) || 0;
+}
+
+// =====================================================
 // RENDER PAGE
 // =====================================================
 function renderPage() {
     const inv = invoiceData;
 
     // Set edit permissions
-canEdit = (USER_ROLE === 'finance' && inv.status === 'pending_finance') || (USER_ROLE === 'super-admin' && inv.status === 'pending_finance');
+    canEdit = (USER_ROLE === 'finance' && inv.status === 'pending_finance') || (USER_ROLE === 'super-admin' && inv.status === 'pending_finance');
     canChangeTag = (USER_ROLE === 'manager' && inv.status === 'pending_rm') || USER_ROLE === 'super-admin';
     
     // Header
@@ -917,9 +1002,9 @@ function renderLineItems(items) {
     
     let html = '';
     items.forEach((item, i) => {
-        const categoryName = item.contract_item?.category?.name || '-';
-      const tagId = invoiceData.assigned_tag_id || item.contract_item?.tag_id || '';
-const tagName = invoiceData.assigned_tag_name || item.contract_item?.tag_name || '';
+        const categoryName = item.contract_item?.category?.name || item.category?.name || '-';
+        const tagId = invoiceData.assigned_tag_id || item.contract_item?.tag_id || '';
+        const tagName = invoiceData.assigned_tag_name || item.contract_item?.tag_name || '';
         
         // Tag cell - dropdown for RM, badge for others
         let tagCell = '';
@@ -1199,19 +1284,54 @@ function openSummaryModal() {
 }
 
 // =====================================================
-// RENDER SUMMARY MODAL
+// RENDER SUMMARY MODAL - DYNAMIC FOR CONTRACT/ADHOC
 // =====================================================
 function renderSummaryModal() {
     const inv = invoiceData;
     const contract = contractData;
+    const isAdhoc = isAdhocContract();
     
     $('#modalInvoiceNumber').text(inv.invoice_number);
     $('#modalVendorName').text(inv.vendor?.vendor_name || '-');
     
+    // Contract Type Badge
+    if (isAdhoc) {
+        $('#contractTypeBadge').text('ADHOC').removeClass('normal').addClass('adhoc').show();
+        $('#comparisonTitle').text('SOW vs Invoice Comparison');
+        $('#valueLabel').text('SOW Value');
+    } else {
+        $('#contractTypeBadge').text('CONTRACT').removeClass('adhoc').addClass('normal').show();
+        $('#comparisonTitle').text('Contract vs Invoice Comparison');
+        $('#valueLabel').text('Contract Value');
+    }
+    
     renderApprovalFlow(inv, contract);
     renderContractSummary(inv, contract);
-    renderComparisonTable(inv);
+    
+    // Show/Hide comparison table based on contract type
+    if (isAdhoc) {
+        $('#comparisonTableContainer').hide();
+        $('#adhocInfoContainer').show();
+        renderAdhocInfo(inv, contract);
+    } else {
+        $('#comparisonTableContainer').show();
+        $('#adhocInfoContainer').hide();
+        renderComparisonTable(inv);
+    }
+    
     renderActivityTimeline(inv);
+}
+
+// =====================================================
+// RENDER ADHOC INFO
+// =====================================================
+function renderAdhocInfo(inv, contract) {
+    // Get category and tag from contract items or invoice
+    const categoryName = contract?.items?.[0]?.category?.name || inv.items?.[0]?.category?.name || '-';
+    const tagName = inv.assigned_tag_name || contract?.items?.[0]?.tag_name || '-';
+    
+    $('#adhocCategory').text(categoryName);
+    $('#adhocTag').text(tagName);
 }
 
 // =====================================================
@@ -1219,8 +1339,8 @@ function renderSummaryModal() {
 // =====================================================
 function renderApprovalFlow(inv, contract) {
     const invoiceAmount = parseFloat(inv.grand_total) || 0;
-    const contractValue = parseFloat(contract?.contract_value) || 0;
-    const needsCEO = invoiceAmount > contractValue;
+    const contractOrSowValue = getContractOrSowValue();
+    const needsCEO = invoiceAmount > contractOrSowValue;
     
     let steps = [
         { key: 'rm', label: 'RM', icon: 'bi-person' },
@@ -1278,15 +1398,15 @@ function renderApprovalFlow(inv, contract) {
 }
 
 // =====================================================
-// RENDER CONTRACT SUMMARY
+// RENDER CONTRACT/SOW SUMMARY - DYNAMIC
 // =====================================================
 function renderContractSummary(inv, contract) {
-    const contractValue = parseFloat(contract?.contract_value) || 0;
+    const contractOrSowValue = getContractOrSowValue();
     const thisInvoice = parseFloat(inv.grand_total) || 0;
     const previousUsed = parseFloat(contract?.used_amount) || 0;
-    const remaining = contractValue - previousUsed - thisInvoice;
+    const remaining = contractOrSowValue - previousUsed - thisInvoice;
     
-    $('#contractValue').text('₹' + formatNum(contractValue));
+    $('#contractValue').text('₹' + formatNum(contractOrSowValue));
     $('#previousUsed').text('₹' + formatNum(previousUsed));
     $('#thisInvoice').text('₹' + formatNum(thisInvoice));
     
@@ -1295,7 +1415,7 @@ function renderContractSummary(inv, contract) {
     
     if (remaining < 0) {
         remainingEl.removeClass('success warning').addClass('danger');
-    } else if (remaining < contractValue * 0.2) {
+    } else if (remaining < contractOrSowValue * 0.2) {
         remainingEl.removeClass('success danger').addClass('warning');
     } else {
         remainingEl.removeClass('warning danger').addClass('success');
@@ -1303,7 +1423,7 @@ function renderContractSummary(inv, contract) {
 }
 
 // =====================================================
-// RENDER COMPARISON TABLE
+// RENDER COMPARISON TABLE (Only for Normal Contracts)
 // =====================================================
 function renderComparisonTable(inv) {
     const items = inv.items || [];
@@ -1325,7 +1445,7 @@ function renderComparisonTable(inv) {
         const rateOk = invRate <= conRate;
         const allOk = qtyOk && rateOk;
         
-        const category = ci.category?.name || '-';
+        const category = ci.category?.name || item.category?.name || '-';
         
         html += `
             <tr>

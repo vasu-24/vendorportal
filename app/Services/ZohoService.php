@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use Exception;
+use App\Models\TravelInvoice;
 
 class ZohoService
 {
@@ -310,6 +311,61 @@ class ZohoService
         return $result;
     }
 
+
+/**
+ * Search for a vendor in Zoho by GSTIN, PAN, or name
+ */
+public function findVendorInZoho(Vendor $vendor): ?string
+{
+    $accessToken = $this->getValidToken();
+    $organizationId = $this->getOrganizationId();
+
+    if (!$accessToken || !$organizationId) {
+        throw new Exception('Not connected to Zoho');
+    }
+
+    // Priority: GSTIN -> PAN -> Email -> Name
+    $searchParams = [
+        $vendor->statutoryInfo->gstin ?? null,
+        $vendor->statutoryInfo->pan_number ?? null,
+        $vendor->vendor_email ?? null,
+        $vendor->vendor_name,
+    ];
+
+    foreach ($searchParams as $search) {
+        if (!$search) continue;
+        $url = "{$this->apiUrl}/books/v3/contacts?organization_id={$organizationId}&search_text=" . urlencode($search);
+
+        $response = Http::withHeaders([
+            'Authorization' => "Zoho-oauthtoken {$accessToken}",
+        ])->get($url);
+
+        if ($response->failed()) continue;
+
+        $result = $response->json();
+        $contacts = $result['contacts'] ?? [];
+        foreach ($contacts as $contact) {
+            // Match further on GST/PAN if possible
+            if (!empty($vendor->statutoryInfo->gstin) && isset($contact['gst_treatment']) && strpos($contact['notes'] ?? '', $vendor->statutoryInfo->gstin) !== false) {
+                return $contact['contact_id'];
+            }
+            if (!empty($vendor->statutoryInfo->pan_number) && strpos($contact['notes'] ?? '', $vendor->statutoryInfo->pan_number) !== false) {
+                return $contact['contact_id'];
+            }
+            if (!empty($vendor->vendor_email) && $contact['email'] === $vendor->vendor_email) {
+                return $contact['contact_id'];
+            }
+            if ($contact['contact_name'] === $vendor->vendor_name) {
+                return $contact['contact_id'];
+            }
+        }
+    }
+    return null; // Not found
+}
+
+
+
+
     /**
      * Update vendor in Zoho Books
      */
@@ -417,7 +473,8 @@ class ZohoService
      * 🔥 Create Bill in Zoho Books
      * Called when admin approves an invoice
      */
-  public function createBill(Invoice $invoice): array
+
+    public function createBill(Invoice $invoice): array
 {
     $accessToken = $this->getValidToken();
     $organizationId = $this->getOrganizationId();
@@ -438,21 +495,37 @@ class ZohoService
         throw new Exception('Invoice has no vendor');
     }
 
-    // If vendor not synced to Zoho, create first
+    // If vendor not synced to Zoho, search first then create
     if (!$invoice->vendor->zoho_contact_id) {
-        Log::info('Vendor not in Zoho, creating first', ['vendor_id' => $invoice->vendor->id]);
-        $this->createVendor($invoice->vendor);
+        $zohoContactId = $this->findVendorInZoho($invoice->vendor);
+        
+        if ($zohoContactId) {
+            $invoice->vendor->update([
+                'zoho_contact_id' => $zohoContactId,
+                'zoho_synced_at' => now(),
+            ]);
+            Log::info('Vendor found in Zoho, linked locally', [
+                'vendor_id' => $invoice->vendor->id,
+                'zoho_contact_id' => $zohoContactId,
+            ]);
+        } else {
+            Log::info('Vendor not in Zoho, creating first', ['vendor_id' => $invoice->vendor->id]);
+            $this->createVendor($invoice->vendor);
+        }
         $invoice->vendor->refresh();
     }
 
-    // 👇 ADD THIS LINE
+    // Default account as fallback
     $defaultAccountId = config('zoho.expense_account_id');
 
-    // Prepare line items
+    // Prepare line items - USE CATEGORY'S CHART OF ACCOUNT
     $lineItems = [];
     foreach ($invoice->items as $item) {
+        // 🔥 Use category's zoho_account_id, fallback to default
+        $accountId = $item->category->zoho_account_id ?? $defaultAccountId;
+        
         $lineItems[] = [
-            'account_id' => $defaultAccountId,  // 👈 ADD THIS
+            'account_id' => $accountId,
             'name' => $item->category->name ?? $item->particulars ?? 'Item',
             'description' => $item->particulars ?? '',
             'quantity' => (float) $item->quantity,
@@ -464,7 +537,7 @@ class ZohoService
     // If no line items, create one from totals
     if (empty($lineItems)) {
         $lineItems[] = [
-            'account_id' => $defaultAccountId,  // 👈 ADD THIS
+            'account_id' => $defaultAccountId,
             'name' => 'Invoice Amount',
             'description' => $invoice->description ?? '',
             'quantity' => 1,
@@ -485,22 +558,58 @@ class ZohoService
         'reference_number' => $invoice->invoice_number,
     ];
 
-    // Add notes with contract reference
-    $notes = [];
-    if ($invoice->contract) {
-        $notes[] = "Contract: {$invoice->contract->contract_number}";
+// 🔥 PROFESSIONAL NOTES
+$notes = [];
+
+$notes[] = "═══════════════════════════════════";
+
+if ($invoice->contract) {
+    if ($invoice->contract->contract_type === 'adhoc') {
+        $notes[] = " ADHOC CONTRACT INVOICE";
+        $notes[] = "═══════════════════════════════════";
+        $notes[] = "";
+        $notes[] = "Contract #: {$invoice->contract->contract_number}";
+        $notes[] = "SOW Value: ₹" . number_format($invoice->contract->sow_value ?? 0, 2);
+        $notes[] = "Invoice Type: Ad-hoc / One-time Service";
+    } else {
+        $notes[] = " STANDARD CONTRACT INVOICE";
+        $notes[] = "═══════════════════════════════════";
+        $notes[] = "";
+        $notes[] = "Contract #: {$invoice->contract->contract_number}";
+        $notes[] = "Contract Value: ₹" . number_format($invoice->contract->contract_value ?? 0, 2);
     }
-    if ($invoice->description) {
-        $notes[] = $invoice->description;
-    }
-    if (!empty($notes)) {
-        $zohoData['notes'] = implode("\n", $notes);
-    }
+} else {
+    $notes[] = " VENDOR INVOICE";
+    $notes[] = "═══════════════════════════════════";
+}
+
+$notes[] = "";
+$notes[] = "Vendor Invoice #: {$invoice->invoice_number}";
+$notes[] = "Invoice Date: " . ($invoice->invoice_date ? $invoice->invoice_date->format('d M Y') : now()->format('d M Y'));
+
+if ($invoice->due_date) {
+    $notes[] = "Due Date: " . $invoice->due_date->format('d M Y');
+}
+
+if ($invoice->description) {
+    $notes[] = "";
+    $notes[] = "Description: {$invoice->description}";
+}
+
+$notes[] = "";
+$notes[] = "───────────────────────────────────";
+$notes[] = "Generated via Vendor Portal";
+
+$zohoData['notes'] = implode("\n", $notes);
+
+
+
 
     Log::info('Creating Bill in Zoho', [
         'invoice_id' => $invoice->id,
         'invoice_number' => $invoice->invoice_number,
         'vendor_zoho_id' => $invoice->vendor->zoho_contact_id,
+        'contract_type' => $invoice->contract->contract_type ?? 'none',
         'data' => $zohoData,
     ]);
 
@@ -537,6 +646,8 @@ class ZohoService
 
     return $result;
 }
+
+
 
     /**
      * Get Bill from Zoho Books
@@ -678,6 +789,48 @@ class ZohoService
         return $results;
     }
 
+
+
+/**
+ * Sync payment status for TravelInvoice (for zoho_bill_id)
+ */
+public function syncTravelBillStatus(\App\Models\TravelInvoice $invoice): bool
+{
+    if (!$invoice->zoho_bill_id) {
+        \Log::warning('TravelInvoice not synced to Zoho', ['invoice_id' => $invoice->id]);
+        return false;
+    }
+    try {
+        $result = $this->getBill($invoice->zoho_bill_id);
+        $zohoBill = $result['bill'] ?? null;
+        if (!$zohoBill) return false;
+
+        $zohoStatus = $zohoBill['status'] ?? '';
+        $balanceDue = (float) ($zohoBill['balance'] ?? 0);
+
+        if ($zohoStatus === 'paid' || $balanceDue == 0) {
+            if ($invoice->status !== 'paid') {
+                $invoice->update([
+                    'status' => 'paid',
+                    'paid_at' => now(),
+                    'zoho_synced_at' => now(),
+                ]);
+            }
+            return true;
+        }
+        $invoice->update(['zoho_synced_at' => now()]);
+        return true;
+    } catch (\Exception $e) {
+        \Log::error('Failed to sync travel bill status', [
+            'invoice_id' => $invoice->id,
+            'error' => $e->getMessage(),
+        ]);
+        return false;
+    }
+}
+
+
+
     /**
      * Update Bill in Zoho
      */
@@ -762,6 +915,41 @@ class ZohoService
 
         return $response->successful();
     }
+
+
+    /**
+ * Get TDS Taxes from Zoho Books (Direct Taxes)
+ */
+public function getTdsTaxes(): array
+{
+    $accessToken = $this->getValidToken();
+    $organizationId = $this->getOrganizationId();
+
+    if (!$accessToken) {
+        throw new Exception('Not connected to Zoho');
+    }
+
+    if (!$organizationId) {
+        throw new Exception('Organization ID not set');
+    }
+
+ $response = Http::withHeaders([
+    'Authorization' => "Zoho-oauthtoken {$accessToken}",
+])->get("{$this->apiUrl}/books/v3/settings/incometaxes?organization_id={$organizationId}");
+
+    if ($response->failed()) {
+        Log::error('Zoho Get TDS Taxes Error', ['response' => $response->json()]);
+        throw new Exception('Failed to get TDS taxes from Zoho');
+    }
+
+    $result = $response->json();
+
+    Log::info('Fetched TDS Taxes from Zoho', [
+        'count' => count($result['tds_taxes'] ?? []),
+    ]);
+
+    return $result['tds_taxes'] ?? [];
+}
 
     /**
      * Get bill payments from Zoho
@@ -1019,43 +1207,276 @@ public function getExpenseAccounts(): array
 
         return $response->json()['tax'] ?? [];
     }
-
-    /**
-     * 🔥 Get formatted taxes for dropdown
-     * Separates GST and TDS for easy use in frontend
-     */
-    public function getFormattedTaxes(): array
-    {
-        $taxes = $this->getTaxes();
-        
-        $gstTaxes = [];
-        $tdsTaxes = [];
-        
-        foreach ($taxes as $tax) {
-            $taxData = [
-                'tax_id' => $tax['tax_id'] ?? '',
-                'tax_name' => $tax['tax_name'] ?? '',
-                'tax_percentage' => $tax['tax_percentage'] ?? 0,
-                'tax_type' => $tax['tax_type'] ?? '',
-            ];
-            
-            // Separate TDS and GST
-            $taxName = strtolower($tax['tax_name'] ?? '');
-            $taxType = strtolower($tax['tax_type'] ?? '');
-            
-            if (str_contains($taxName, 'tds') || str_contains($taxType, 'tds') || str_contains($taxName, '194')) {
-                $tdsTaxes[] = $taxData;
-            } else {
-                $gstTaxes[] = $taxData;
-            }
-        }
-        
-        return [
-            'gst' => $gstTaxes,
-            'tds' => $tdsTaxes,
-            'all' => $taxes,
+public function getFormattedTaxes(): array
+{
+    // GST Taxes (from /settings/taxes)
+    $taxes = $this->getTaxes();
+    $gstTaxes = [];
+    foreach ($taxes as $tax) {
+        $gstTaxes[] = [
+            'tax_id' => $tax['tax_id'] ?? '',
+            'tax_name' => $tax['tax_name'] ?? '',
+            'tax_percentage' => $tax['tax_percentage'] ?? 0,
+            'tax_type' => $tax['tax_type'] ?? '',
         ];
     }
+
+    // TDS Taxes (from /settings/incometaxes)
+    $tdsRaw = $this->getTdsTaxes();
+    $tdsTaxes = [];
+    foreach ($tdsRaw as $tds) {
+        $tdsTaxes[] = [
+            'tax_id'        => $tds['tax_id'] ?? '',                  // TDS tax id
+            'tax_name'      => $tds['tax_name'] ?? '',                // "TDS - Contractors (194C) - 1%"
+            'tax_percentage'=> $tds['tax_percentage'] ?? 0,
+            'account_id'    => $tds['account_id'] ?? '',              // Needed for bill creation
+            'section'       => $tds['section'] ?? '',                 // "194C"
+            'is_active'     => $tds['is_active'] ?? false,
+        ];
+    }
+
+    return [
+        'gst' => $gstTaxes,
+        'tds' => $tdsTaxes,   // From API!
+        'all' => $taxes,
+    ];
+}
+
+
+
+
+
+/**
+ * 🔥 Create Travel Invoice Bill in Zoho Books
+ * Called when Finance approves a travel invoice
+ */
+public function createTravelBill(TravelInvoice $invoice): array
+{
+    $accessToken = $this->getValidToken();
+    $organizationId = $this->getOrganizationId();
+
+    if (!$accessToken) {
+        throw new Exception('Not connected to Zoho');
+    }
+
+    if (!$organizationId) {
+        throw new Exception('Organization ID not set');
+    }
+
+    // Load required relations
+    $invoice->load(['vendor.statutoryInfo', 'employee', 'items', 'category', 'batch']);
+
+    // -----------------------------------------------------
+    // VENDOR SAFETY CHECK
+    // -----------------------------------------------------
+    if (!$invoice->vendor) {
+        throw new Exception('Travel Invoice has no vendor');
+    }
+
+    $vendor = $invoice->vendor;
+
+    /**
+     * STEP 1: If vendor already linked locally → use it
+     */
+    if (!$vendor->zoho_contact_id) {
+
+        /**
+         * STEP 2: Search vendor in Zoho BEFORE creating
+         */
+        $zohoContactId = $this->findVendorInZoho($vendor);
+
+        if ($zohoContactId) {
+            // ✅ Vendor found in Zoho → link locally
+            $vendor->update([
+                'zoho_contact_id' => $zohoContactId,
+                'zoho_synced_at' => now(),
+            ]);
+
+            Log::info('Vendor found in Zoho, linked locally', [
+                'vendor_id' => $vendor->id,
+                'zoho_contact_id' => $zohoContactId,
+            ]);
+        } else {
+            // ❌ Vendor NOT found → create new
+            Log::info('Vendor not found in Zoho, creating', [
+                'vendor_id' => $vendor->id,
+            ]);
+
+            $this->createVendor($vendor);
+            $vendor->refresh();
+        }
+    }
+
+    // -----------------------------------------------------
+    // LINE ITEMS
+    // -----------------------------------------------------
+   $defaultAccountId = config('zoho.expense_account_id');
+
+foreach ($invoice->items as $item) {
+    // Use category's zoho_account_id if available
+    $accountId = $invoice->category->zoho_account_id ?? $defaultAccountId;
+    
+    $lineItems[] = [
+        'account_id' => $accountId,
+            'name' => $item->mode_label ?? 'Travel Expense',
+            'description' => $item->particulars ?? '',
+            'quantity' => 1,
+            'rate' => (float) $item->gross_amount,
+        ];
+    }
+
+    if (empty($lineItems)) {
+        $lineItems[] = [
+            'account_id' => $defaultAccountId,
+            'name' => $invoice->category->name ?? 'Travel Expense',
+            'description' => $invoice->description ?? '',
+            'quantity' => 1,
+            'rate' => (float) $invoice->gross_amount,
+        ];
+    }
+
+    // -----------------------------------------------------
+    // BILL DATA
+    // -----------------------------------------------------
+    $zohoData = [
+        'vendor_id' => $vendor->zoho_contact_id,
+        'bill_number' => $invoice->invoice_number,
+        'date' => $invoice->invoice_date
+            ? $invoice->invoice_date->format('Y-m-d')
+            : ($invoice->travel_date
+                ? $invoice->travel_date->format('Y-m-d')
+                : now()->format('Y-m-d')),
+        'due_date' => now()->addDays(30)->format('Y-m-d'),
+        'line_items' => $lineItems,
+        'reference_number' => $invoice->invoice_number,
+    ];
+
+    // -----------------------------------------------------
+    // TDS
+    // -----------------------------------------------------
+    // if ($invoice->tds_percent > 0) {
+    //     $zohoData['is_tds_amount_in_percent'] = true;
+    //     $zohoData['tds_percent'] = (float) $invoice->tds_percent;
+    // }
+
+    // -----------------------------------------------------
+    // NOTES
+    // -----------------------------------------------------
+// -----------------------------------------------------
+// 🔥 PROFESSIONAL NOTES FOR TRAVEL INVOICE
+// -----------------------------------------------------
+$notes = [];
+
+$notes[] = "═══════════════════════════════════";
+$notes[] = " TRAVEL EXPENSE INVOICE";
+$notes[] = "═══════════════════════════════════";
+$notes[] = "";
+
+// Invoice Details
+$notes[] = "Invoice #: {$invoice->invoice_number}";
+$notes[] = "Invoice Date: " . ($invoice->invoice_date ? $invoice->invoice_date->format('d M Y') : now()->format('d M Y'));
+
+if ($invoice->batch) {
+    $notes[] = "Batch #: {$invoice->batch->batch_number}";
+}
+
+$notes[] = "";
+$notes[] = "───────────────────────────────────";
+$notes[] = " EMPLOYEE DETAILS";
+$notes[] = "───────────────────────────────────";
+
+if ($invoice->employee) {
+    $notes[] = "Name: {$invoice->employee->employee_name}";
+    if ($invoice->employee->employee_id) {
+        $notes[] = "Employee ID: {$invoice->employee->employee_id}";
+    }
+    if ($invoice->employee->department) {
+        $notes[] = "Department: {$invoice->employee->department}";
+    }
+} else {
+    $notes[] = "Name: N/A";
+}
+
+$notes[] = "";
+$notes[] = "───────────────────────────────────";
+$notes[] = " TRAVEL DETAILS";
+$notes[] = "───────────────────────────────────";
+
+if ($invoice->location) {
+    $notes[] = "Location: {$invoice->location}";
+}
+
+if ($invoice->travel_date) {
+    $notes[] = "Travel Date: " . $invoice->travel_date->format('d M Y');
+}
+
+if ($invoice->travel_type) {
+    $notes[] = "Travel Type: " . ucfirst($invoice->travel_type);
+}
+
+if ($invoice->tag_name) {
+    $notes[] = "Project/Tag: {$invoice->tag_name}";
+}
+
+if ($invoice->project_code) {
+    $notes[] = "Project Code: {$invoice->project_code}";
+}
+
+if ($invoice->description) {
+    $notes[] = "";
+    $notes[] = "Description: {$invoice->description}";
+}
+
+$notes[] = "";
+$notes[] = "═══════════════════════════════════";
+$notes[] = "Generated via Vendor Portal";
+
+$zohoData['notes'] = implode("\n", $notes);
+
+    // -----------------------------------------------------
+    // SEND TO ZOHO
+    // -----------------------------------------------------
+    Log::info('Creating Travel Bill in Zoho', [
+        'invoice_id' => $invoice->id,
+        'vendor_zoho_id' => $vendor->zoho_contact_id,
+    ]);
+
+    $response = Http::withHeaders([
+        'Authorization' => "Zoho-oauthtoken {$accessToken}",
+        'Content-Type' => 'application/json',
+    ])->post(
+        "{$this->apiUrl}/books/v3/bills?organization_id={$organizationId}",
+        $zohoData
+    );
+
+    $result = $response->json();
+
+    if ($response->failed() || ($result['code'] ?? 0) !== 0) {
+        Log::error('Zoho Create Travel Bill Error', [
+            'invoice_id' => $invoice->id,
+            'response' => $result,
+        ]);
+        throw new Exception($result['message'] ?? 'Failed to create travel bill in Zoho');
+    }
+
+    // -----------------------------------------------------
+    // SAVE ZOHO BILL ID
+    // -----------------------------------------------------
+    $zohoBillId = $result['bill']['bill_id'] ?? null;
+
+    if ($zohoBillId) {
+        $invoice->update([
+            'zoho_bill_id' => $zohoBillId,
+            'zoho_synced_at' => now(),
+        ]);
+    }
+
+    return $result;
+}
+
+
+
+
 
 
 /**

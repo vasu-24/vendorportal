@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    @php
+    $organisation = \App\Models\Organisation::first();
+@endphp
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Set Password - Vendor Portal</title>
@@ -57,7 +60,11 @@
             <canvas id="bgCanvas"></canvas>
             <div class="brand-content">
                 <div class="logo-container">
-                    <img src="{{ asset('images/logo.png') }}" alt="Logo" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2260%22 height=%2260%22 viewBox=%220 0 24 24%22 fill=%22white%22><path d=%22M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5%22/></svg>'">
+                  @if($organisation && $organisation->logo)
+    <img src="{{ asset('storage/' . $organisation->logo) }}" alt="{{ $organisation->short_name ?? 'Logo' }}">
+@else
+    <img src="{{ asset('images/logo.png') }}" alt="Logo">
+@endif
                 </div>
                 <h1>Vendor Portal</h1>
                 <p class="tagline">Set up your account password to get started</p>

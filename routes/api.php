@@ -282,7 +282,7 @@ Route::prefix('travel-invoices')->group(function () {
     Route::get('/statistics', [App\Http\Controllers\Api\TravelInvoiceController::class, 'getStatistics']);
     Route::get('/batches', [App\Http\Controllers\Api\TravelInvoiceController::class, 'getBatches']);
     Route::get('/batches/{batchId}/summary', [App\Http\Controllers\Api\TravelInvoiceController::class, 'getBatchSummary']);
-    Route::put('/admin/travel-invoices/{id}/update', [TravelInvoiceController::class, 'updateInvoice']);
+Route::put('/{id}/update', [TravelInvoiceController::class, 'updateInvoice']);
     Route::get('/{id}', [App\Http\Controllers\Api\TravelInvoiceController::class, 'show']);
 
     

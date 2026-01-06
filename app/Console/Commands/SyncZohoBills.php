@@ -4,6 +4,8 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Services\ZohoService;
+use App\Models\Invoice; // Corrected model name
+use App\Models\TravelInvoice;
 
 class SyncZohoBills extends Command
 {
@@ -15,7 +17,7 @@ class SyncZohoBills extends Command
     /**
      * The console command description.
      */
-    protected $description = 'Sync bill payment status from Zoho Books';
+    protected $description = 'Sync bill payment status from Zoho Books (Normal + Travel Invoices)';
 
     /**
      * Execute the console command.
@@ -32,13 +34,52 @@ class SyncZohoBills extends Command
                 return 1;
             }
 
-            $results = $zohoService->syncAllPendingBills();
+            // ===============================
+            // NORMAL INVOICES
+            // ===============================
+            $normal = Invoice::whereNotNull('zoho_invoice_id')
+                ->where('status', 'approved')
+                ->get();
 
-            $this->info("Total invoices: {$results['total']}");
-            $this->info("Synced: {$results['synced']}");
-            $this->info("Marked as paid: {$results['paid']}");
-            $this->info("Failed: {$results['failed']}");
+            // ===============================
+            // TRAVEL INVOICES
+            // ===============================
+            $travel = TravelInvoice::whereNotNull('zoho_bill_id')
+                ->where('status', 'approved')
+                ->get();
 
+            $total = $normal->count() + $travel->count();
+            $synced = 0;
+            $paid = 0;
+            $failed = 0;
+
+            // ----- NORMAL -----
+            foreach ($normal as $invoice) {
+                try {
+                    $zohoService->syncBillStatus($invoice);
+                    $synced++;
+                    if ($invoice->fresh()->status === 'paid') $paid++;
+                } catch (\Throwable $e) {
+                    $failed++;
+                }
+            }
+
+            // ----- TRAVEL -----
+            foreach ($travel as $invoice) {
+                try {
+                    // Add this function in ZohoService (see below)
+                    $zohoService->syncTravelBillStatus($invoice);
+                    $synced++;
+                    if ($invoice->fresh()->status === 'paid') $paid++;
+                } catch (\Throwable $e) {
+                    $failed++;
+                }
+            }
+
+            $this->info("Total invoices: $total");
+            $this->info("Synced: $synced");
+            $this->info("Marked as paid: $paid");
+            $this->info("Failed: $failed");
             $this->info('Zoho Bills Sync Complete!');
 
             return 0;

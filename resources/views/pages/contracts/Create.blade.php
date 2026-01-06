@@ -62,22 +62,18 @@
                         {{-- Template --}}
                         <div class="mb-3">
                             <label class="form-label mb-1"><strong>Template <span class="text-danger">*</span></strong></label>
-                            <select id="agreementTemplate" name="template_file" class="form-select form-select-sm" required>
-                                <option value="">-- Select Template --</option>
-                                @foreach(config('contracts.templates') as $key => $template)
-                                    <option value="{{ $template['file'] }}" 
-                                            data-type="{{ $template['type'] }}"
-                                            data-requires-config="{{ $template['requires_config'] ? 'true' : 'false' }}"
-                                            data-allows-invoice="{{ $template['allows_invoice'] ? 'true' : 'false' }}"
-                                            {{ ($template['file'] ?? '') === ($defaultFile ?? '') ? 'selected' : '' }}>
-                                        {{ $template['label'] }} 
-                                        @if($template['type'] === 'non_paid')
-                                            <span class="text-muted">(Non-Paid)</span>
-                                        @endif
-                                    </option>
-                                @endforeach
-                            </select>
-                            <small class="text-muted" id="templateDescription"></small>
+<select id="agreementTemplate" name="template_file" class="form-select form-select-sm" required>
+    <option value="">-- Select Template --</option>
+    @foreach(config('contracts.templates') as $key => $template)
+        <option value="{{ $template['file'] }}" 
+                data-type="{{ $template['type'] }}"
+                data-requires-config="{{ $template['requires_config'] ? 'true' : 'false' }}"
+                data-allows-invoice="{{ $template['allows_invoice'] ? 'true' : 'false' }}"
+                {{ ($template['file'] ?? '') === ($defaultFile ?? '') ? 'selected' : '' }}>
+            {{ $template['label'] }}
+        </option>
+    @endforeach
+</select>                            <small class="text-muted" id="templateDescription"></small>
                         </div>
 
                         {{-- Template Type Badge --}}

@@ -1,3 +1,7 @@
+@php
+    $organisation = \App\Models\Organisation::first();
+@endphp
+
 <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top"
      style="border-bottom: 1.5px solid var(--border-grey); padding-top: 0.35rem; padding-bottom: 0.35rem; min-height: 56px;">
   <div class="container-fluid px-4">
@@ -5,15 +9,29 @@
     <!-- Brand -->
     <a class="navbar-brand fw-bold d-flex align-items-center"
        href="{{ route('dashboard') }}"
-       style="color: var(--primary-blue); padding:0; margin:0;">
+       style="color: var(--primary-blue); padding:0; margin:0;"
+       @if($organisation && $organisation->company_name)
+           data-bs-toggle="tooltip" 
+           data-bs-placement="bottom" 
+           title="{{ $organisation->company_name }}"
+       @endif
+    >
 
-        <img src="{{ asset('image/logo.png') }}"
-             alt="Vendor Portal"
-             style="height:28px; width:auto; margin-right:8px; margin-bottom:2px;">
+        {{-- Dynamic Logo from Organisation --}}
+        @if($organisation && $organisation->logo)
+            <img src="{{ asset('storage/' . $organisation->logo) }}"
+                 alt="{{ $organisation->short_name ?? 'Logo' }}"
+                 style="height:28px; width:auto; margin-right:8px; margin-bottom:2px;">
+        @else
+            <img src="{{ asset('image/logo.png') }}"
+                 alt="Vendor Portal"
+                 style="height:28px; width:auto; margin-right:8px; margin-bottom:2px;">
+        @endif
 
+        {{-- Full Name - Truncated cleanly (hover shows full name) --}}
         <span class="text-truncate"
-              style="max-width:220px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-            Vendor Portal
+              style="max-width:300px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:inline-block;">
+            {{ $organisation->company_name ?? 'Vendor Portal' }}
         </span>
     </a>
 
@@ -37,40 +55,37 @@
           </a>
         </li>
 
-        <!-- Vendors (Dropdown) -->
-     <li class="nav-item">
-    <a class="nav-link {{ request()->routeIs('vendors.*') ? 'active' : '' }}"
-       href="{{ route('vendors.index') }}">
-        <i class="bi bi-people me-1"></i> Vendors
-    </a>
-</li>
+        <!-- Vendors -->
+        <li class="nav-item">
+          <a class="nav-link {{ request()->routeIs('vendors.*') ? 'active' : '' }}"
+             href="{{ route('vendors.index') }}">
+              <i class="bi bi-people me-1"></i> Vendors
+          </a>
+        </li>
 
+        <!-- Invoices -->
+        <li class="nav-item">
+          <a class="nav-link {{ request()->is('invoices*') ? 'active' : '' }}"
+             href="{{ route('invoices.index') }}">
+             <i class="bi bi-receipt me-1"></i>Invoices
+          </a>
+        </li>
 
-      <!-- Invoices -->
-<li class="nav-item">
-  <a class="nav-link {{ request()->is('invoices*') ? 'active' : '' }}"
-     href="{{ route('invoices.index') }}">
-     <i class="bi bi-receipt me-1"></i>Invoices
-  </a>
-</li>
+        <!-- Travel Invoices -->
+        <li class="nav-item">
+          <a class="nav-link {{ request()->is('admin/travel-invoices*') ? 'active' : '' }}"
+             href="{{ route('admin.travel-invoices.index') }}">
+             <i class="bi bi-airplane me-1"></i>Travel Invoices
+          </a>
+        </li>
 
-<!-- =====================================================
-     TRAVEL INVOICES - NEW MENU ITEM
-     ===================================================== -->
-<li class="nav-item">
-  <a class="nav-link {{ request()->is('admin/travel-invoices*') ? 'active' : '' }}"
-     href="{{ route('admin.travel-invoices.index') }}">
-     <i class="bi bi-airplane me-1"></i>Travel Invoices
-  </a>
-</li>
-
-     <!-- Contracts -->
-<li class="nav-item">
-  <a class="nav-link {{ request()->is('contracts*') ? 'active' : '' }}"
-    href="{{ route('contracts.index') }}">
-     <i class="bi bi-file-earmark-check me-1"></i>Contracts
-  </a>
-</li>
+        <!-- Contracts -->
+        <li class="nav-item">
+          <a class="nav-link {{ request()->is('contracts*') ? 'active' : '' }}"
+             href="{{ route('contracts.index') }}">
+             <i class="bi bi-file-earmark-check me-1"></i>Contracts
+          </a>
+        </li>
 
         <!-- Bank Payments -->
         <li class="nav-item">
@@ -88,86 +103,89 @@
           </a>
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="settingsDropdown">
 
+            <!-- Master Section -->
+            <li><h6 class="dropdown-header">Master</h6></li>
 
-            
-          <!-- Master Section -->
-<li><h6 class="dropdown-header">Master</h6></li>
+            <li>
+              <a class="dropdown-item {{ request()->routeIs('master.template') ? 'active' : '' }}"
+                 href="{{ route('master.template') }}" style="padding-left: 2rem;">
+                 <i class="bi bi-file-earmark-text me-2"></i>Template
+              </a>
+            </li>
 
-<li>
-  <a class="dropdown-item {{ request()->routeIs('master.template') ? 'active' : '' }}"
-     href="{{ route('master.template') }}" style="padding-left: 2rem;">
-     <i class="bi bi-file-earmark-text me-2"></i>Template
-  </a>
-</li>
+            <li>
+              <a class="dropdown-item {{ request()->routeIs('master.organisation') ? 'active' : '' }}"
+                 href="{{ route('master.organisation') }}" style="padding-left: 2rem;">
+                 <i class="bi bi-building me-2"></i>Organisation
+              </a>
+            </li>
 
-<li>
-  <a class="dropdown-item {{ request()->routeIs('master.organisation') ? 'active' : '' }}"
-     href="{{ route('master.organisation') }}" style="padding-left: 2rem;">
-     <i class="bi bi-building me-2"></i>Organisation
-  </a>
-</li>
+            <li>
+              <a class="dropdown-item {{ request()->routeIs('categories.index') ? 'active' : '' }}"
+                 href="{{ route('categories.index') }}" style="padding-left: 2rem;">
+                 <i class="bi bi-tags me-2"></i>Categories
+              </a>
+            </li>
 
-<li>
-  <a class="dropdown-item {{ request()->routeIs('categories.index') ? 'active' : '' }}"
-     href="{{ route('categories.index') }}" style="padding-left: 2rem;">
-     <i class="bi bi-tags me-2"></i>Categories
-  </a>
-</li>
+            <!-- Manager Tags Master -->
+            <li>
+              <a class="dropdown-item {{ request()->routeIs('master.manager-tags') ? 'active' : '' }}"
+                 href="{{ route('master.manager-tags') }}" style="padding-left: 2rem;">
+                 <i class="bi bi-person-badge me-2"></i>Manager Tags
+              </a>
+            </li>
 
-<!-- Manager Tags Master -->
-<li>
-  <a class="dropdown-item {{ request()->routeIs('master.manager-tags') ? 'active' : '' }}"
-     href="{{ route('master.manager-tags') }}" style="padding-left: 2rem;">
-     <i class="bi bi-person-badge me-2"></i>Manager Tags
-  </a>
-</li>
+            <li>
+              <a class="dropdown-item {{ request()->routeIs('master.invoice-flow') ? 'active' : '' }}"
+                 href="{{ route('master.invoice-flow') }}" style="padding-left: 2rem;">
+                 <i class="bi bi-diagram-3 me-2"></i>Invoice Flow
+              </a>
+            </li>
 
-<li>
-  <a class="dropdown-item {{ request()->routeIs('master.invoice-flow') ? 'active' : '' }}"
-     href="{{ route('master.invoice-flow') }}" style="padding-left: 2rem;">
-     <i class="bi bi-diagram-3 me-2"></i>Invoice Flow
-  </a>
-</li>
+            <!-- Travel Employees Master -->
+            <li>
+              <a class="dropdown-item {{ request()->routeIs('admin.travel-employees.*') || request()->is('admin/master/travel-employees*') ? 'active' : '' }}"
+                 href="{{ route('admin.travel-employees.index') }}" style="padding-left: 2rem;">
+                 <i class="bi bi-person-vcard me-2"></i>Travel Employees
+              </a>
+            </li>
 
-<!-- =====================================================
-     TRAVEL EMPLOYEES MASTER - NEW MENU ITEM
-     ===================================================== -->
-<li>
-  <a class="dropdown-item {{ request()->routeIs('admin.travel-employees.*') || request()->is('admin/master/travel-employees*') ? 'active' : '' }}"
-     href="{{ route('admin.travel-employees.index') }}" style="padding-left: 2rem;">
-     <i class="bi bi-person-vcard me-2"></i>Travel Employees
-  </a>
-</li>
-
-
-<li><hr class="dropdown-divider"></li>
+            <li><hr class="dropdown-divider"></li>
             
             <!-- Administration Section -->
             <li><h6 class="dropdown-header">Administration</h6></li>
             
-            <li><a class="dropdown-item {{ request()->routeIs('admin.users.*') ? 'active' : '' }}"
-                   href="{{ route('admin.users.index') }}" style="padding-left: 2rem;">
-                   <i class="bi bi-people me-2"></i>Users
-            </a></li>
+            <li>
+              <a class="dropdown-item {{ request()->routeIs('admin.users.*') ? 'active' : '' }}"
+                 href="{{ route('admin.users.index') }}" style="padding-left: 2rem;">
+                 <i class="bi bi-people me-2"></i>Users
+              </a>
+            </li>
             
-            <li><a class="dropdown-item {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}"
-                   href="{{ route('admin.roles.index') }}" style="padding-left: 2rem;">
-                   <i class="bi bi-shield-lock me-2"></i>Roles & Permissions
-            </a></li>
+            <li>
+              <a class="dropdown-item {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}"
+                 href="{{ route('admin.roles.index') }}" style="padding-left: 2rem;">
+                 <i class="bi bi-shield-lock me-2"></i>Roles & Permissions
+              </a>
+            </li>
             
             <li><hr class="dropdown-divider"></li>
             
             <!-- General Settings -->
-            <li><a class="dropdown-item {{ request()->routeIs('settings.general') ? 'active' : '' }}"
-                   href="{{ route('settings.general') }}">
-                   <i class="bi bi-gear me-2"></i>General Settings
-            </a></li>
+            <li>
+              <a class="dropdown-item {{ request()->routeIs('settings.general') ? 'active' : '' }}"
+                 href="{{ route('settings.general') }}">
+                 <i class="bi bi-gear me-2"></i>General Settings
+              </a>
+            </li>
 
             <!-- Zoho Books -->
-            <li><a class="dropdown-item {{ request()->routeIs('settings.zoho') ? 'active' : '' }}"
-                   href="{{ route('settings.zoho') }}">
-                   <i class="bi bi-book me-2"></i>Zoho Books
-            </a></li>
+            <li>
+              <a class="dropdown-item {{ request()->routeIs('settings.zoho') ? 'active' : '' }}"
+                 href="{{ route('settings.zoho') }}">
+                 <i class="bi bi-book me-2"></i>Zoho Books
+              </a>
+            </li>
 
           </ul>
         </li>
@@ -182,9 +200,11 @@
           </a>
 
           <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-            <li><a class="dropdown-item" href="#">
+            <li>
+              <a class="dropdown-item" href="#">
                 <i class="bi bi-person me-2"></i>Profile
-            </a></li>
+              </a>
+            </li>
             <li><hr class="dropdown-divider"></li>
             <li>
               <form method="POST" action="{{ route('logout') }}">

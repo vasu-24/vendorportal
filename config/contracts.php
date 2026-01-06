@@ -20,7 +20,7 @@ return [
         'consulting' => [
             'file' => 'Consulting_Agreement_Bold.docx',
             'type' => 'paid',
-            'label' => 'Consulting Agreement',
+            'label' => 'Consulting Agreement (Invoicable)',
             'description' => 'Agreement for hiring individual consultants',
             'allows_invoice' => true,
             'requires_config' => true,
@@ -29,7 +29,7 @@ return [
         'msa' => [
             'file' => 'MSA_Template_Bold.docx',
             'type' => 'paid',
-            'label' => 'Master Service Agreement (MSA)',
+            'label' => 'Master Service Agreement  (Invoicable)',
             'description' => 'Agreement for hiring service provider companies',
             'allows_invoice' => true,
             'requires_config' => true,
@@ -40,7 +40,7 @@ return [
         'fide_mou' => [
             'file' => 'FIDE_Agreement_Bold.docx',
             'type' => 'non_paid',
-            'label' => 'FIDE MOU',
+            'label' => 'FIDE MOU  (Non-Invoicable)',
             'description' => 'Memorandum of Understanding for partnerships',
             'allows_invoice' => false,
             'requires_config' => false,
@@ -49,7 +49,7 @@ return [
         'nda' => [
             'file' => 'NDA_Bold.docx',
             'type' => 'non_paid',
-            'label' => 'Non-Disclosure Agreement (NDA)',
+            'label' => 'Non-Disclosure Agreement (Non-Invoicable) ',
             'description' => 'Confidentiality agreement for protecting sensitive information',
             'allows_invoice' => false,
             'requires_config' => false,

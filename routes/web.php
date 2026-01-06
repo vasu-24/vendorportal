@@ -204,13 +204,14 @@ Route::prefix('master')->middleware('permission:manage-templates')->group(functi
     // ORGANISATION MODULE
     // =====================================================
     
-    Route::get('/master/organisation', [OrganisationController::class, 'index'])
-        ->name('master.organisation')
-        ->middleware('permission:view-organisations');
-        
-    Route::post('/master/organisation', [OrganisationController::class, 'store'])
-        ->name('master.organisation.store')
-        ->middleware('permission:create-organisations');
+   Route::prefix('master')->name('master.')->group(function () {
+    // Organisation routes
+    Route::get('/organisation', [OrganisationController::class, 'index'])->name('organisation');
+    Route::post('/organisation', [OrganisationController::class, 'store'])->name('organisation.store');
+    Route::get('/organisation/{id}/edit', [OrganisationController::class, 'edit'])->name('organisation.edit');
+    Route::put('/organisation/{id}', [OrganisationController::class, 'update'])->name('organisation.update');
+    Route::delete('/organisation/{id}', [OrganisationController::class, 'destroy'])->name('organisation.destroy');
+});
 
     // =====================================================
     // MANAGER TAGS MODULE

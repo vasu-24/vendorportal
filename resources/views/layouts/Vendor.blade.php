@@ -4,10 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Vendor Portal')</title>
-
-    <x-toast />
     
+    @php
+        $organisation = \App\Models\Organisation::first();
+    @endphp
+    
+    <title>@yield('title', ($organisation->short_name ?? 'Vendor') . ' - Vendor Portal')</title>
+
+    {{-- Dynamic favicon --}}
+    @if($organisation && $organisation->logo)
+        <link rel="icon" type="image/png" href="{{ asset('storage/' . $organisation->logo) }}">
+    @else
+        <link rel="icon" type="image/png" href="{{ asset('image/logo.png') }}">
+    @endif
+
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Bootstrap CSS -->
@@ -77,7 +87,7 @@
             align-items: center;
             justify-content: space-between;
             border-bottom: 1px solid var(--border-grey);
-            min-height: 60px;
+            min-height: 70px;
         }
 
         .brand {
@@ -88,29 +98,54 @@
         }
 
         .brand-logo {
-            width: 36px;
-            height: 36px;
-            min-width: 36px;
-            background: linear-gradient(135deg, var(--primary-blue), var(--accent-blue));
+            width: 40px;
+            height: 40px;
+            min-width: 40px;
             border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
-            font-size: 18px;
+            overflow: hidden;
+            background: var(--bg-light);
+            border: 1px solid var(--border-grey);
         }
 
-        .brand-text {
+        .brand-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .brand-logo i {
+            font-size: 20px;
+            color: var(--primary-blue);
+        }
+
+        .brand-info {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            opacity: 1;
+            transition: opacity var(--transition), width var(--transition);
+        }
+
+        .sidebar.collapsed .brand-info {
+            opacity: 0;
+            width: 0;
+        }
+
+        .brand-name {
             font-size: 15px;
             font-weight: 700;
-            color: var(--text-dark);
+            color: var(--primary-blue);
             white-space: nowrap;
-            opacity: 1;
-            transition: opacity var(--transition);
+            line-height: 1.2;
         }
 
-        .sidebar.collapsed .brand-text {
-            opacity: 0;
+        .brand-subtitle {
+            font-size: 11px;
+            color: var(--text-grey);
+            white-space: nowrap;
         }
 
         /* Collapse Button */
@@ -143,7 +178,9 @@
         }
 
         .sidebar.collapsed .collapse-btn {
-            margin: 0 auto;
+            position: absolute;
+            right: 50%;
+            transform: translateX(50%);
         }
 
         /* Sidebar Body */
@@ -170,7 +207,8 @@
             white-space: nowrap;
             overflow: hidden;
             opacity: 1;
-            transition: opacity var(--transition);
+            height: auto;
+            transition: opacity var(--transition), height var(--transition), padding var(--transition);
         }
 
         .sidebar.collapsed .nav-section-title {
@@ -201,7 +239,7 @@
             border-radius: 8px;
             transition: all var(--transition);
             position: relative;
-            overflow: hidden;
+            overflow: visible;
         }
 
         .nav-link:hover {
@@ -246,6 +284,8 @@
 
         .sidebar.collapsed .nav-text {
             opacity: 0;
+            width: 0;
+            overflow: hidden;
         }
 
         .sidebar.collapsed .nav-link {
@@ -253,7 +293,7 @@
             padding: 12px;
         }
 
-        .sidebar.collapsed .nav-link::before {
+        .sidebar.collapsed .nav-link.active::before {
             display: none;
         }
 
@@ -272,6 +312,9 @@
 
         .sidebar.collapsed .nav-badge {
             opacity: 0;
+            width: 0;
+            padding: 0;
+            overflow: hidden;
         }
 
         /* Sidebar Footer */
@@ -314,7 +357,7 @@
             flex: 1;
             overflow: hidden;
             opacity: 1;
-            transition: opacity var(--transition);
+            transition: opacity var(--transition), width var(--transition);
         }
 
         .sidebar.collapsed .user-info {
@@ -342,6 +385,67 @@
         .sidebar.collapsed .user-card {
             padding: 10px;
             justify-content: center;
+        }
+
+        /* =====================================================
+           TOOLTIP (Collapsed State) - FIXED
+           ===================================================== */
+        .sidebar.collapsed .nav-link {
+            position: relative;
+        }
+
+        .sidebar.collapsed .nav-link::after {
+            content: attr(data-title);
+            position: absolute;
+            left: calc(100% + 15px);
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--text-dark);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+            z-index: 9999;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+            pointer-events: none;
+        }
+
+        .sidebar.collapsed .nav-link:hover::after {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Tooltip arrow */
+        .sidebar.collapsed .nav-link::before {
+            content: '';
+            position: absolute;
+            left: calc(100% + 10px);
+            top: 50%;
+            transform: translateY(-50%);
+            border: 5px solid transparent;
+            border-right-color: var(--text-dark);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+            z-index: 9999;
+        }
+
+        .sidebar.collapsed .nav-link:hover::before {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .sidebar.collapsed .nav-link.active::before {
+            display: none;
+        }
+
+        .sidebar.collapsed .nav-link.active:hover::before {
+            display: block;
         }
 
         /* =====================================================
@@ -539,40 +643,6 @@
         }
 
         /* =====================================================
-           TOOLTIP (Collapsed State)
-           ===================================================== */
-        .sidebar.collapsed .nav-link {
-            position: relative;
-        }
-
-        .sidebar.collapsed .nav-link:hover::after {
-            content: attr(data-title);
-            position: absolute;
-            left: calc(100% + 10px);
-            top: 50%;
-            transform: translateY(-50%);
-            background: var(--text-dark);
-            color: white;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 500;
-            white-space: nowrap;
-            z-index: 1000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-
-        .sidebar.collapsed .nav-link:hover::before {
-            content: '';
-            position: absolute;
-            left: calc(100% + 6px);
-            top: 50%;
-            transform: translateY(-50%);
-            border: 5px solid transparent;
-            border-right-color: var(--text-dark);
-        }
-
-        /* =====================================================
            OVERLAY (Mobile)
            ===================================================== */
         .sidebar-overlay {
@@ -608,12 +678,13 @@
                 transform: translateX(0);
             }
 
-            .sidebar.show .brand-text,
+            .sidebar.show .brand-info,
             .sidebar.show .nav-text,
             .sidebar.show .nav-section-title,
             .sidebar.show .nav-badge,
             .sidebar.show .user-info {
                 opacity: 1 !important;
+                width: auto !important;
             }
 
             .collapse-btn {
@@ -665,24 +736,30 @@
             background: var(--text-light);
         }
 
-
-
-
         /* Dropdown Arrow */
-.nav-arrow {
-    font-size: 12px;
-    transition: transform 0.2s;
-}
-.nav-link[aria-expanded="true"] .nav-arrow {
-    transform: rotate(180deg);
-}
-.sidebar.collapsed .nav-arrow {
-    display: none;
-}
+        .nav-arrow {
+            font-size: 12px;
+            transition: transform 0.2s;
+        }
+        
+        .nav-link[aria-expanded="true"] .nav-arrow {
+            transform: rotate(180deg);
+        }
+        
+        .sidebar.collapsed .nav-arrow {
+            display: none;
+        }
+
+        /* Submenu in collapsed state */
+        .sidebar.collapsed .collapse {
+            display: none !important;
+        }
     </style>
     @stack('styles')
 </head>
 <body>
+
+    <x-toast />
 
     <!-- Overlay -->
     <div class="sidebar-overlay" id="overlay"></div>
@@ -693,10 +770,19 @@
         <!-- Header -->
         <div class="sidebar-header">
             <div class="brand">
+                {{-- Dynamic Logo --}}
                 <div class="brand-logo">
-                    <i class="bi bi-building"></i>
+                    @if($organisation && $organisation->logo)
+                        <img src="{{ asset('storage/' . $organisation->logo) }}" alt="{{ $organisation->short_name ?? 'Logo' }}">
+                    @else
+                        <i class="bi bi-building"></i>
+                    @endif
                 </div>
-                <span class="brand-text">Vendor Portal</span>
+                {{-- Brand Name & Subtitle --}}
+                <div class="brand-info">
+                    <span class="brand-name">{{ $organisation->short_name ?? 'Vendor' }}</span>
+                    <span class="brand-subtitle">Vendor Portal</span>
+                </div>
             </div>
             <button class="collapse-btn" id="collapseBtn" title="Collapse">
                 <i class="bi bi-chevron-left"></i>
@@ -707,72 +793,55 @@
         <div class="sidebar-body">
             
             <!-- Main Navigation -->
-           <!-- Main Navigation -->
-<div class="nav-section">
-    <div class="nav-section-title">Main Menu</div>
-    <ul class="nav-menu">
-        <li class="nav-item">
-            <a href="{{ route('vendor.dashboard') }}" 
-               class="nav-link {{ request()->routeIs('vendor.dashboard') ? 'active' : '' }}"
-               data-title="Dashboard">
-                <span class="nav-icon"><i class="bi bi-grid-1x2"></i></span>
-                <span class="nav-text">Dashboard</span>
-            </a>
-        </li>
-      
-     
-        <!-- ✅ ADD THIS - Contracts -->
-        <li class="nav-item">
-            <a href="{{ route('vendor.contracts.index') }}" 
-               class="nav-link {{ request()->routeIs('vendor.contracts*') ? 'active' : '' }}"
-               data-title="Contracts">
-                <span class="nav-icon"><i class="bi bi-file-earmark-check"></i></span>
-                <span class="nav-text">Contracts</span>
-            </a>
-        </li>
-        
-        <li class="nav-item">
-            <a href="{{ route('vendor.invoices.index') }}"
-               class="nav-link {{ request()->routeIs('vendor.invoices*') ? 'active' : '' }}"
-               data-title="Invoices">
-                <span class="nav-icon"><i class="bi bi-receipt"></i></span>
-                <span class="nav-text">Invoices</span>
-                <span class="nav-badge">3</span>
-            </a>
-        </li>
+            <div class="nav-section">
+                <div class="nav-section-title">Main Menu</div>
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a href="{{ route('vendor.dashboard') }}" 
+                           class="nav-link {{ request()->routeIs('vendor.dashboard') ? 'active' : '' }}"
+                           data-title="Dashboard">
+                            <span class="nav-icon"><i class="bi bi-grid-1x2"></i></span>
+                            <span class="nav-text">Dashboard</span>
+                        </a>
+                    </li>
+                  
+                    <!-- Contracts -->
+                    <li class="nav-item">
+                        <a href="{{ route('vendor.contracts.index') }}" 
+                           class="nav-link {{ request()->routeIs('vendor.contracts*') ? 'active' : '' }}"
+                           data-title="Contracts">
+                            <span class="nav-icon"><i class="bi bi-file-earmark-check"></i></span>
+                            <span class="nav-text">Contracts</span>
+                        </a>
+                    </li>
+                    
+                    <!-- Invoices -->
+                    <li class="nav-item">
+                        <a href="{{ route('vendor.invoices.index') }}"
+                           class="nav-link {{ request()->routeIs('vendor.invoices*') ? 'active' : '' }}"
+                           data-title="Invoices">
+                            <span class="nav-icon"><i class="bi bi-receipt"></i></span>
+                            <span class="nav-text">Invoices</span>
+                            <span class="nav-badge">3</span>
+                        </a>
+                    </li>
 
+                    <!-- Travel Invoices -->
+                    <li class="nav-item">
+                        <a href="{{ route('vendor.travel-invoices.index') }}" 
+                           class="nav-link {{ request()->routeIs('vendor.travel-invoices*') ? 'active' : '' }}"
+                           data-title="Travel Invoices">
+                            <span class="nav-icon"><i class="bi bi-airplane"></i></span>
+                            <span class="nav-text">Travel Invoices</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
 
-<!-- ✈️ TRAVEL INVOICES - NEW MENU ITEM -->
-<li class="nav-item">
-    <a href="{{ route('vendor.travel-invoices.index') }}" 
-       class="nav-link {{ request()->routeIs('vendor.travel-invoices*') ? 'active' : '' }}"
-       data-title="Travel Invoices">
-        <span class="nav-icon"><i class="bi bi-airplane"></i></span>
-        <span class="nav-text">Travel Invoices</span>
-    </a>
-</li>
-
-
-    </ul>
-</div>
-
-
-
-
-      <!-- Settings Section -->
-<div class="nav-section">
-    <div class="nav-section-title">Settings</div>
-    <ul class="nav-menu">
-        <li class="nav-item">
-            <a class="nav-link" data-bs-toggle="collapse" href="#settingsMenu" role="button" 
-               aria-expanded="{{ request()->routeIs('vendor.change-password') ? 'true' : 'false' }}"
-               data-title="Settings">
-                <span class="nav-icon"><i class="bi bi-gear"></i></span>
-                <span class="nav-text">Settings</span>
-                <i class="bi bi-chevron-down ms-auto nav-arrow"></i>
-            </a>
-            <div class="collapse {{ request()->routeIs('vendor.change-password') ? 'show' : '' }}" id="settingsMenu">
-                <ul class="nav-menu ps-4">
+            <!-- Settings Section -->
+            <div class="nav-section">
+                <div class="nav-section-title">Settings</div>
+                <ul class="nav-menu">
                     <li class="nav-item">
                         <a href="{{ route('vendor.change-password') }}" 
                            class="nav-link {{ request()->routeIs('vendor.change-password') ? 'active' : '' }}"
@@ -783,16 +852,6 @@
                     </li>
                 </ul>
             </div>
-        </li>
-       
-    </ul>
-</div>
-
-
-
-                  
-                </ul>
-            </div>
 
         </div>
 
@@ -801,11 +860,11 @@
             <div class="dropdown">
                 <div class="user-card" data-bs-toggle="dropdown">
                     <div class="user-avatar">
-                        {{ strtoupper(substr(Auth::guard('vendor')->user()->vendor_name, 0, 2)) }}
+                        {{ strtoupper(substr(Auth::guard('vendor')->user()->vendor_name ?? 'V', 0, 2)) }}
                     </div>
                     <div class="user-info">
-                        <div class="user-name">{{ Auth::guard('vendor')->user()->vendor_name }}</div>
-                        <div class="user-email">{{ Auth::guard('vendor')->user()->vendor_email }}</div>
+                        <div class="user-name">{{ Auth::guard('vendor')->user()->vendor_name ?? 'Vendor' }}</div>
+                        <div class="user-email">{{ Auth::guard('vendor')->user()->vendor_email ?? '' }}</div>
                     </div>
                 </div>
                 <div class="dropdown-menu dropdown-menu-end mb-2">
@@ -873,16 +932,16 @@
 
         <!-- Footer -->
         <footer class="main-footer">
-            © {{ date('Y') }} Vendor Portal — Powered by <a href="#">Kredo</a>
+            © {{ date('Y') }} {{ $organisation->short_name ?? 'Vendor Portal' }} — Powered by <a href="https://kredo.in" target="_blank">Kredo</a>
         </footer>
     </div>
 
-<!-- jQuery (MUST be first!) -->
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<!-- Axios -->
-<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Axios -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     
     <script>
         // Elements

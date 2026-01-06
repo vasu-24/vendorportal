@@ -10,7 +10,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             PermissionSeeder::class,
-           
+            TravelEmployeeSeeder::class,
             AdminUserSeeder::class,
             MailTemplateSeeder::class,
 
