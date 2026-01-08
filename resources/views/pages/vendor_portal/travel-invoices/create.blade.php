@@ -288,8 +288,56 @@
     }
     .max-credit-warning.show { display: block; }
 
+
+
+
     .invoice-card.is-credit-note .expense-total-row td { background: #fef2f2; }
     .invoice-card.is-credit-note .locked-field { pointer-events: none; background: #f3f4f6 !important; }
+
+/* Entry Mode Toggle */
+    .entry-mode-toggle .btn {
+        padding: 12px 20px;
+    }
+    .entry-mode-toggle .btn-check:checked + .btn {
+        background: #1e40af;
+        color: white;
+        border-color: #1e40af;
+    }
+    
+    .excel-upload-area {
+        border: 2px dashed #d1d5db;
+        border-radius: 10px;
+        padding: 40px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        background: #fafafa;
+    }
+    .excel-upload-area:hover {
+        border-color: #2563eb;
+        background: #eff6ff;
+    }
+    .excel-upload-area.drag-over {
+        border-color: #10b981;
+        background: #ecfdf5;
+    }
+    .excel-upload-area.has-file {
+        border-color: #10b981;
+        background: #f0fdf4;
+    }
+    
+    #previewTable th {
+        font-size: 11px;
+        text-transform: uppercase;
+        font-weight: 600;
+    }
+    #previewTable td {
+        font-size: 13px;
+        vertical-align: middle;
+    }
+    .status-valid { color: #10b981; }
+    .status-invalid { color: #ef4444; }
+
 </style>
 
 <div class="container-fluid py-3">
@@ -312,7 +360,7 @@
         <!-- Main Content -->
         <div class="col-lg-8">
 
-            <!-- Batch Info -->
+         <!-- Batch Info -->
             <div class="batch-info d-flex justify-content-between align-items-center">
                 <div>
                     <div class="batch-number" id="batchNumber">Loading...</div>
@@ -324,27 +372,132 @@
                 <span class="badge bg-white text-dark" id="batchStatus">Draft</span>
             </div>
 
-            <!-- Invoices Container -->
-            <div id="invoicesContainer"></div>
-
-            <!-- Add Invoice Button -->
-            <div class="add-invoice-btn" onclick="addNewInvoice()">
-                <i class="bi bi-plus-lg me-2"></i>
-                <strong>Add Another Invoice</strong>
-                <div class="small text-muted mt-1">Click to add more employee invoices</div>
-            </div>
-
-            <!-- Bulk Upload Section -->
-            <div class="bulk-upload-section">
-                <div class="d-flex align-items-center gap-2 mb-2">
-                    <i class="bi bi-file-earmark-zip text-primary"></i>
-                    <strong class="small">Bulk Attachment (Optional)</strong>
+            <!-- Entry Mode Toggle (NEW!) -->
+            <div class="entry-mode-toggle mb-4">
+                <div class="btn-group w-100" role="group">
+                    <input type="radio" class="btn-check" name="entryMode" id="manualMode" value="manual" checked>
+                    <label class="btn btn-outline-primary" for="manualMode">
+                        <i class="bi bi-pencil-square me-2"></i>Manual Entry (One by One)
+                    </label>
+                    
+                    <input type="radio" class="btn-check" name="entryMode" id="bulkMode" value="bulk">
+                    <label class="btn btn-outline-primary" for="bulkMode">
+                        <i class="bi bi-file-earmark-excel me-2"></i>Bulk Upload (Excel)
+                    </label>
                 </div>
-                <p class="small text-muted mb-2">Upload a single PDF containing all bills combined</p>
-                <input type="file" id="bulkAttachment" class="form-control form-control-sm" accept=".pdf,.jpg,.jpeg,.png">
             </div>
 
-        </div>
+            <!-- Manual Entry Section -->
+            <div id="manualEntrySection">
+                <!-- Invoices Container -->
+                <div id="invoicesContainer"></div>
+
+                <!-- Add Invoice Button -->
+                <div class="add-invoice-btn" onclick="addNewInvoice()">
+                    <i class="bi bi-plus-lg me-2"></i>
+                    <strong>Add Another Invoice</strong>
+                    <div class="small text-muted mt-1">Click to add more employee invoices</div>
+                </div>
+
+                <!-- Bulk Upload Section -->
+                <div class="bulk-upload-section">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <i class="bi bi-file-earmark-zip text-primary"></i>
+                        <strong class="small">Bulk Attachment (Optional)</strong>
+                    </div>
+                    <p class="small text-muted mb-2">Upload a single PDF containing all bills combined</p>
+                    <input type="file" id="bulkAttachment" class="form-control form-control-sm" accept=".pdf,.jpg,.jpeg,.png">
+                </div>
+            </div>
+
+            <!-- Bulk Upload Section (NEW!) -->
+            <div id="bulkUploadSection" style="display: none;">
+                
+                <!-- Step 1: Download Template -->
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white py-2">
+                        <i class="bi bi-1-circle me-2"></i>Step 1: Download Template
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small mb-3">
+                            Download the Excel template with all employees pre-filled. 
+                            Template includes latest employee data and project assignments.
+                        </p>
+                        <button type="button" class="btn btn-success" id="downloadTemplateBtn" onclick="downloadExcelTemplate()">
+                            <i class="bi bi-download me-2"></i>Download Excel Template
+                        </button>
+                        <span class="text-muted small ms-2">
+                            <i class="bi bi-info-circle"></i> Download fresh template each time for latest data
+                        </span>
+                    </div>
+                </div>
+                
+                <!-- Step 2: Upload Filled Excel -->
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white py-2">
+                        <i class="bi bi-2-circle me-2"></i>Step 2: Upload Filled Excel
+                    </div>
+                    <div class="card-body">
+                        <div class="excel-upload-area" id="excelUploadArea">
+                            <i class="bi bi-cloud-upload display-4 text-muted d-block mb-2"></i>
+                            <p class="mb-2">Drag & Drop Excel file here</p>
+                            <p class="text-muted small mb-3">or click to browse</p>
+                            <input type="file" id="excelFileInput" class="d-none" accept=".xlsx,.xls">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="document.getElementById('excelFileInput').click()">
+                                <i class="bi bi-folder2-open me-1"></i>Browse Files
+                            </button>
+                        </div>
+                        <div id="selectedFileName" class="mt-2 text-success d-none">
+                            <i class="bi bi-file-earmark-excel me-1"></i>
+                            <span class="file-name"></span>
+                            <button type="button" class="btn btn-sm btn-link text-danger" onclick="clearSelectedFile()">
+                                <i class="bi bi-x-circle"></i> Remove
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Step 3: Preview -->
+                <div class="card mb-3" id="previewSection" style="display: none;">
+                    <div class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-3-circle me-2"></i>Step 3: Preview & Confirm</span>
+                        <span class="badge bg-light text-dark" id="previewSummary">0 valid, 0 errors</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover mb-0" id="previewTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Row</th>
+                                        <th>Invoice No</th>
+                                        <th>Employee</th>
+                                        <th>Project</th>
+                                        <th>Location</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="previewTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="text-muted small">
+                                <span class="text-success"><i class="bi bi-check-circle"></i> Valid: <span id="validCount">0</span></span>
+                                <span class="ms-3 text-danger"><i class="bi bi-x-circle"></i> Errors: <span id="errorCount">0</span></span>
+                                <span class="ms-3 text-secondary"><i class="bi bi-dash-circle"></i> Skipped: <span id="skippedCount">0</span></span>
+                            </div>
+                            <button type="button" class="btn btn-primary" id="createInvoicesBtn" onclick="createInvoicesFromExcel()">
+                                <i class="bi bi-check-lg me-2"></i>Create <span id="createCount">0</span> Invoice(s)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+
+         
 
         <!-- Summary Sidebar -->
         <div class="col-lg-4">

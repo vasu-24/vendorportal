@@ -9,12 +9,14 @@ use App\Models\TravelInvoiceItem;
 use App\Models\TravelInvoiceBill;
 use App\Models\TravelEmployee;
 use App\Models\ManagerTag;
+use App\Models\Vendor;
 use App\Services\ZohoService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+
 
 class TravelInvoiceController extends Controller
 {
@@ -103,14 +105,19 @@ class TravelInvoiceController extends Controller
                 $query->where('vendor_id', $request->vendor_id);
             }
 
-            if ($request->filled('status') && $request->status !== 'all') {
-                if ($request->status === 'pending') {
-                    $query->whereIn('status', ['submitted', 'pending_rm', 'pending_vp', 'pending_ceo', 'pending_finance']);
-                } else {
-                    $query->where('status', $request->status);
-                }
-            }
-
+if ($request->filled('status') && $request->status !== 'all') {
+    if ($request->status === 'pending') {
+        // Batches that have ANY pending invoice
+        $query->whereHas('invoices', function($q) {
+            $q->whereIn('status', ['submitted', 'pending_rm', 'pending_vp', 'pending_ceo', 'pending_finance']);
+        });
+    } else {
+        // Batches that have ANY invoice with this status (approved/rejected/paid)
+        $query->whereHas('invoices', function($q) use ($request) {
+            $q->where('status', $request->status);
+        });
+    }
+}
             if ($request->filled('search')) {
                 $search = $request->search;
                 $query->where(function($q) use ($search) {
@@ -563,7 +570,33 @@ public function getBatchSummary($batchId)
      */
  /**
  * Sync invoice to Zoho
+ * 
+ * 
+ * 
+ * 
  */
+
+
+// In TravelInvoiceController.php
+public function vendors()
+{
+    try {
+        $vendors = Vendor::whereNotIn('status', ['pending', 'rejected'])
+            ->select('id', 'vendor_name')
+            ->orderBy('vendor_name')
+            ->get();
+        
+        return response()->json([
+            'success' => true,
+            'data' => $vendors
+        ]);
+    } catch (\Exception $e) {
+        Log::error('Get Travel Vendors Error: ' . $e->getMessage());
+        return response()->json(['success' => false, 'message' => 'Failed to load vendors'], 500);
+    }
+}
+
+
 private function syncToZoho($invoice)
 {
     try {

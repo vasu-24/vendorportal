@@ -549,14 +549,24 @@ public function findVendorInZoho(Vendor $vendor): ?string
     }
 
     // Build bill data
-    $zohoData = [
-        'vendor_id' => $invoice->vendor->zoho_contact_id,
-        'bill_number' => $invoice->invoice_number,
-        'date' => $invoice->invoice_date ? $invoice->invoice_date->format('Y-m-d') : now()->format('Y-m-d'),
-        'due_date' => $invoice->due_date ? $invoice->due_date->format('Y-m-d') : now()->addDays(30)->format('Y-m-d'),
-        'line_items' => $lineItems,
-        'reference_number' => $invoice->invoice_number,
-    ];
+$zohoData = [
+    'vendor_id' => $invoice->vendor->zoho_contact_id,
+    'bill_number' => $invoice->invoice_number,
+    'date' => $invoice->invoice_date ? $invoice->invoice_date->format('Y-m-d') : now()->format('Y-m-d'),
+    'due_date' => $invoice->due_date ? $invoice->due_date->format('Y-m-d') : now()->addDays(30)->format('Y-m-d'),
+    'line_items' => $lineItems,
+    'reference_number' => $invoice->invoice_number,
+];
+
+// -----------------------------------------------------
+// TDS
+// -----------------------------------------------------
+if (!empty($invoice->zoho_tds_tax_id)) {
+    $zohoData['is_tds_applied'] = true;
+    $zohoData['tds_tax_id'] = $invoice->zoho_tds_tax_id;
+}
+
+
 
 // 🔥 PROFESSIONAL NOTES
 $notes = [];
@@ -869,10 +879,11 @@ public function syncTravelBillStatus(\App\Models\TravelInvoice $invoice): bool
             'notes' => $invoice->description ?? '',
         ];
 
-        Log::info('Updating Bill in Zoho', [
-            'invoice_id' => $invoice->id,
-            'zoho_bill_id' => $invoice->zoho_invoice_id,
-        ]);
+        // In createBill() - after $zohoData array
+if (!empty($invoice->zoho_tds_tax_id)) {
+    $zohoData['is_tds_applied'] = true;
+    $zohoData['tds_tax_id'] = $invoice->zoho_tds_tax_id;
+}
 
         $response = Http::withHeaders([
             'Authorization' => "Zoho-oauthtoken {$accessToken}",
@@ -917,39 +928,16 @@ public function syncTravelBillStatus(\App\Models\TravelInvoice $invoice): bool
     }
 
 
-    /**
- * Get TDS Taxes from Zoho Books (Direct Taxes)
+/**
+ * Zoho doesn't expose TDS via official API.
+ * These are organization-specific and rarely change.
  */
 public function getTdsTaxes(): array
 {
-    $accessToken = $this->getValidToken();
-    $organizationId = $this->getOrganizationId();
-
-    if (!$accessToken) {
-        throw new Exception('Not connected to Zoho');
-    }
-
-    if (!$organizationId) {
-        throw new Exception('Organization ID not set');
-    }
-
- $response = Http::withHeaders([
-    'Authorization' => "Zoho-oauthtoken {$accessToken}",
-])->get("{$this->apiUrl}/books/v3/settings/incometaxes?organization_id={$organizationId}");
-
-    if ($response->failed()) {
-        Log::error('Zoho Get TDS Taxes Error', ['response' => $response->json()]);
-        throw new Exception('Failed to get TDS taxes from Zoho');
-    }
-
-    $result = $response->json();
-
-    Log::info('Fetched TDS Taxes from Zoho', [
-        'count' => count($result['tds_taxes'] ?? []),
-    ]);
-
-    return $result['tds_taxes'] ?? [];
+    return config('zoho_tds_rates', []);
 }
+
+
 
     /**
      * Get bill payments from Zoho
@@ -1352,12 +1340,13 @@ foreach ($invoice->items as $item) {
     ];
 
     // -----------------------------------------------------
-    // TDS
     // -----------------------------------------------------
-    // if ($invoice->tds_percent > 0) {
-    //     $zohoData['is_tds_amount_in_percent'] = true;
-    //     $zohoData['tds_percent'] = (float) $invoice->tds_percent;
-    // }
+// TDS
+// -----------------------------------------------------
+if (!empty($invoice->tds_tax_id)) {
+    $zohoData['is_tds_applied'] = true;
+    $zohoData['tds_tax_id'] = $invoice->tds_tax_id;
+}
 
     // -----------------------------------------------------
     // NOTES

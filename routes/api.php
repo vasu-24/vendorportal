@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\TravelEmployeeController;
 use App\Http\Controllers\Api\VendorApprovalController;
 use App\Http\Controllers\Api\VendorContractController;
 use App\Http\Controllers\Api\VendorRegistrationController;
+use App\Http\Middleware\CheckTravelAccess;
 use App\Http\Controllers\Api\VendorTravelInvoiceController;
 
 // =====================================================
@@ -70,6 +71,7 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('/pending', [VendorApprovalController::class, 'getPendingVendors'])->middleware('permission:view-vendors');
         Route::get('/status/{status}', [VendorApprovalController::class, 'getVendorsByStatus'])->middleware('permission:view-vendors');
         Route::get('/statistics', [VendorApprovalController::class, 'getStatistics'])->middleware('permission:view-vendors');
+        Route::post('/{id}/toggle-travel-access', [VendorApprovalController::class, 'toggleTravelAccess']);
         Route::get('/{id}/details', [VendorApprovalController::class, 'getVendorDetails'])->middleware('permission:view-vendors');
         Route::get('/{id}/history', [VendorApprovalController::class, 'getVendorHistory'])->middleware('permission:view-vendors');
         Route::post('/{id}/approve', [VendorApprovalController::class, 'approveVendor'])->middleware('permission:approve-vendors');
@@ -281,7 +283,9 @@ Route::prefix('travel-invoices')->group(function () {
     Route::get('/', [App\Http\Controllers\Api\TravelInvoiceController::class, 'index']);
     Route::get('/statistics', [App\Http\Controllers\Api\TravelInvoiceController::class, 'getStatistics']);
     Route::get('/batches', [App\Http\Controllers\Api\TravelInvoiceController::class, 'getBatches']);
+    Route::get('/vendors', [App\Http\Controllers\Api\TravelInvoiceController::class, 'vendors']); // 👈 ADD THIS
     Route::get('/batches/{batchId}/summary', [App\Http\Controllers\Api\TravelInvoiceController::class, 'getBatchSummary']);
+    // ... rest of routes
 Route::put('/{id}/update', [TravelInvoiceController::class, 'updateInvoice']);
     Route::get('/{id}', [App\Http\Controllers\Api\TravelInvoiceController::class, 'show']);
 
@@ -304,8 +308,7 @@ Route::put('/{id}/update', [TravelInvoiceController::class, 'updateInvoice']);
 | VENDOR PORTAL - Travel Invoice Routes
 |--------------------------------------------------------------------------
 */
-
-Route::middleware(['web', 'auth:vendor'])->prefix('vendor')->group(function () {
+Route::middleware(['web', 'auth:vendor', CheckTravelAccess::class])->prefix('vendor')->group(function () {
     
     Route::prefix('travel-invoices')->group(function () {
         // Statistics & Lists
@@ -317,6 +320,11 @@ Route::middleware(['web', 'auth:vendor'])->prefix('vendor')->group(function () {
         Route::get('/submitted-invoices', [App\Http\Controllers\Api\VendorTravelInvoiceController::class, 'getSubmittedInvoices']); // 👈 ADD THIS LINE HERE!
         Route::get('/', [App\Http\Controllers\Api\VendorTravelInvoiceController::class, 'index']);
         Route::get('/{id}', [App\Http\Controllers\Api\VendorTravelInvoiceController::class, 'show']); // This must be AFTER submitted-invoices
+        Route::get('/excel/download-template', [VendorTravelInvoiceController::class, 'downloadExcelTemplate']);
+    Route::post('/excel/preview', [VendorTravelInvoiceController::class, 'previewExcelTemplate']);
+    Route::post('/excel/upload', [VendorTravelInvoiceController::class, 'uploadExcelTemplate']);
+    
+
         
         // ... rest of routes
     

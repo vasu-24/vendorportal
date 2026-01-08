@@ -826,15 +826,17 @@
                         </a>
                     </li>
 
-                    <!-- Travel Invoices -->
-                    <li class="nav-item">
-                        <a href="{{ route('vendor.travel-invoices.index') }}" 
-                           class="nav-link {{ request()->routeIs('vendor.travel-invoices*') ? 'active' : '' }}"
-                           data-title="Travel Invoices">
-                            <span class="nav-icon"><i class="bi bi-airplane"></i></span>
-                            <span class="nav-text">Travel Invoices</span>
-                        </a>
-                    </li>
+               <!-- Travel Invoices (Only if access enabled) -->
+@if(Auth::guard('vendor')->user()->has_travel_access)
+<li class="nav-item">
+    <a href="{{ route('vendor.travel-invoices.index') }}" 
+       class="nav-link {{ request()->routeIs('vendor.travel-invoices*') ? 'active' : '' }}"
+       data-title="Travel Invoices">
+        <span class="nav-icon"><i class="bi bi-airplane"></i></span>
+        <span class="nav-text">Travel Invoices</span>
+    </a>
+</li>
+@endif
                 </ul>
             </div>
 

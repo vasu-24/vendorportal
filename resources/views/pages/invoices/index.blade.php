@@ -97,28 +97,122 @@
         color: #495057;
     }
 
-/* Status Badges - STANDARD (Same as Travel Invoice) */
-.badge-status { 
-    padding: 4px 10px; 
-    border-radius: 12px; 
-    font-size: 10px; 
-    font-weight: 600; 
-    text-transform: uppercase; 
-}
-.badge-draft { background: #e9ecef; color: #495057; }
-
-.badge-resubmitted { background: #e2d9f3; color: #6f42c1; }
-
-.badge-pending-rm { background: #fff3cd; color: #856404; }
-.badge-pending-vp { background: #ffe5b4; color: #7a4f01; }
-.badge-pending-ceo { background: #f8d7da; color: #842029; }
-.badge-pending-finance { background: #d1e7dd; color: #0f5132; }
-.badge-approved { background: #d4edda; color: #155724; }
-.badge-rejected { background: #f8d7da; color: #721c24; }
-.badge-paid { background: #d1ecf1; color: #0c5460; }
+    /* Status Badges - STANDARD */
+    .badge-status { 
+        padding: 4px 10px; 
+        border-radius: 12px; 
+        font-size: 10px; 
+        font-weight: 600; 
+        text-transform: uppercase; 
+    }
+    .badge-draft { background: #e9ecef; color: #495057; }
+    .badge-resubmitted { background: #e2d9f3; color: #6f42c1; }
+    .badge-pending-rm { background: #fff3cd; color: #856404; }
+    .badge-pending-vp { background: #ffe5b4; color: #7a4f01; }
+    .badge-pending-ceo { background: #f8d7da; color: #842029; }
+    .badge-pending-finance { background: #d1e7dd; color: #0f5132; }
+    .badge-approved { background: #d4edda; color: #155724; }
+    .badge-rejected { background: #f8d7da; color: #721c24; }
+    .badge-paid { background: #d1ecf1; color: #0c5460; }
+    
     /* Zoho Badge */
     .badge-zoho-synced { background-color: #d4edda; color: #155724; font-weight: 500; }
     .badge-zoho-pending { background-color: #e9ecef; color: #6c757d; font-weight: 500; }
+
+    /* ============================================= */
+    /* SELECT2 CUSTOM STYLING - FIX FOR DROPDOWN */
+    /* ============================================= */
+    .select2-container--default .select2-selection--single {
+        height: 32px;
+        border: 1px solid #dee2e6;
+        border-radius: 4px 0 0 4px;
+        padding: 2px 8px;
+        font-size: 13px;
+    }
+    
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 26px;
+        color: #495057;
+        padding-left: 0;
+    }
+    
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 30px;
+    }
+    
+    .select2-container--default .select2-selection--single .select2-selection__placeholder {
+        color: #6c757d;
+    }
+    
+    /* Dropdown Styling */
+    .select2-dropdown {
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        margin-top: 4px;
+    }
+    
+    .select2-container--default .select2-results__option {
+        padding: 8px 12px;
+        font-size: 13px;
+    }
+    
+    .select2-container--default .select2-results__option--highlighted[aria-selected] {
+        background-color: #0d6efd;
+        color: white;
+    }
+    
+    .select2-container--default .select2-results__option[aria-selected=true] {
+        background-color: #e7f1ff;
+        color: #0d6efd;
+    }
+    
+    .select2-container--default .select2-search--dropdown .select2-search__field {
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 6px 10px;
+        font-size: 13px;
+    }
+    
+    .select2-container--default .select2-search--dropdown .select2-search__field:focus {
+        border-color: #86b7fe;
+        outline: none;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+    }
+    
+    /* Clear button */
+    .select2-container--default .select2-selection--single .select2-selection__clear {
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+        margin-right: 5px;
+        color: #999;
+    }
+    
+    .select2-container--default .select2-selection--single .select2-selection__clear:hover {
+        color: #dc3545;
+    }
+    
+    /* Filter Row Styling */
+    .filter-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .filter-row .select2-container {
+        min-width: 180px;
+    }
+    
+    .filter-row .form-control {
+        height: 32px;
+        font-size: 13px;
+    }
+    
+    .filter-row .btn {
+        height: 32px;
+        padding: 0 12px;
+    }
 </style>
 
 <div class="container-fluid py-3">
@@ -151,10 +245,9 @@
                         <li class="nav-item">
                             <a class="nav-link active" href="#" data-status="all">All <span class="text-muted small" id="tabAll">0</span></a>
                         </li>
-                       <li class="nav-item">
-    <a class="nav-link" href="#" data-status="pending">Pending <span class="text-muted small" id="tabPending">0</span></a>
-</li>
-                       
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-status="pending">Pending <span class="text-muted small" id="tabPending">0</span></a>
+                        </li>
                         <li class="nav-item">
                             <a class="nav-link" href="#" data-status="approved">Approved <span class="text-muted small" id="tabApproved">0</span></a>
                         </li>
@@ -168,11 +261,11 @@
                 </div>
                 {{-- Search/Filter --}}
                 <div class="col-lg-5 py-2">
-                    <div class="input-group input-group-sm">
-                        <select class="form-select form-select-sm" id="vendorFilter" style="max-width: 160px;">
+                    <div class="filter-row">
+                        <select class="form-select" id="vendorFilter">
                             <option value="">All Vendors</option>
                         </select>
-                        <input type="text" class="form-control" id="searchInput" placeholder="Search invoices...">
+                        <input type="text" class="form-control" id="searchInput" placeholder="Search invoices..." style="min-width: 150px;">
                         <button class="btn btn-outline-secondary" type="button" onclick="loadInvoices()">
                             <i class="bi bi-search"></i>
                         </button>
@@ -258,10 +351,13 @@
     // INIT
     // =====================================================
     $(document).ready(function() {
+        // Initialize Select2 with proper styling
         $('#vendorFilter').select2({
             placeholder: 'All Vendors',
-            allowClear: true,
-            width: '160px'
+            allowClear: false,
+            width: '180px',
+            minimumResultsForSearch: 5, // Show search only if > 5 options
+            dropdownAutoWidth: false
         });
 
         loadStatistics();
@@ -287,7 +383,7 @@
             }
         });
 
-        // Vendor filter
+        // Vendor filter change
         $('#vendorFilter').on('change', function() {
             currentVendor = $(this).val();
             currentPage = 1;
@@ -298,24 +394,24 @@
     // =====================================================
     // LOAD STATISTICS
     // =====================================================
-function loadStatistics() {
-    axios.get(`${API_BASE}/statistics`)
-        .then(res => {
-            if (res.data.success) {
-                const s = res.data.data;
-                $('#tabAll').text(s.total || 0);
-                
-                // Pending = all pending stages
-                const pending = (s.pending_rm || 0) + (s.pending_vp || 0) + (s.pending_ceo || 0) + (s.pending_finance || 0);
-                $('#tabPending').text(pending);
-          
-                $('#tabApproved').text(s.approved || 0);
-                $('#tabRejected').text(s.rejected || 0);
-                $('#tabPaid').text(s.paid || 0);
-            }
-        })
-        .catch(err => console.error('Stats error:', err));
-}
+    function loadStatistics() {
+        axios.get(`${API_BASE}/statistics`)
+            .then(res => {
+                if (res.data.success) {
+                    const s = res.data.data;
+                    $('#tabAll').text(s.total || 0);
+                    
+                    // Pending = all pending stages
+                    const pending = (s.pending_rm || 0) + (s.pending_vp || 0) + (s.pending_ceo || 0) + (s.pending_finance || 0);
+                    $('#tabPending').text(pending);
+              
+                    $('#tabApproved').text(s.approved || 0);
+                    $('#tabRejected').text(s.rejected || 0);
+                    $('#tabPaid').text(s.paid || 0);
+                }
+            })
+            .catch(err => console.error('Stats error:', err));
+    }
 
     // =====================================================
     // LOAD VENDORS
@@ -324,11 +420,20 @@ function loadStatistics() {
         axios.get(`${API_BASE}/vendors`)
             .then(res => {
                 if (res.data.success) {
-                    let html = '<option value="">All Vendors</option>';
+                    let options = [{ id: '', text: 'All Vendors' }];
                     res.data.data.forEach(v => {
-                        html += `<option value="${v.id}">${escapeHtml(v.vendor_name)}</option>`;
+                        options.push({ id: v.id, text: v.vendor_name });
                     });
-                    $('#vendorFilter').html(html);
+                    
+                    // Destroy and reinitialize with new data
+                    $('#vendorFilter').empty();
+                    $('#vendorFilter').select2({
+                        placeholder: 'All Vendors',
+                        allowClear: false,
+                        width: '180px',
+                        minimumResultsForSearch: 5,
+                        data: options
+                    });
                 }
             })
             .catch(err => console.error('Vendors error:', err));
@@ -427,9 +532,9 @@ function loadStatistics() {
     // =====================================================
     function getTypeBadge(type) {
         if (type === 'adhoc') {
-            return '<span class="badge-type-adhoc"><i class="bi bi-lightning me-1"></i>ADHOC</span>';
+            return '<span class="badge bg-warning text-dark"><i class="bi bi-lightning me-1"></i>ADHOC</span>';
         }
-        return '<span class="badge-type-normal"><i class="bi bi-file-earmark-text me-1"></i>Normal</span>';
+        return '<span class="badge bg-light text-dark"><i class="bi bi-file-earmark-text me-1"></i>Normal</span>';
     }
 
     // =====================================================
@@ -447,24 +552,23 @@ function loadStatistics() {
     // =====================================================
     // ACTION BUTTONS
     // =====================================================
-function getActionButtons(inv) {
-    let btns = '';
+    function getActionButtons(inv) {
+        let btns = '';
 
-    // Approve/Reject for all pending stages
-    if (['pending_rm', 'pending_vp', 'pending_ceo', 'pending_finance'].includes(inv.status)) {
-        btns += `
-            <button class="btn btn-outline-success" onclick="showApproveModal(${inv.id}, '${inv.status}')" title="Approve"><i class="bi bi-check-lg"></i></button>
-            <button class="btn btn-outline-danger" onclick="showRejectModal(${inv.id})" title="Reject"><i class="bi bi-x-lg"></i></button>
-        `;
+        // Approve/Reject for all pending stages
+        if (['pending_rm', 'pending_vp', 'pending_ceo', 'pending_finance'].includes(inv.status)) {
+            btns += `
+                <button class="btn btn-outline-success" onclick="showApproveModal(${inv.id}, '${inv.status}')" title="Approve"><i class="bi bi-check-lg"></i></button>
+                <button class="btn btn-outline-danger" onclick="showRejectModal(${inv.id})" title="Reject"><i class="bi bi-x-lg"></i></button>
+            `;
+        }
+
+        if (inv.status === 'approved') {
+            btns += `<button class="btn btn-outline-primary" onclick="showMarkPaidModal(${inv.id})" title="Mark Paid"><i class="bi bi-currency-rupee"></i></button>`;
+        }
+
+        return btns;
     }
-
-    if (inv.status === 'approved') {
-        btns += `<button class="btn btn-outline-primary" onclick="showMarkPaidModal(${inv.id})" title="Mark Paid"><i class="bi bi-currency-rupee"></i></button>`;
-    }
-
-    return btns;
-}
-
 
     // =====================================================
     // QUICK ACTIONS
@@ -472,26 +576,23 @@ function getActionButtons(inv) {
     let currentActionId = null;
     let currentAction = null;
 
-  
-function showApproveModal(id, status) {
-    currentActionId = id;
-    currentAction = 'approve';
-    $('#quickActionTitle').text('Approve Invoice');
-    
-    // Only show Zoho message for Finance (final approval)
-    if (status === 'pending_finance') {
-        $('#quickActionContent').html('<p>Are you sure you want to approve this invoice?</p><p class="small text-muted"><i class="bi bi-info-circle me-1"></i>This will also push the bill to Zoho Books.</p>');
-    } else {
-        $('#quickActionContent').html('<p>Are you sure you want to approve this invoice?</p><p class="small text-muted"><i class="bi bi-info-circle me-1"></i>Invoice will move to next approval stage.</p>');
+    function showApproveModal(id, status) {
+        currentActionId = id;
+        currentAction = 'approve';
+        $('#quickActionTitle').text('Approve Invoice');
+        
+        // Only show Zoho message for Finance (final approval)
+        if (status === 'pending_finance') {
+            $('#quickActionContent').html('<p>Are you sure you want to approve this invoice?</p><p class="small text-muted"><i class="bi bi-info-circle me-1"></i>This will also push the bill to Zoho Books.</p>');
+        } else {
+            $('#quickActionContent').html('<p>Are you sure you want to approve this invoice?</p><p class="small text-muted"><i class="bi bi-info-circle me-1"></i>Invoice will move to next approval stage.</p>');
+        }
+        
+        $('#reasonContainer').hide();
+        $('#paymentRefContainer').hide();
+        $('#confirmActionBtn').removeClass().addClass('btn btn-success btn-sm').text('Approve');
+        new bootstrap.Modal('#quickActionModal').show();
     }
-    
-    $('#reasonContainer').hide();
-    $('#paymentRefContainer').hide();
-    $('#confirmActionBtn').removeClass().addClass('btn btn-success btn-sm').text('Approve');
-    new bootstrap.Modal('#quickActionModal').show();
-}
-
-
 
     function showRejectModal(id) {
         currentActionId = id;
@@ -599,22 +700,20 @@ function showApproveModal(id, status) {
     // =====================================================
     // HELPERS
     // =====================================================
-   function getStatusBadge(status) {
-    const badges = {
-        'draft': '<span class="badge-status badge-draft">Draft</span>',
-    
-        'resubmitted': '<span class="badge-status badge-resubmitted">Resubmitted</span>',
-     
-        'pending_rm': '<span class="badge-status badge-pending-rm">Pending RM</span>',
-        'pending_vp': '<span class="badge-status badge-pending-vp">Pending VP</span>',
-        'pending_ceo': '<span class="badge-status badge-pending-ceo">Pending CEO</span>',
-        'pending_finance': '<span class="badge-status badge-pending-finance">Pending Finance</span>',
-        'approved': '<span class="badge-status badge-approved">Approved</span>',
-        'rejected': '<span class="badge-status badge-rejected">Rejected</span>',
-        'paid': '<span class="badge-status badge-paid">Paid</span>'
-    };
-    return badges[status] || `<span class="badge-status badge-draft">${status}</span>`;
-}
+    function getStatusBadge(status) {
+        const badges = {
+            'draft': '<span class="badge-status badge-draft">Draft</span>',
+            'resubmitted': '<span class="badge-status badge-resubmitted">Resubmitted</span>',
+            'pending_rm': '<span class="badge-status badge-pending-rm">Pending RM</span>',
+            'pending_vp': '<span class="badge-status badge-pending-vp">Pending VP</span>',
+            'pending_ceo': '<span class="badge-status badge-pending-ceo">Pending CEO</span>',
+            'pending_finance': '<span class="badge-status badge-pending-finance">Pending Finance</span>',
+            'approved': '<span class="badge-status badge-approved">Approved</span>',
+            'rejected': '<span class="badge-status badge-rejected">Rejected</span>',
+            'paid': '<span class="badge-status badge-paid">Paid</span>'
+        };
+        return badges[status] || `<span class="badge-status badge-draft">${status}</span>`;
+    }
 
     function formatNumber(num) {
         return parseFloat(num || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

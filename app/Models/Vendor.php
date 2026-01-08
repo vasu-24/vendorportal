@@ -38,9 +38,12 @@ class Vendor extends Authenticatable
         'revision_requested_by',
         'revision_requested_at',
         'revision_notes',
-        'link_expires_at',       // 🔥 For 48-hour link expiry
-        'zoho_contact_id',       // 🔥 Zoho Books Contact ID
-        'zoho_synced_at',        // 🔥 When synced to Zoho
+        'link_expires_at',     
+        'zoho_contact_id',       
+        'zoho_synced_at',   
+          'has_travel_access',  
+          
+          
     ];
 
     protected $hidden = [
@@ -174,6 +177,14 @@ class Vendor extends Authenticatable
     {
         return $query->where('registration_completed', false);
     }
+
+    /**
+ * Get travel batches for this vendor
+ */
+public function travelBatches()
+{
+    return $this->hasMany(TravelBatch::class, 'vendor_id');
+}
 
     public function scopePendingApproval($query)
     {

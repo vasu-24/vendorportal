@@ -215,8 +215,8 @@
                         <th id="colThree">Template</th>
                         <th id="colFour">Email Sent</th>
                         <th>Status</th>
-                        <th class="text-center" style="width: 150px;">Actions</th>
-                    </tr>
+<th class="text-center" style="width: 150px;">Actions</th>
+<th id="colTravel" class="text-center" style="width: 80px; display: none;">Travel</th>
                 </thead>
                 <tbody id="vendorsTableBody">
                     <tr>
@@ -692,15 +692,49 @@ $('#searchInput').on('keyup', function() {
     // =====================================================
     // UPDATE TABLE HEADERS
     // =====================================================
-    function updateTableHeaders() {
-        if (currentTab === 'invited') {
-            $('#colThree').text('Template');
-            $('#colFour').text('Email Sent');
-        } else {
-            $('#colThree').text('Company');
-            $('#colFour').text('Submitted');
-        }
+  function updateTableHeaders() {
+    if (currentTab === 'invited') {
+        $('#colThree').text('Template');
+        $('#colFour').text('Email Sent');
+        $('#colTravel').hide();
+    } else if (currentTab === 'approved') {
+        $('#colThree').text('Company');
+        $('#colFour').text('Submitted');
+        $('#colTravel').show();
+    } else {
+        $('#colThree').text('Company');
+        $('#colFour').text('Submitted');
+        $('#colTravel').hide();
     }
+}
+
+
+
+
+
+function toggleTravelAccess(vendorId) {
+    axios.post(`${API_BASE}/${vendorId}/toggle-travel-access`)
+        .then(res => {
+            if (res.data.success) {
+                Toast.success(res.data.message);
+            } else {
+                // Revert checkbox
+                $(`#travel_${vendorId}`).prop('checked', !$(`#travel_${vendorId}`).prop('checked'));
+                Toast.error('Failed to update');
+            }
+        })
+        .catch(err => {
+            // Revert checkbox
+            $(`#travel_${vendorId}`).prop('checked', !$(`#travel_${vendorId}`).prop('checked'));
+            Toast.error('Error updating travel access');
+        });
+}
+
+
+
+
+
+
 
     // =====================================================
     // LOAD STATISTICS (Update Tab Counts)
@@ -895,17 +929,15 @@ function renderInvitedVendors(vendors, paginationData = null) {
     }
 }
 
-    // =====================================================
-    // RENDER APPROVAL VENDORS
-    // =====================================================
-   // =====================================================
+
 // RENDER APPROVAL VENDORS
 // =====================================================
 function renderApprovalVendors(vendors, paginationData = null) {
     const tbody = $('#vendorsTableBody');
+    const colspan = currentTab === 'approved' ? 7 : 6;
 
     if (!vendors || vendors.length === 0) {
-        tbody.html(`<tr><td colspan="6" class="text-center py-4 text-muted">
+        tbody.html(`<tr><td colspan="${colspan}" class="text-center py-4 text-muted">
             <i class="bi bi-inbox fs-3 d-block mb-2"></i>No vendors found
         </td></tr>`);
         $('#paginationInfo').text('Showing 0 of 0');
@@ -919,7 +951,6 @@ function renderApprovalVendors(vendors, paginationData = null) {
     vendors.forEach((v, i) => {
         const companyName = v.company_info?.legal_entity_name || '-';
         
-        // Check if imported vendor (approved but no email sent)
         let submittedDate;
         if (v.approval_status === 'approved' && !v.email_sent_at) {
             submittedDate = '<span class="badge badge-imported"><i class="bi bi-file-earmark-arrow-up me-1"></i>Imported</span>';
@@ -928,6 +959,19 @@ function renderApprovalVendors(vendors, paginationData = null) {
         } else {
             submittedDate = '-';
         }
+
+        // Travel checkbox (only for approved tab)
+        const travelCheckbox = currentTab === 'approved' 
+            ? `<td class="text-center">
+                   <div class="form-check form-switch d-flex justify-content-center mb-0">
+                       <input class="form-check-input" type="checkbox" 
+                              id="travel_${v.id}" 
+                              ${v.has_travel_access ? 'checked' : ''} 
+                              onchange="toggleTravelAccess(${v.id})"
+                              style="cursor: pointer; width: 40px; height: 20px;">
+                   </div>
+               </td>` 
+            : '';
 
         html += `
             <tr>
@@ -944,17 +988,23 @@ function renderApprovalVendors(vendors, paginationData = null) {
                         Review
                     </a>
                 </td>
+                ${travelCheckbox}
             </tr>
         `;
     });
 
     tbody.html(html);
     
-    // Render pagination
     if (paginationData) {
         renderPagination(paginationData);
     }
 }
+
+
+
+
+
+
     // =====================================================
     // VIEW VENDOR
     // =====================================================

@@ -628,10 +628,19 @@
                                 <span>Grand Total</span>
                                 <span id="grandTotal">₹0</span>
                             </div>
-                            <div class="amount-row">
-                                <span class="text-muted">TDS (<span id="tdsPercentDisplay">5</span><input type="number" class="form-control form-control-sm edit-field" id="tdsPercentInput" style="display:none; width: 60px;" step="0.01" onchange="recalculateTotals()">%)</span>
-                                <span class="text-danger" id="tdsAmount">-₹0</span>
-                            </div>
+                           <div class="amount-row">
+    <span class="text-muted">
+        TDS (<span id="tdsPercentDisplay">5</span>%)
+    </span>
+    <span class="text-danger" id="tdsAmount">-₹0</span>
+</div>
+<!-- TDS Dropdown (Finance Edit) -->
+<div class="amount-row edit-field" id="tdsDropdownRow" style="display:none;">
+    <span class="text-muted">TDS Type</span>
+    <select class="form-select form-select-sm" id="tdsSelect" style="width: 180px; font-size: 11px;" onchange="onTdsSelectChange()">
+        <option value="">Loading...</option>
+    </select>
+</div>
                             <div class="amount-row net">
                                 <span>Net Payable</span>
                                 <span id="netPayable">₹0</span>
@@ -892,6 +901,77 @@ function loadTags() {
         });
 }
 
+// TDS Data
+let zohoTdsTaxes = [];
+
+// Load TDS when page loads
+$(document).ready(function() {
+    loadTags().then(() => {
+        loadInvoice();
+    });
+    loadZohoTds();  // 👈 ADD THIS
+    
+    $('#confirmRejectBtn').on('click', rejectInvoice);
+    $('#confirmPaidBtn').on('click', markAsPaid);
+});
+
+// =====================================================
+// LOAD ZOHO TDS
+// =====================================================
+function loadZohoTds() {
+    axios.get('/api/zoho/taxes')
+        .then(res => {
+            if (res.data.success) {
+                zohoTdsTaxes = res.data.data.tds || [];
+                console.log('Loaded TDS from Zoho:', zohoTdsTaxes.length);
+            }
+        })
+        .catch(err => {
+            console.error('Failed to load Zoho TDS:', err);
+            zohoTdsTaxes = [];
+        });
+}
+
+// =====================================================
+// POPULATE TDS DROPDOWN
+// =====================================================
+function populateTdsDropdown(currentTaxId, currentPercent) {
+    let options = '<option value="">-- Select TDS --</option>';
+    
+    if (zohoTdsTaxes.length === 0) {
+        // Fallback if API not loaded
+        options += `
+            <option value="" data-percent="1" ${currentPercent == 1 ? 'selected' : ''}>TDS 1%</option>
+            <option value="" data-percent="2" ${currentPercent == 2 ? 'selected' : ''}>TDS 2%</option>
+            <option value="" data-percent="5" ${currentPercent == 5 ? 'selected' : ''}>TDS 5%</option>
+            <option value="" data-percent="10" ${currentPercent == 10 ? 'selected' : ''}>TDS 10%</option>
+        `;
+    } else {
+        zohoTdsTaxes.forEach(tax => {
+            const selected = (tax.tax_id === currentTaxId) || 
+                           (parseFloat(tax.tax_percentage) === parseFloat(currentPercent)) ? 'selected' : '';
+            options += `<option value="${tax.tax_id}" data-percent="${tax.tax_percentage}" ${selected}>
+                ${tax.tax_name} (${tax.tax_percentage}%)
+            </option>`;
+        });
+    }
+    
+    $('#tdsSelect').html(options);
+}
+
+// =====================================================
+// ON TDS SELECT CHANGE
+// =====================================================
+function onTdsSelectChange() {
+    const selected = $('#tdsSelect option:selected');
+    const percent = selected.data('percent') || 0;
+    
+    $('#tdsPercentDisplay').text(percent);
+    
+    recalculateTotals();
+}
+
+
 // =====================================================
 // CHECK IF CONTRACT IS ADHOC
 // =====================================================
@@ -945,11 +1025,15 @@ function renderPage() {
     $('#gstPercentInput').val(inv.gst_percent || 18);
     $('#tdsPercentInput').val(inv.tds_percent || 5);
     
-    // Show edit fields if Finance can edit
-    if (canEdit) {
-        $('.edit-field').show();
-        $('#invoiceNumberDisplay, #invoiceDateDisplay, #dueDateDisplay, #descriptionDisplay, #gstPercentDisplay, #tdsPercentDisplay').hide();
-    }
+ // Show edit fields if Finance can edit
+if (canEdit) {
+    $('.edit-field').show();
+    $('#invoiceNumberDisplay, #invoiceDateDisplay, #dueDateDisplay, #descriptionDisplay, #gstPercentDisplay').hide();
+    $('#tdsDropdownRow').show();
+    
+    // Populate TDS dropdown
+    populateTdsDropdown(inv.tds_tax_id, inv.tds_percent);
+}
     
     // Vendor Info
     $('#vendorName').text(inv.vendor?.vendor_name || '-');
@@ -1157,16 +1241,25 @@ function renderActions(status) {
 // =====================================================
 // SAVE INVOICE (Finance)
 // =====================================================
+
+// =====================================================
+// SAVE INVOICE (Finance)
+// =====================================================
 function saveInvoice() {
     if (!confirm('Save changes to this invoice?')) return;
     
+    const selectedTds = $('#tdsSelect option:selected');
+    const tdsPercent = parseFloat(selectedTds.data('percent')) || parseFloat($('#tdsPercentDisplay').text()) || 5;
+    const tdsTaxId = selectedTds.val() || null;
+
     const data = {
         invoice_number: $('#invoiceNumberInput').val(),
         invoice_date: $('#invoiceDateInput').val(),
         due_date: $('#dueDateInput').val(),
         description: $('#descriptionInput').val(),
         gst_percent: parseFloat($('#gstPercentInput').val()) || 18,
-        tds_percent: parseFloat($('#tdsPercentInput').val()) || 5,
+        tds_percent: tdsPercent,
+     zoho_tds_tax_id: tdsTaxId,
         items: []
     };
     
@@ -1203,6 +1296,7 @@ function saveInvoice() {
         .catch(err => showToast('error', err.response?.data?.message || 'Failed to save'));
 }
 
+
 // =====================================================
 // RECALCULATE ITEM
 // =====================================================
@@ -1220,6 +1314,8 @@ function recalculateItem(itemId) {
 // =====================================================
 // RECALCULATE TOTALS
 // =====================================================
+
+
 function recalculateTotals() {
     let baseTotal = 0;
     
@@ -1230,7 +1326,10 @@ function recalculateTotals() {
     });
     
     const gstPercent = parseFloat($('#gstPercentInput').val()) || 18;
-    const tdsPercent = parseFloat($('#tdsPercentInput').val()) || 5;
+    
+    // Get TDS from dropdown or display
+    const selectedTds = $('#tdsSelect option:selected');
+    const tdsPercent = parseFloat(selectedTds.data('percent')) || parseFloat($('#tdsPercentDisplay').text()) || 5;
     
     const gstAmount = (baseTotal * gstPercent) / 100;
     const grandTotal = baseTotal + gstAmount;
@@ -1243,6 +1342,8 @@ function recalculateTotals() {
     $('#tdsAmount').text('-₹' + formatNum(tdsAmount));
     $('#netPayable').text('₹' + formatNum(netPayable));
 }
+
+
 
 // =====================================================
 // CHANGE INVOICE TAG (RM)

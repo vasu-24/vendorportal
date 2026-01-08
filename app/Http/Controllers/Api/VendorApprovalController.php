@@ -187,6 +187,36 @@ class VendorApprovalController extends Controller
         }
     }
 
+
+/**
+ * Toggle travel access for vendor
+ */
+public function toggleTravelAccess($id)
+{
+    try {
+        $vendor = Vendor::findOrFail($id);
+        
+        $vendor->update([
+            'has_travel_access' => !$vendor->has_travel_access
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => $vendor->has_travel_access 
+                ? 'Travel access enabled' 
+                : 'Travel access disabled',
+            'has_travel_access' => $vendor->has_travel_access
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to update travel access'
+        ], 500);
+    }
+}
+
+
     // =====================================================
     // 🔥 APPROVE VENDOR (WITH EMAIL + ZOHO SYNC)
     // =====================================================

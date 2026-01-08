@@ -73,6 +73,69 @@
     
     /* Buttons */
     .btn-view { padding: 4px 12px; font-size: 11px; }
+
+    /* ============================================= */
+    /* SELECT2 STYLING */
+    /* ============================================= */
+    .select2-container--default .select2-selection--single {
+        height: 31px;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 2px 8px;
+        font-size: 13px;
+    }
+    
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 26px;
+        color: #495057;
+        padding-left: 0;
+    }
+    
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 30px;
+    }
+    
+    .select2-dropdown {
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        margin-top: 4px;
+    }
+    
+    .select2-container--default .select2-results__option {
+        padding: 8px 12px;
+        font-size: 13px;
+    }
+    
+    .select2-container--default .select2-results__option--highlighted[aria-selected] {
+        background-color: #0d6efd;
+        color: white;
+    }
+    
+    .select2-container--default .select2-results__option[aria-selected=true] {
+        background-color: #e7f1ff;
+        color: #0d6efd;
+    }
+    
+    .select2-container--default .select2-search--dropdown .select2-search__field {
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 6px 10px;
+        font-size: 13px;
+    }
+    
+    .select2-container--default .select2-search--dropdown .select2-search__field:focus {
+        border-color: #86b7fe;
+        outline: none;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+    }
+
+    /* Filter Row */
+    .filter-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
 </style>
 
 <div class="container-fluid py-3">
@@ -92,7 +155,7 @@
 
     <!-- Card -->
     <div class="card shadow-sm">
-        <!-- Tabs + Search -->
+        <!-- Tabs + Filter + Search -->
         <div class="card-header bg-white py-0 d-flex justify-content-between align-items-center">
             <ul class="nav nav-tabs border-0" id="statusTabs">
                 <li class="nav-item"><a class="nav-link active" href="#" data-status="all">All <span class="text-muted" id="tabAll">0</span></a></li>
@@ -101,8 +164,11 @@
                 <li class="nav-item"><a class="nav-link" href="#" data-status="rejected">Rejected <span class="text-muted" id="tabRejected">0</span></a></li>
                 <li class="nav-item"><a class="nav-link" href="#" data-status="paid">Paid <span class="text-muted" id="tabPaid">0</span></a></li>
             </ul>
-            <div class="py-2">
-                <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Search..." style="width: 200px;">
+            <div class="filter-row py-2">
+                <select id="vendorFilter" class="form-select form-select-sm">
+                    <option value="">All Vendors</option>
+                </select>
+                <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Search..." style="width: 180px;">
             </div>
         </div>
 
@@ -146,10 +212,20 @@ const USER_ROLE = '{{ auth()->user()->role->slug ?? "super-admin" }}';
 
 let currentStatus = 'all';
 let currentPage = 1;
+let currentVendor = '';
 let searchQuery = '';
 
 $(document).ready(function() {
+    // Initialize Select2
+    $('#vendorFilter').select2({
+        placeholder: 'All Vendors',
+        allowClear: false,
+        width: '180px',
+        minimumResultsForSearch: 5
+    });
+
     loadStatistics();
+    loadVendors();
     loadBatches();
 
     // Tab click
@@ -158,6 +234,13 @@ $(document).ready(function() {
         $('#statusTabs .nav-link').removeClass('active');
         $(this).addClass('active');
         currentStatus = $(this).data('status');
+        currentPage = 1;
+        loadBatches();
+    });
+
+    // Vendor filter change
+    $('#vendorFilter').on('change', function() {
+        currentVendor = $(this).val();
         currentPage = 1;
         loadBatches();
     });
@@ -174,6 +257,34 @@ $(document).ready(function() {
     });
 });
 
+// =====================================================
+// LOAD VENDORS
+// =====================================================
+function loadVendors() {
+    axios.get(`${API_BASE}/vendors`)
+        .then(res => {
+            if (res.data.success) {
+                let options = [{ id: '', text: 'All Vendors' }];
+                res.data.data.forEach(v => {
+                    options.push({ id: v.id, text: v.vendor_name });
+                });
+                
+                $('#vendorFilter').empty();
+                $('#vendorFilter').select2({
+                    placeholder: 'All Vendors',
+                    allowClear: false,
+                    width: '180px',
+                    minimumResultsForSearch: 5,
+                    data: options
+                });
+            }
+        })
+        .catch(err => console.error('Vendors load error:', err));
+}
+
+// =====================================================
+// LOAD STATISTICS
+// =====================================================
 function loadStatistics() {
     axios.get(`${API_BASE}/statistics`)
         .then(res => {
@@ -189,12 +300,16 @@ function loadStatistics() {
         });
 }
 
+// =====================================================
+// LOAD BATCHES
+// =====================================================
 function loadBatches() {
     const tbody = $('#tableBody');
     tbody.html('<tr><td colspan="10" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></td></tr>');
 
     let url = `${API_BASE}/batches?page=${currentPage}&per_page=15`;
     if (currentStatus !== 'all') url += `&status=${currentStatus}`;
+    if (currentVendor) url += `&vendor_id=${currentVendor}`;
     if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
 
     axios.get(url)
@@ -208,6 +323,9 @@ function loadBatches() {
         });
 }
 
+// =====================================================
+// RENDER BATCHES
+// =====================================================
 function renderBatches(data, userRole) {
     const batches = data.data || [];
     const tbody = $('#tableBody');
@@ -235,7 +353,6 @@ function renderBatches(data, userRole) {
                 <td>${formatDate(batch.created_at)}</td>
                 <td class="text-center">
                     <div class="d-flex gap-1 justify-content-center">
-
                         <a href="/admin/travel-invoices/batch/${batch.id}" class="btn btn-primary btn-view">
                             <i class="bi bi-eye me-1"></i>View${approvableCount > 0 ? ` (${approvableCount})` : ''}
                         </a>
@@ -249,9 +366,9 @@ function renderBatches(data, userRole) {
     renderPagination(data);
 }
 
-
-
-
+// =====================================================
+// RENDER PAGINATION
+// =====================================================
 function renderPagination(data) {
     $('#paginationInfo').text(`Showing ${data.from || 0} to ${data.to || 0} of ${data.total || 0}`);
     
@@ -283,7 +400,9 @@ function goToPage(page) {
     loadBatches();
 }
 
-// Get status badge with proper colors
+// =====================================================
+// HELPERS
+// =====================================================
 function getStatusBadge(status) {
     const labels = {
         'draft': 'Draft',

@@ -1065,4 +1065,755 @@ public function getSubmittedInvoices()
             ], 500);
         }
     }
+
+
+
+/**
+ * =====================================================
+ * ADD THIS METHOD TO: VendorTravelInvoiceController.php
+ * =====================================================
+ * 
+ * This method generates a dynamic Excel template with:
+ * - Pre-filled employee data (from database)
+ * - Pre-filled category data (from database)
+ * - Dropdowns for Travel Type and Mode
+ * - Empty columns for vendor to fill
+ */
+
+// =====================================================
+// DOWNLOAD EXCEL TEMPLATE
+// =====================================================
+
+public function downloadExcelTemplate()
+{
+    try {
+        $vendor = $this->getVendor();
+        
+        // Get LATEST employees from database
+        $employees = TravelEmployee::where('is_active', true)
+            ->select('id', 'employee_code', 'employee_name', 'department', 'tag_id', 'tag_name')
+            ->orderBy('employee_name', 'asc')
+            ->get();
+        
+        if ($employees->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No active employees found. Please add employees first.'
+            ], 400);
+        }
+        
+        // Get LATEST travel categories from database
+        $categories = \App\Models\Category::where('type', 'travel')
+            ->where('is_active', true)
+            ->pluck('name')
+            ->toArray();
+        
+        if (empty($categories)) {
+            $categories = ['Domestic', 'International']; // Default if no categories
+        }
+        
+        // Expense modes
+        $modes = ['Flight', 'Train', 'Cabs', 'Accommodation', 'Insurance', 'Visa', 'Other'];
+        
+        // Create Excel using PhpSpreadsheet
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        
+        // =====================================================
+        // SHEET 1: DATA ENTRY
+        // =====================================================
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Data Entry');
+        
+        // Header row
+        $headers = [
+            'A' => 'Emp Code',
+            'B' => 'Employee Name',
+            'C' => 'Project/Tag',
+            'D' => 'Invoice No',
+            'E' => 'Invoice Date',
+            'F' => 'Travel Type',
+            'G' => 'Location',
+            'H' => 'Travel Date',
+            'I' => 'Mode',
+            'J' => 'Particulars',
+            'K' => 'Basic',
+            'L' => 'Taxes',
+            'M' => 'Service',
+            'N' => 'GST',
+            'O' => 'TDS %',
+        ];
+        
+        // Set headers
+        foreach ($headers as $col => $header) {
+            $sheet->setCellValue($col . '1', $header);
+        }
+        
+        // Header styling
+        $headerStyle = [
+            'font' => [
+                'bold' => true,
+                'color' => ['rgb' => 'FFFFFF'],
+            ],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '1E40AF'],
+            ],
+            'alignment' => [
+                'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+            ],
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                ],
+            ],
+        ];
+        $sheet->getStyle('A1:O1')->applyFromArray($headerStyle);
+        
+        // Pre-filled columns styling (locked - grey background)
+        $lockedStyle = [
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'E5E7EB'],
+            ],
+            'font' => [
+                'color' => ['rgb' => '374151'],
+            ],
+        ];
+        
+        // Editable columns styling (white background, blue border)
+        $editableStyle = [
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'FFFFFF'],
+            ],
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                    'color' => ['rgb' => 'D1D5DB'],
+                ],
+            ],
+        ];
+        
+        // Fill employee data
+        $row = 2;
+        foreach ($employees as $employee) {
+            // Pre-filled columns (A, B, C) - Employee Info
+            $sheet->setCellValue('A' . $row, $employee->employee_code);
+            $sheet->setCellValue('B' . $row, $employee->employee_name);
+            $sheet->setCellValue('C' . $row, $employee->tag_name ?? '');
+            
+            // Default TDS %
+            $sheet->setCellValue('O' . $row, 5);
+            
+            // Apply locked style to pre-filled columns
+            $sheet->getStyle('A' . $row . ':C' . $row)->applyFromArray($lockedStyle);
+            
+            // Apply editable style to vendor input columns
+            $sheet->getStyle('D' . $row . ':O' . $row)->applyFromArray($editableStyle);
+            
+            $row++;
+        }
+        
+        $lastRow = $row - 1;
+        
+        // =====================================================
+        // ADD DROPDOWNS (Data Validation)
+        // =====================================================
+        
+        // Travel Type dropdown (Column F)
+        $travelTypeValidation = $sheet->getCell('F2')->getDataValidation();
+        $travelTypeValidation->setType(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::TYPE_LIST);
+        $travelTypeValidation->setErrorStyle(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::STYLE_INFORMATION);
+        $travelTypeValidation->setAllowBlank(true);
+        $travelTypeValidation->setShowDropDown(true);
+        $travelTypeValidation->setFormula1('"' . implode(',', $categories) . '"');
+        
+        // Apply to all rows
+        for ($i = 2; $i <= $lastRow; $i++) {
+            $sheet->getCell('F' . $i)->setDataValidation(clone $travelTypeValidation);
+        }
+        
+        // Mode dropdown (Column I)
+        $modeValidation = $sheet->getCell('I2')->getDataValidation();
+        $modeValidation->setType(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::TYPE_LIST);
+        $modeValidation->setErrorStyle(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::STYLE_INFORMATION);
+        $modeValidation->setAllowBlank(true);
+        $modeValidation->setShowDropDown(true);
+        $modeValidation->setFormula1('"' . implode(',', $modes) . '"');
+        
+        // Apply to all rows
+        for ($i = 2; $i <= $lastRow; $i++) {
+            $sheet->getCell('I' . $i)->setDataValidation(clone $modeValidation);
+        }
+        
+        // =====================================================
+        // COLUMN WIDTHS
+        // =====================================================
+        $sheet->getColumnDimension('A')->setWidth(12);  // Emp Code
+        $sheet->getColumnDimension('B')->setWidth(25);  // Employee Name
+        $sheet->getColumnDimension('C')->setWidth(20);  // Project
+        $sheet->getColumnDimension('D')->setWidth(15);  // Invoice No
+        $sheet->getColumnDimension('E')->setWidth(14);  // Invoice Date
+        $sheet->getColumnDimension('F')->setWidth(15);  // Travel Type
+        $sheet->getColumnDimension('G')->setWidth(20);  // Location
+        $sheet->getColumnDimension('H')->setWidth(14);  // Travel Date
+        $sheet->getColumnDimension('I')->setWidth(15);  // Mode
+        $sheet->getColumnDimension('J')->setWidth(25);  // Particulars
+        $sheet->getColumnDimension('K')->setWidth(12);  // Basic
+        $sheet->getColumnDimension('L')->setWidth(10);  // Taxes
+        $sheet->getColumnDimension('M')->setWidth(10);  // Service
+        $sheet->getColumnDimension('N')->setWidth(10);  // GST
+        $sheet->getColumnDimension('O')->setWidth(8);   // TDS %
+        
+        // Freeze header row
+        $sheet->freezePane('A2');
+        
+        // =====================================================
+        // SHEET 2: INSTRUCTIONS
+        // =====================================================
+        $instructionSheet = $spreadsheet->createSheet();
+        $instructionSheet->setTitle('Instructions');
+        
+        $instructions = [
+            ['TRAVEL INVOICE BULK UPLOAD - INSTRUCTIONS'],
+            [''],
+            ['HOW TO FILL:'],
+            ['1. Employee Code, Name, and Project are pre-filled - DO NOT MODIFY'],
+            ['2. Fill ONLY the rows where you want to create invoices'],
+            ['3. Empty rows (without Invoice No or Basic amount) will be skipped'],
+            [''],
+            ['REQUIRED FIELDS:'],
+            ['- Invoice No: Unique invoice number (e.g., TRV-001)'],
+            ['- Invoice Date: Date in YYYY-MM-DD format'],
+            ['- Location: Travel location (e.g., Mumbai, Delhi)'],
+            ['- Basic: Basic amount (required, must be > 0)'],
+            [''],
+            ['OPTIONAL FIELDS:'],
+            ['- Travel Type: Select from dropdown (Domestic/International)'],
+            ['- Travel Date: Date of travel'],
+            ['- Mode: Select from dropdown (Flight, Train, etc.)'],
+            ['- Particulars: Description of expense'],
+            ['- Taxes, Service, GST: Additional charges'],
+            ['- TDS %: Default is 5%, change if needed'],
+            [''],
+            ['NOTES:'],
+            ['- Each row = 1 Employee = 1 Invoice'],
+            ['- Invoice will be assigned to correct manager based on employee\'s project'],
+            ['- Download fresh template if employees or projects have changed'],
+            [''],
+            ['Generated on: ' . now()->format('d-M-Y H:i:s')],
+        ];
+        
+        foreach ($instructions as $idx => $line) {
+            $instructionSheet->setCellValue('A' . ($idx + 1), $line[0] ?? '');
+        }
+        
+        // Style instruction header
+        $instructionSheet->getStyle('A1')->applyFromArray([
+            'font' => ['bold' => true, 'size' => 14, 'color' => ['rgb' => '1E40AF']],
+        ]);
+        $instructionSheet->getStyle('A3')->applyFromArray([
+            'font' => ['bold' => true],
+        ]);
+        $instructionSheet->getStyle('A8')->applyFromArray([
+            'font' => ['bold' => true],
+        ]);
+        $instructionSheet->getStyle('A16')->applyFromArray([
+            'font' => ['bold' => true],
+        ]);
+        $instructionSheet->getStyle('A22')->applyFromArray([
+            'font' => ['bold' => true],
+        ]);
+        
+        $instructionSheet->getColumnDimension('A')->setWidth(70);
+        
+        // =====================================================
+        // SHEET 3: EMPLOYEE MASTER (Reference)
+        // =====================================================
+        $empMasterSheet = $spreadsheet->createSheet();
+        $empMasterSheet->setTitle('Employee Master');
+        
+        // Headers
+        $empMasterSheet->setCellValue('A1', 'Emp Code');
+        $empMasterSheet->setCellValue('B1', 'Employee Name');
+        $empMasterSheet->setCellValue('C1', 'Department');
+        $empMasterSheet->setCellValue('D1', 'Project/Tag');
+        
+        $empMasterSheet->getStyle('A1:D1')->applyFromArray($headerStyle);
+        
+        // Fill data
+        $row = 2;
+        foreach ($employees as $employee) {
+            $empMasterSheet->setCellValue('A' . $row, $employee->employee_code);
+            $empMasterSheet->setCellValue('B' . $row, $employee->employee_name);
+            $empMasterSheet->setCellValue('C' . $row, $employee->department ?? '');
+            $empMasterSheet->setCellValue('D' . $row, $employee->tag_name ?? '');
+            $row++;
+        }
+        
+        $empMasterSheet->getColumnDimension('A')->setWidth(12);
+        $empMasterSheet->getColumnDimension('B')->setWidth(25);
+        $empMasterSheet->getColumnDimension('C')->setWidth(15);
+        $empMasterSheet->getColumnDimension('D')->setWidth(20);
+        
+        // Set active sheet back to Data Entry
+        $spreadsheet->setActiveSheetIndex(0);
+        
+        // =====================================================
+        // GENERATE FILE
+        // =====================================================
+        $fileName = 'Travel_Invoice_Template_' . now()->format('Y-m-d_His') . '.xlsx';
+        $filePath = storage_path('app/temp/' . $fileName);
+        
+        // Ensure temp directory exists
+        if (!file_exists(storage_path('app/temp'))) {
+            mkdir(storage_path('app/temp'), 0755, true);
+        }
+        
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $writer->save($filePath);
+        
+        // Return file download
+        return response()->download($filePath, $fileName, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ])->deleteFileAfterSend(true);
+        
+    } catch (\Exception $e) {
+        Log::error('Download Excel Template Error: ' . $e->getMessage());
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to generate template: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+
+
+/**
+ * =====================================================
+ * ADD THIS METHOD TO: VendorTravelInvoiceController.php
+ * =====================================================
+ * 
+ * This method parses uploaded Excel and creates invoices
+ * ALL LINKING HAPPENS FROM DATABASE (not from Excel)
+ */
+
+// =====================================================
+// UPLOAD EXCEL & CREATE INVOICES
+// =====================================================
+
+public function uploadExcelTemplate(Request $request)
+{
+    try {
+        $vendor = $this->getVendor();
+        
+        // Validate file
+        $validator = Validator::make($request->all(), [
+            'excel_file' => 'required|file|mimes:xlsx,xls|max:10240', // 10MB max
+        ]);
+        
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid file. Please upload a valid Excel file (.xlsx or .xls)',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+        
+        // Load Excel file
+        $file = $request->file('excel_file');
+        $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($file->getPathname());
+        $sheet = $spreadsheet->getSheet(0); // First sheet (Data Entry)
+        
+        $rows = $sheet->toArray(null, true, true, true);
+        
+        // Remove header row
+        $headerRow = array_shift($rows);
+        
+        // Validate header structure
+        $expectedHeaders = ['Emp Code', 'Employee Name', 'Project/Tag', 'Invoice No', 'Invoice Date', 
+                           'Travel Type', 'Location', 'Travel Date', 'Mode', 'Particulars', 
+                           'Basic', 'Taxes', 'Service', 'GST', 'TDS %'];
+        
+        $headerValues = array_values(array_filter($headerRow));
+        
+        // Check if first few headers match
+        if (strtolower(trim($headerRow['A'])) !== 'emp code') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid template format. Please download a fresh template.'
+            ], 422);
+        }
+        
+        // Process rows
+        $created = [];
+        $errors = [];
+        $skipped = 0;
+        $rowNum = 1; // Start from 1 (after header)
+        
+        DB::beginTransaction();
+        
+        // Create batch
+        $batch = TravelBatch::create([
+            'batch_number' => TravelBatch::generateBatchNumber($vendor->id),
+            'vendor_id' => $vendor->id,
+            'total_invoices' => 0,
+            'total_amount' => 0,
+            'status' => 'draft',
+        ]);
+        
+        foreach ($rows as $row) {
+            $rowNum++;
+            
+            $empCode = trim($row['A'] ?? '');
+            $invoiceNo = trim($row['D'] ?? '');
+            $basicAmount = floatval($row['K'] ?? 0);
+            
+            // Skip empty rows (no invoice number OR no basic amount)
+            if (empty($invoiceNo) || $basicAmount <= 0) {
+                $skipped++;
+                continue;
+            }
+            
+            // =====================================================
+            // GET EMPLOYEE FROM DATABASE (NOT from Excel!)
+            // This ensures ALL linking is from LATEST database data
+            // =====================================================
+            $employee = TravelEmployee::where('employee_code', $empCode)
+                ->where('is_active', true)
+                ->first();
+            
+            if (!$employee) {
+                $errors[] = [
+                    'row' => $rowNum,
+                    'emp_code' => $empCode,
+                    'invoice_no' => $invoiceNo,
+                    'error' => "Employee code '{$empCode}' not found or inactive"
+                ];
+                continue;
+            }
+            
+            // Check for duplicate invoice number in this batch
+            $existingInvoice = TravelInvoice::where('batch_id', $batch->id)
+                ->where('invoice_number', $invoiceNo)
+                ->exists();
+            
+            if ($existingInvoice) {
+                $errors[] = [
+                    'row' => $rowNum,
+                    'emp_code' => $empCode,
+                    'invoice_no' => $invoiceNo,
+                    'error' => "Duplicate invoice number '{$invoiceNo}' in this batch"
+                ];
+                continue;
+            }
+            
+            // Get category from database
+            $travelType = trim($row['F'] ?? '');
+            $category = null;
+            if (!empty($travelType)) {
+                $category = \App\Models\Category::where('name', 'like', $travelType)
+                    ->where('type', 'travel')
+                    ->first();
+            }
+            
+            // Parse dates
+            $invoiceDate = $this->parseExcelDate($row['E'] ?? '');
+            $travelDate = $this->parseExcelDate($row['H'] ?? '');
+            
+            if (!$invoiceDate) {
+                $errors[] = [
+                    'row' => $rowNum,
+                    'emp_code' => $empCode,
+                    'invoice_no' => $invoiceNo,
+                    'error' => "Invalid invoice date"
+                ];
+                continue;
+            }
+            
+            // =====================================================
+            // CREATE INVOICE WITH ALL DB LINKS
+            // =====================================================
+            $invoice = TravelInvoice::create([
+                'batch_id'        => $batch->id,
+                'vendor_id'       => $vendor->id,
+                
+                // ✅ ALL FROM DATABASE (Latest data!)
+                'employee_id'     => $employee->id,
+                'tag_id'          => $employee->tag_id,
+                'tag_name'        => $employee->tag_name,
+                'project_code'    => $employee->tag_id,
+                'assigned_rm_id'  => $employee->getManagerId(),
+                
+                // ✅ FROM EXCEL
+                'invoice_number'  => $invoiceNo,
+                'invoice_date'    => $invoiceDate,
+                'invoice_type'    => 'tax_invoice',
+                'category_id'     => $category?->id,
+                'travel_type'     => $travelType ?: ($category?->name ?? 'Domestic'),
+                'location'        => trim($row['G'] ?? ''),
+                'travel_date'     => $travelDate,
+                'tds_percent'     => floatval($row['O'] ?? 5),
+                'status'          => 'draft',
+            ]);
+            
+            // =====================================================
+            // CREATE EXPENSE ITEM
+            // =====================================================
+            $basic = floatval($row['K'] ?? 0);
+            $taxes = floatval($row['L'] ?? 0);
+            $service = floatval($row['M'] ?? 0);
+            $gst = floatval($row['N'] ?? 0);
+            $gross = $basic + $taxes + $service + $gst;
+            
+            TravelInvoiceItem::create([
+                'travel_invoice_id' => $invoice->id,
+                'mode'              => strtolower(trim($row['I'] ?? 'other')),
+                'particulars'       => trim($row['J'] ?? ''),
+                'basic'             => $basic,
+                'taxes'             => $taxes,
+                'service_charge'    => $service,
+                'gst'               => $gst,
+                'gross_amount'      => $gross,
+            ]);
+            
+            // =====================================================
+            // CALCULATE INVOICE TOTALS
+            // =====================================================
+            $tdsAmount = ($basic * $invoice->tds_percent) / 100;
+            $netAmount = $gross - $tdsAmount;
+            
+            $invoice->update([
+                'basic_total'          => $basic,
+                'taxes_total'          => $taxes,
+                'service_charge_total' => $service,
+                'gst_total'            => $gst,
+                'gross_amount'         => $gross,
+                'tds_amount'           => $tdsAmount,
+                'net_amount'           => $netAmount,
+            ]);
+            
+            $created[] = [
+                'id' => $invoice->id,
+                'row' => $rowNum,
+                'invoice_no' => $invoiceNo,
+                'employee' => $employee->employee_name,
+                'amount' => $gross,
+            ];
+        }
+        
+        // Update batch totals
+        $batch->updateTotals();
+        
+        // If no invoices created, rollback
+        if (count($created) === 0) {
+            DB::rollBack();
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'No invoices created. Please check the errors.',
+                'data' => [
+                    'created_count' => 0,
+                    'error_count' => count($errors),
+                    'skipped_count' => $skipped,
+                    'errors' => $errors,
+                ]
+            ], 422);
+        }
+        
+        DB::commit();
+        
+        Log::info('Excel Upload Successful', [
+            'vendor_id' => $vendor->id,
+            'batch_id' => $batch->id,
+            'created' => count($created),
+            'errors' => count($errors),
+            'skipped' => $skipped,
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => count($created) . ' invoice(s) created successfully!',
+            'data' => [
+                'batch' => $batch->fresh(),
+                'created_count' => count($created),
+                'error_count' => count($errors),
+                'skipped_count' => $skipped,
+                'created' => $created,
+                'errors' => $errors,
+            ]
+        ]);
+        
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Upload Excel Error: ' . $e->getMessage());
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to process Excel: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+/**
+ * Parse Excel date (handles various formats)
+ */
+private function parseExcelDate($value)
+{
+    if (empty($value)) {
+        return null;
+    }
+    
+    // If it's already a date object
+    if ($value instanceof \DateTime) {
+        return $value->format('Y-m-d');
+    }
+    
+    // If it's an Excel serial date number
+    if (is_numeric($value)) {
+        try {
+            $date = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($value);
+            return $date->format('Y-m-d');
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+    
+    // If it's a string date
+    $value = trim($value);
+    
+    // Try various formats
+    $formats = ['Y-m-d', 'd-m-Y', 'd/m/Y', 'm/d/Y', 'Y/m/d', 'd-M-Y', 'd M Y'];
+    
+    foreach ($formats as $format) {
+        $date = \DateTime::createFromFormat($format, $value);
+        if ($date && $date->format($format) === $value) {
+            return $date->format('Y-m-d');
+        }
+    }
+    
+    // Try strtotime as last resort
+    $timestamp = strtotime($value);
+    if ($timestamp) {
+        return date('Y-m-d', $timestamp);
+    }
+    
+    return null;
+}
+
+
+// =====================================================
+// PREVIEW EXCEL (Without Creating)
+// =====================================================
+
+public function previewExcelTemplate(Request $request)
+{
+    try {
+        $vendor = $this->getVendor();
+        
+        // Validate file
+        $validator = Validator::make($request->all(), [
+            'excel_file' => 'required|file|mimes:xlsx,xls|max:10240',
+        ]);
+        
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid file',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+        
+        // Load Excel file
+        $file = $request->file('excel_file');
+        $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($file->getPathname());
+        $sheet = $spreadsheet->getSheet(0);
+        
+        $rows = $sheet->toArray(null, true, true, true);
+        array_shift($rows); // Remove header
+        
+        $preview = [];
+        $valid = 0;
+        $invalid = 0;
+        $skipped = 0;
+        $rowNum = 1;
+        
+        foreach ($rows as $row) {
+            $rowNum++;
+            
+            $empCode = trim($row['A'] ?? '');
+            $invoiceNo = trim($row['D'] ?? '');
+            $basicAmount = floatval($row['K'] ?? 0);
+            
+            // Skip empty rows
+            if (empty($invoiceNo) || $basicAmount <= 0) {
+                $skipped++;
+                continue;
+            }
+            
+            // Check employee exists
+            $employee = TravelEmployee::where('employee_code', $empCode)
+                ->where('is_active', true)
+                ->first();
+            
+            $basic = floatval($row['K'] ?? 0);
+            $taxes = floatval($row['L'] ?? 0);
+            $service = floatval($row['M'] ?? 0);
+            $gst = floatval($row['N'] ?? 0);
+            $gross = $basic + $taxes + $service + $gst;
+            
+            $status = 'valid';
+            $error = null;
+            
+            if (!$employee) {
+                $status = 'invalid';
+                $error = "Employee not found";
+                $invalid++;
+            } else {
+                $valid++;
+            }
+            
+            $preview[] = [
+                'row' => $rowNum,
+                'emp_code' => $empCode,
+                'employee_name' => $employee?->employee_name ?? $row['B'] ?? '-',
+                'project' => $employee?->tag_name ?? $row['C'] ?? '-',
+                'invoice_no' => $invoiceNo,
+                'invoice_date' => $row['E'] ?? '',
+                'travel_type' => $row['F'] ?? '',
+                'location' => $row['G'] ?? '',
+                'mode' => $row['I'] ?? '',
+                'amount' => $gross,
+                'status' => $status,
+                'error' => $error,
+            ];
+        }
+        
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'preview' => $preview,
+                'summary' => [
+                    'total_rows' => count($preview),
+                    'valid' => $valid,
+                    'invalid' => $invalid,
+                    'skipped' => $skipped,
+                ]
+            ]
+        ]);
+        
+    } catch (\Exception $e) {
+        Log::error('Preview Excel Error: ' . $e->getMessage());
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to preview Excel: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+
+
+
 }

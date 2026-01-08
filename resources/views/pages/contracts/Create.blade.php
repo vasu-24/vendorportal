@@ -84,24 +84,32 @@
                         {{-- COMMON FIELDS FOR ALL TEMPLATES --}}
                         <div id="commonFields">
                             {{-- Company & Vendor --}}
+                           
+                           
+                           
                             <div class="row g-2 mb-2">
-                                <div class="col-md-6">
-                                    <label class="form-label mb-1"><strong>Company</strong></label>
-                                    <select id="company_id" name="company_id" class="form-select form-select-sm">
-                                        <option value="">– Select Company –</option>
-                                        @foreach($organisations as $org)
-                                            <option value="{{ $org->id }}"
-                                                    data-name="{{ $org->company_name }}"
-                                                    data-cin="{{ $org->cin }}"
-                                                    data-address="{{ $org->address }}">
-                                                {{ $org->company_name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    <input type="hidden" id="company_name" name="company_name">
-                                    <input type="hidden" id="company_cin" name="company_cin">
-                                    <input type="hidden" id="company_address" name="company_address">
-                                </div>
+<div class="col-md-6">
+    <label class="form-label mb-1"><strong>Company</strong></label>
+    <select id="company_id" name="company_id" class="form-select form-select-sm">
+        <option value="">– Select Company –</option>
+        @foreach($organisations as $org)
+            <option value="{{ $org->id }}"
+                    data-name="{{ $org->company_name }}"
+                    data-cin="{{ $org->cin }}"
+                    data-address="{{ $org->address }}"
+                    {{ $loop->first ? 'selected' : '' }}>
+                {{ $org->company_name }}
+            </option>
+        @endforeach
+    </select>
+    <input type="hidden" id="company_name" name="company_name">
+    <input type="hidden" id="company_cin" name="company_cin">
+    <input type="hidden" id="company_address" name="company_address">
+</div>
+
+
+
+
 
                                 <div class="col-md-6">
                                     <label class="form-label mb-1"><strong>Vendor <span class="text-danger">*</span></strong></label>
@@ -615,7 +623,8 @@ $(document).ready(function() {
     console.log('✓ Form initialized');
     console.log('✓ Paid Templates:', PAID_TEMPLATES);
     console.log('✓ Non-Paid Templates:', NON_PAID_TEMPLATES);
-    
+    $('#company_id').trigger('change');
+
     // Template change
     $('#agreementTemplate').change(function() {
         const file = this.value;

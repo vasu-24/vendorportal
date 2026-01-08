@@ -88,12 +88,12 @@
         </li>
 
         <!-- Bank Payments -->
-        <li class="nav-item">
+        {{-- <li class="nav-item">
           <a class="nav-link {{ request()->is('bank-payments*') ? 'active' : '' }}"
              href="#">
              <i class="bi bi-bank me-1"></i>Bank Payments
           </a>
-        </li>
+        </li> --}}
 
         <!-- Settings -->
         <li class="nav-item dropdown">
