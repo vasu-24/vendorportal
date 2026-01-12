@@ -1102,11 +1102,11 @@ public function downloadExcelTemplate()
             ], 400);
         }
         
-        // Get LATEST travel categories from database
-        $categories = \App\Models\Category::where('type', 'travel')
-            ->where('is_active', true)
-            ->pluck('name')
-            ->toArray();
+     $categories = \App\Models\Category::where('is_travel_category', 1)
+    ->where('status', 'active')
+    ->pluck('name')
+    ->toArray();
+
         
         if (empty($categories)) {
             $categories = ['Domestic', 'International']; // Default if no categories
@@ -1509,13 +1509,32 @@ public function uploadExcelTemplate(Request $request)
                 continue;
             }
             
-            // Get category from database
+            // =====================================================
+            // TRAVEL TYPE IS REQUIRED
+            // =====================================================
             $travelType = trim($row['F'] ?? '');
-            $category = null;
-            if (!empty($travelType)) {
-                $category = \App\Models\Category::where('name', 'like', $travelType)
-                    ->where('type', 'travel')
-                    ->first();
+            if (empty($travelType)) {
+                $errors[] = [
+                    'row' => $rowNum,
+                    'emp_code' => $empCode,
+                    'invoice_no' => $invoiceNo,
+                    'error' => "Travel Type is required"
+                ];
+                continue;
+            }
+            
+            
+            // Get category using smart matching
+            $category = $this->findCategoryByName($travelType);
+            
+            if (!$category) {
+                $errors[] = [
+                    'row' => $rowNum,
+                    'emp_code' => $empCode,
+                    'invoice_no' => $invoiceNo,
+                    'error' => "Travel Type '{$travelType}' not found in Category Master. Please use exact category name from dropdown."
+                ];
+                continue;
             }
             
             // Parse dates
@@ -1550,8 +1569,8 @@ public function uploadExcelTemplate(Request $request)
                 'invoice_number'  => $invoiceNo,
                 'invoice_date'    => $invoiceDate,
                 'invoice_type'    => 'tax_invoice',
-                'category_id'     => $category?->id,
-                'travel_type'     => $travelType ?: ($category?->name ?? 'Domestic'),
+                'category_id'     => $category->id, // ✅ Guaranteed to exist
+                'travel_type'     => $category->name, // ✅ Use actual category name from master
                 'location'        => trim($row['G'] ?? ''),
                 'travel_date'     => $travelDate,
                 'tds_percent'     => floatval($row['O'] ?? 5),
@@ -1593,6 +1612,24 @@ public function uploadExcelTemplate(Request $request)
                 'tds_amount'           => $tdsAmount,
                 'net_amount'           => $netAmount,
             ]);
+            
+            // =====================================================
+            // HANDLE BILL FILE UPLOAD FOR THIS ROW
+            // =====================================================
+            if ($request->hasFile("bills.{$rowNum}")) {
+                $billFile = $request->file("bills.{$rowNum}");
+                
+                $fileName = 'bill_' . $invoice->id . '_' . time() . '_' . uniqid() . '.' . $billFile->getClientOriginalExtension();
+                $path = $billFile->storeAs('travel_invoices/' . $vendor->id . '/bills', $fileName, 'public');
+                
+                TravelInvoiceBill::create([
+                    'travel_invoice_id' => $invoice->id,
+                    'file_name' => $billFile->getClientOriginalName(),
+                    'file_path' => $path,
+                    'file_type' => $billFile->getClientOriginalExtension(),
+                    'file_size' => $billFile->getSize(),
+                ]);
+            }
             
             $created[] = [
                 'id' => $invoice->id,
@@ -1763,12 +1800,19 @@ public function previewExcelTemplate(Request $request)
             $gst = floatval($row['N'] ?? 0);
             $gross = $basic + $taxes + $service + $gst;
             
+            // Get travel type
+            $travelType = trim($row['F'] ?? '');
+            
             $status = 'valid';
             $error = null;
             
             if (!$employee) {
                 $status = 'invalid';
                 $error = "Employee not found";
+                $invalid++;
+            } elseif (empty($travelType)) {
+                $status = 'invalid';
+                $error = "Travel Type is required";
                 $invalid++;
             } else {
                 $valid++;
@@ -1781,7 +1825,7 @@ public function previewExcelTemplate(Request $request)
                 'project' => $employee?->tag_name ?? $row['C'] ?? '-',
                 'invoice_no' => $invoiceNo,
                 'invoice_date' => $row['E'] ?? '',
-                'travel_type' => $row['F'] ?? '',
+                'travel_type' => $travelType,
                 'location' => $row['G'] ?? '',
                 'mode' => $row['I'] ?? '',
                 'amount' => $gross,
@@ -1813,7 +1857,63 @@ public function previewExcelTemplate(Request $request)
     }
 }
 
-
-
+    /**
+     * Smart category matching - handles variations
+     * Matches: "dom", "domestic", "Domestic", "DOMESTIC", "domestic travel", etc.
+     */
+    private function findCategoryByName($inputName)
+    {
+        if (empty($inputName)) {
+            return null;
+        }
+        
+        // Normalize input
+        $normalized = strtolower(trim($inputName));
+        
+        // Get all travel categories
+        $categories = \App\Models\Category::where('is_travel_category', 1)
+            ->where('status', 'active')
+            ->get();
+        
+        // Priority 1: Exact match (case insensitive)
+        foreach ($categories as $category) {
+            if (strtolower($category->name) === $normalized) {
+                return $category;
+            }
+        }
+        
+        // Priority 2: Common variations mapping
+        $variations = [
+            'dom' => ['domestic'],
+            'domestic' => ['domestic'],
+            'int' => ['international'],
+            'intl' => ['international'],
+            'international' => ['international'],
+        ];
+        
+        foreach ($variations as $pattern => $searchTerms) {
+            if (str_contains($normalized, $pattern)) {
+                foreach ($categories as $category) {
+                    $catLower = strtolower($category->name);
+                    foreach ($searchTerms as $term) {
+                        if (str_contains($catLower, $term)) {
+                            return $category;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Priority 3: Partial match (contains)
+        foreach ($categories as $category) {
+            $catLower = strtolower($category->name);
+            // Check if category name contains input OR input contains category name
+            if (str_contains($catLower, $normalized) || str_contains($normalized, $catLower)) {
+                return $category;
+            }
+        }
+        
+        return null;
+    }
 
 }

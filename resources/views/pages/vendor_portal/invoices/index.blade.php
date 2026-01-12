@@ -335,9 +335,15 @@
             </td></tr>
         `);
 
-        const params = new URLSearchParams({ page: currentPage, per_page: 10 });
-        if (currentStatus) params.append('status', currentStatus);
-        if (searchQuery) params.append('search', searchQuery);
+const params = new URLSearchParams({ page: currentPage, per_page: 10 });
+
+if (currentStatus) {
+    // Just send the status as-is, backend will handle it
+    params.append('status', currentStatus);
+}
+
+
+if (searchQuery) params.append('search', searchQuery);
 
         axios.get(`${API_BASE}?${params}`)
             .then(res => {

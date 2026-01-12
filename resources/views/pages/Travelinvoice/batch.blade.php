@@ -39,9 +39,31 @@
     .amount-row.net { background: #ecfdf5; margin: 10px -14px -12px; padding: 12px 14px; border-radius: 0 0 10px 10px; color: #059669; font-weight: 700; }
     
     .attachment-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 6px; font-size: 12px; }
-    .att-icon { width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+    .attachment-item:last-child { margin-bottom: 0; }
+    .att-icon { width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
     .att-icon.pdf { background: #fee2e2; color: #dc2626; }
     .att-icon.img { background: #dbeafe; color: #2563eb; }
+    
+    /* Scrollable Attachments */
+    .attachments-scroll {
+        max-height: 250px;
+        overflow-y: auto;
+    }
+    .attachments-scroll::-webkit-scrollbar { width: 4px; }
+    .attachments-scroll::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+    .attachments-scroll::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+    .attachments-scroll::-webkit-scrollbar-thumb:hover { background: #a1a1a1; }
+    
+    /* Invoices Table Scroll */
+    .invoices-scroll {
+        max-height: calc(100vh - 400px);
+        min-height: 300px;
+        overflow-y: auto;
+    }
+    .invoices-scroll::-webkit-scrollbar { width: 6px; }
+    .invoices-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
+    .invoices-scroll::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+    .invoices-scroll::-webkit-scrollbar-thumb:hover { background: #a1a1a1; }
     
     .btn-action { padding: 10px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
     .btn-approve { background: #059669; color: white; }
@@ -51,6 +73,79 @@
     .btn-reject:hover { background: #dc2626; color: white; }
     .btn-summary { background: #3B82F6; color: white; border: none; padding: 8px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; }
     .btn-summary:hover { opacity: 0.9; color: white; }
+    
+    /* TDS Inline Expansion Panel */
+    .tds-expansion-row { display: none; }
+    .tds-expansion-row.show { display: table-row; animation: slideDown 0.3s ease; }
+    @keyframes slideDown { from { opacity: 0; } to { opacity: 1; } }
+    .tds-expansion-cell { padding: 0 !important; background: #fffbeb; border-left: 4px solid #f59e0b; }
+    .tds-panel-content { padding: 16px; }
+    .tds-alert-box { background: white; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 6px; margin-bottom: 16px; display: flex; align-items: start; gap: 12px; }
+    .tds-alert-box i { color: #f59e0b; font-size: 20px; flex-shrink: 0; }
+    .tds-alert-box.overdue { border-left-color: #dc2626; }
+    .tds-alert-box.overdue i { color: #dc2626; }
+    .tds-alert-box.success { border-left-color: #10b981; }
+    .tds-alert-box.success i { color: #10b981; }
+    .tds-alert-text { flex: 1; }
+    .tds-alert-title { font-weight: 600; color: #92400e; font-size: 13px; margin-bottom: 4px; }
+    .tds-alert-message { font-size: 12px; color: #78350f; }
+    .tds-date-section { display: flex; gap: 16px; margin-bottom: 12px; }
+    .tds-date-group { flex: 1; }
+    .tds-date-label { font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 6px; display: block; }
+    .tds-date-input { width: 100%; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; }
+    .tds-date-input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+    .tds-note { font-size: 11px; color: #6b7280; padding: 8px 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 12px; }
+    .tds-actions { display: flex; gap: 8px; justify-content: flex-end; }
+    .tds-btn-cancel { padding: 6px 14px; border: 1px solid #d1d5db; background: white; color: #6b7280; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .tds-btn-push { padding: 6px 14px; background: #059669; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
+    
+    /* Loading Overlay for Zoho Push */
+    .zoho-loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+    }
+    .zoho-loading-overlay.show {
+        display: flex;
+    }
+    .zoho-loading-content {
+        background: white;
+        padding: 40px 50px;
+        border-radius: 12px;
+        text-align: center;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+    .zoho-loading-spinner {
+        width: 60px;
+        height: 60px;
+        border: 6px solid #e5e7eb;
+        border-top-color: #059669;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px;
+    }
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    .zoho-loading-text {
+        font-size: 16px;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 8px;
+    }
+    .zoho-loading-subtext {
+        font-size: 13px;
+        color: #6b7280;
+    }
+
+
     
     .btn-sm-action { padding: 4px 8px; font-size: 11px; border-radius: 4px; }
     
@@ -189,7 +284,7 @@
                             <span class="ms-auto badge bg-primary" id="invoicesCount">0</span>
                         </div>
                         <div class="card-body-custom p-0">
-                            <div style="max-height: 350px; overflow-y: auto;">
+                            <div class="invoices-scroll">
                                 <table class="inv-table">
                                     <thead>
                                         <tr>
@@ -276,7 +371,7 @@
                             <i class="bi bi-paperclip text-primary"></i>Attachments
                             <span class="ms-auto badge bg-secondary" id="attachmentsCount">0</span>
                         </div>
-                        <div class="card-body-custom" id="attachmentsContainer">
+                        <div class="card-body-custom attachments-scroll" id="attachmentsContainer">
                             <div class="text-muted text-center py-2" style="font-size: 12px;">No attachments</div>
                         </div>
                     </div>
@@ -521,6 +616,16 @@
     </div>
 </div>
 
+
+<!-- Loading Overlay for Zoho Push -->
+<div class="zoho-loading-overlay" id="zohoLoadingOverlay">
+    <div class="zoho-loading-content">
+        <div class="zoho-loading-spinner"></div>
+        <div class="zoho-loading-text" id="zohoLoadingText">Pushing to Zoho Books...</div>
+        <div class="zoho-loading-subtext">Please do not close or refresh this page</div>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')
@@ -648,9 +753,40 @@ function renderInvoicesTable() {
                     <button class="btn btn-sm btn-outline-primary btn-sm-action me-1" onclick="viewInvoice(${inv.id})" title="View"><i class="bi bi-eye"></i></button>
                     ${canEditInv ? `<button class="btn btn-sm btn-outline-warning btn-sm-action me-1" onclick="openEditModal(${inv.id})" title="Edit"><i class="bi bi-pencil"></i></button>` : ''}
                     ${canAct ? `
-                        <button class="btn btn-sm btn-success btn-sm-action me-1" onclick="approveSingle(${inv.id})" title="Approve"><i class="bi bi-check"></i></button>
+                        <button class="btn btn-sm btn-success btn-sm-action me-1" onclick="showTdsPanel(${inv.id})" title="Approve"><i class="bi bi-check"></i></button>
                         <button class="btn btn-sm btn-outline-danger btn-sm-action" onclick="showRejectSingleModal(${inv.id})" title="Reject"><i class="bi bi-x"></i></button>
                     ` : ''}
+                </td>
+            </tr>
+        
+            <tr class="tds-expansion-row" id="tdsPanel${inv.id}">
+                <td colspan="8" class="tds-expansion-cell">
+                    <div class="tds-panel-content">
+                        <div class="tds-alert-box" id="tdsAlert${inv.id}">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                            <div class="tds-alert-text">
+                                <div class="tds-alert-title">TDS Payment Alert</div>
+                                <div class="tds-alert-message" id="tdsMessage${inv.id}">Loading TDS status...</div>
+                            </div>
+                        </div>
+                        <div class="tds-date-section">
+                            <div class="tds-date-group">
+                                <label class="tds-date-label">Original Invoice Date</label>
+                                <input type="text" class="tds-date-input" value="${formatDate(inv.invoice_date)}" readonly>
+                            </div>
+                            <div class="tds-date-group">
+                                <label class="tds-date-label">Zoho Sync Date (Optional)</label>
+                                <input type="date" class="tds-date-input" id="zohoDate${inv.id}" value="${inv.invoice_date}">
+                            </div>
+                        </div>
+                        <div class="tds-note">
+                            <i class="bi bi-info-circle"></i> Original date stays in system. Changed date only sent to Zoho Books.
+                        </div>
+                        <div class="tds-actions">
+                            <button class="tds-btn-cancel" onclick="hideTdsPanel(${inv.id})">Cancel</button>
+                            <button class="tds-btn-push" onclick="pushToZoho(${inv.id})"><i class="bi bi-cloud-arrow-up"></i> Push to Zoho</button>
+                        </div>
+                    </div>
                 </td>
             </tr>
         `;
@@ -658,6 +794,304 @@ function renderInvoicesTable() {
     
     $('#invoicesTableBody').html(html);
 }
+
+// =====================================================
+// TDS PANEL FUNCTIONS
+// =====================================================
+
+function showTdsPanel(invoiceId) {
+    // Find the invoice
+    const invoice = activeInvoices.find(inv => inv.id === invoiceId);
+    if (!invoice) return;
+    
+    // ONLY show TDS panel for Finance (or super-admin) at pending_finance status
+    if (invoice.status !== 'pending_finance') {
+        // Not Finance stage - approve directly!
+        approveSingle(invoiceId);
+        return;
+    }
+    
+    if (USER_ROLE !== 'finance' && USER_ROLE !== 'super-admin') {
+        // Not Finance role - approve directly!
+        approveSingle(invoiceId);
+        return;
+    }
+    
+    // OK - Finance at pending_finance - show TDS panel
+    document.querySelectorAll('.tds-expansion-row').forEach(row => row.classList.remove('show'));
+    const panel = document.getElementById(`tdsPanel${invoiceId}`);
+    if (panel) {
+        panel.classList.add('show');
+        loadTdsWarning(invoiceId, invoice.invoice_date);
+    }
+}
+
+function hideTdsPanel(invoiceId) {
+    const panel = document.getElementById(`tdsPanel${invoiceId}`);
+    if (panel) panel.classList.remove('show');
+}
+
+function loadTdsWarning(invoiceId, invoiceDate) {
+    // Extract just the date part (YYYY-MM-DD)
+    let cleanDate = invoiceDate;
+    if (cleanDate.includes('T')) {
+        cleanDate = cleanDate.split('T')[0];
+    }
+    
+    axios.get('/api/admin/settings/tds-config-invoice', {
+        params: { invoice_date: cleanDate }
+    })
+
+        .then(res => {
+            if (res.data.success && res.data.data.warning) {
+                const warning = res.data.data.warning;
+                const messageEl = document.getElementById(`tdsMessage${invoiceId}`);
+                const alertBox = document.getElementById(`tdsAlert${invoiceId}`);
+                
+                if (warning.show_warning) {
+                    messageEl.innerHTML = warning.message;
+                    alertBox.classList.remove('success');
+                    if (warning.is_overdue) {
+                        alertBox.classList.add('overdue');
+                    } else {
+                        alertBox.classList.remove('overdue');
+                    }
+                } else {
+                    messageEl.innerHTML = 'No TDS payment due at this time. You can proceed with approval.';
+                    alertBox.classList.remove('overdue');
+                    alertBox.classList.add('success');
+                }
+            }
+        })
+        .catch(err => {
+            console.error('Failed to load TDS warning:', err);
+            const messageEl = document.getElementById(`tdsMessage${invoiceId}`);
+            if (messageEl) {
+                messageEl.innerHTML = 'Could not load TDS status. You can still proceed.';
+            }
+        });
+}
+
+function pushToZoho(invoiceId) {
+    const zohoDate = document.getElementById(`zohoDate${invoiceId}`).value;
+    if (!zohoDate) {
+        Toast.error('Please select a date');
+        return;
+    }
+    if (!confirm('Push this invoice to Zoho Books?')) return;
+    
+    const btn = event.target;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Pushing...';
+    
+    // Show loading overlay
+    showZohoLoading('Pushing invoice to Zoho Books...');
+    
+    axios.post(`${API_BASE}/${invoiceId}/approve`, { zoho_sync_date: zohoDate })
+        .then(res => {
+            hideZohoLoading();
+            if (res.data.success) {
+                Toast.success('Invoice approved and pushed to Zoho!');
+                hideTdsPanel(invoiceId);
+                loadBatch();
+            } else {
+                Toast.error(res.data.message || 'Failed to approve');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-cloud-arrow-up"></i> Push to Zoho';
+            }
+        })
+        .catch(err => {
+            hideZohoLoading();
+            Toast.error(err.response?.data?.message || 'Failed to approve invoice');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-cloud-arrow-up"></i> Push to Zoho';
+        });
+}
+
+// =====================================================
+// LOADING OVERLAY HELPERS
+// =====================================================
+
+function showZohoLoading(message) {
+    const overlay = document.getElementById('zohoLoadingOverlay');
+    const text = document.getElementById('zohoLoadingText');
+    if (text) text.textContent = message || 'Pushing to Zoho Books...';
+    if (overlay) overlay.classList.add('show');
+}
+
+function hideZohoLoading() {
+    const overlay = document.getElementById('zohoLoadingOverlay');
+    if (overlay) overlay.classList.remove('show');
+}
+
+// =====================================================
+// APPROVE ALL - ONE BY ONE WITH TDS CHECK
+// =====================================================
+
+let approveAllQueue = [];
+let approveAllIndex = 0;
+let approveAllSuccessCount = 0;
+let approveAllFailCount = 0;
+
+
+function approveAll() {
+    if (approvableCount === 0) {
+        Toast.error('No invoices to approve');
+        return;
+    }
+    
+    // Check if this is Finance approving at pending_finance stage
+    const isFinanceAtPendingFinance = (USER_ROLE === 'finance' || USER_ROLE === 'super-admin') && 
+                                      activeInvoices.some(inv => inv.status === 'pending_finance' && canUserActOnInvoice(inv));
+    
+    if (isFinanceAtPendingFinance) {
+        // Finance at pending_finance - process one by one with TDS check
+        const financeInvoices = activeInvoices.filter(inv => 
+            inv.status === 'pending_finance' && canUserActOnInvoice(inv)
+        );
+        
+        if (!confirm('Process ' + financeInvoices.length + ' invoice(s) one by one with TDS check?\n\nEach invoice will be checked for TDS payment status before approval.')) {
+            return;
+        }
+        
+        approveAllQueue = financeInvoices;
+        approveAllIndex = 0;
+        approveAllSuccessCount = 0;
+        approveAllFailCount = 0;
+        
+        showZohoLoading('Processing invoice 1 of ' + financeInvoices.length + '...');
+        processNextInvoiceInQueue();
+        
+    } else {
+        // ALL OTHER CASES - RM, VP, CEO, or Finance at non-finance stage
+        // Batch approve without TDS checking
+        if (!confirm('Approve ' + approvableCount + ' invoice(s)?')) return;
+        
+        const btn = event.target;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Approving...';
+        
+        showZohoLoading('Approving ' + approvableCount + ' invoices...');
+        
+        axios.post(API_BASE + '/batches/' + BATCH_ID + '/approve-all')
+            .then(res => {
+                hideZohoLoading();
+                if (res.data.success) {
+                    Toast.success((res.data.approved_count || approvableCount) + ' invoice(s) approved!');
+                    loadBatch();
+                } else {
+                    Toast.error(res.data.message || 'Failed to approve');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-check-circle"></i> Approve All';
+                }
+            })
+            .catch(err => {
+                hideZohoLoading();
+                Toast.error(err.response?.data?.message || 'Failed to approve');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-check-circle"></i> Approve All';
+            });
+    }
+}
+
+function processNextInvoiceInQueue() {
+    if (approveAllIndex >= approveAllQueue.length) {
+        // Done processing all
+        hideZohoLoading();
+        
+        const total = approveAllQueue.length;
+        let message = '';
+        
+        if (approveAllSuccessCount === total) {
+            message = `✅ All ${total} invoices approved and pushed to Zoho!`;
+        } else {
+            message = `✅ ${approveAllSuccessCount} approved, ❌ ${approveAllFailCount} failed`;
+        }
+        
+        Toast.success(message);
+        loadBatch();
+        return;
+    }
+    
+    const invoice = approveAllQueue[approveAllIndex];
+    const currentNum = approveAllIndex + 1;
+    const total = approveAllQueue.length;
+    
+    // Update loading message
+    showZohoLoading(`Processing invoice ${currentNum} of ${total}...\n${invoice.invoice_number}`);
+    
+    // Check TDS for this invoice
+// Extract just the date part (YYYY-MM-DD)
+let invoiceDate = invoice.invoice_date;
+if (invoiceDate.includes('T')) {
+    invoiceDate = invoiceDate.split('T')[0];
+}
+
+axios.get('/api/admin/settings/tds-config-invoice', {
+    params: { invoice_date: invoiceDate }
+})
+
+
+
+        .then(res => {
+            let shouldProceed = true;
+            
+            // If TDS warning exists, ask user
+            if (res.data.success && res.data.data.warning && res.data.data.warning.show_warning) {
+                const warning = res.data.data.warning;
+                const userConfirm = confirm(
+                    `Invoice: ${invoice.invoice_number}\n` +
+                    `⚠️ ${warning.message}\n\n` +
+                    `Continue with approval?`
+                );
+                shouldProceed = userConfirm;
+            }
+            
+            if (shouldProceed) {
+                // Approve this invoice
+                approveInvoiceInQueue(invoice);
+            } else {
+                // User cancelled - skip this invoice
+                approveAllFailCount++;
+                approveAllIndex++;
+                processNextInvoiceInQueue();
+            }
+        })
+        .catch(err => {
+            console.error('TDS check failed, proceeding anyway:', err);
+            // Proceed even if TDS check fails
+            approveInvoiceInQueue(invoice);
+        });
+}
+
+
+
+function approveInvoiceInQueue(invoice) {
+    axios.post(`${API_BASE}/${invoice.id}/approve`, { 
+        zoho_sync_date: invoice.invoice_date 
+    })
+        .then(res => {
+            if (res.data.success) {
+                approveAllSuccessCount++;
+            } else {
+                approveAllFailCount++;
+            }
+            
+            // Move to next
+            approveAllIndex++;
+            processNextInvoiceInQueue();
+        })
+        .catch(err => {
+            console.error('Failed to approve invoice:', err);
+            approveAllFailCount++;
+            
+            // Move to next
+            approveAllIndex++;
+            processNextInvoiceInQueue();
+        });
+}
+
+
 
 // =====================================================
 // RENDER REJECTED INVOICES TABLE
@@ -773,7 +1207,8 @@ function renderAttachments() {
     }
     
     let html = '';
-    allBills.slice(0, 5).forEach(bill => {
+    // Show ALL files - scrollable container handles overflow
+    allBills.forEach(bill => {
         const isPdf = bill.file_name?.toLowerCase().endsWith('.pdf');
         html += `
             <div class="attachment-item">
@@ -786,10 +1221,6 @@ function renderAttachments() {
             </div>
         `;
     });
-    
-    if (allBills.length > 5) {
-        html += `<div class="text-center"><small class="text-muted">+${allBills.length - 5} more files</small></div>`;
-    }
     
     $('#attachmentsContainer').html(html);
 }
@@ -849,14 +1280,26 @@ function renderActions() {
 function approveSingle(id) {
     if (!confirm('Approve this invoice?')) return;
     
+    const btn = event.target;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+    
     axios.post(`${API_BASE}/${id}/approve`)
         .then(res => {
             if (res.data.success) {
                 Toast.success(res.data.message || 'Invoice approved');
                 loadBatch();
+            } else {
+                Toast.error(res.data.message || 'Failed to approve');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-check"></i>';
             }
         })
-        .catch(err => Toast.error(err.response?.data?.message || 'Failed'));
+        .catch(err => {
+            Toast.error(err.response?.data?.message || 'Failed to approve');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check"></i>';
+        });
 }
 
 function showRejectSingleModal(id) {
@@ -881,18 +1324,7 @@ function confirmRejectSingle() {
         .catch(err => Toast.error(err.response?.data?.message || 'Failed'));
 }
 
-function approveAll() {
-    if (!confirm(`Approve ${approvableCount} invoices?`)) return;
-    
-    axios.post(`${API_BASE}/batches/${BATCH_ID}/approve-all`)
-        .then(res => {
-            if (res.data.success) {
-                Toast.success(res.data.message || 'Invoices approved');
-                loadBatch();
-            }
-        })
-        .catch(err => Toast.error(err.response?.data?.message || 'Failed'));
-}
+
 
 function showRejectAllModal() {
     $('#rejectAllCount').text(approvableCount);

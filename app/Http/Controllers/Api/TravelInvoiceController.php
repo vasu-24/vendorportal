@@ -272,6 +272,9 @@ public function getBatchSummary($batchId)
             $invoice = TravelInvoice::findOrFail($id);
             $user = Auth::user();
             $userRole = $user->role->slug ?? 'viewer';
+            
+            // Get Zoho sync date (optional - defaults to invoice date)
+            $zohoSyncDate = $request->input('zoho_sync_date', $invoice->invoice_date);
 
             // Check if manager can approve this invoice (tag check)
             if ($userRole === 'manager') {
@@ -293,7 +296,7 @@ public function getBatchSummary($batchId)
             // Zoho sync if approved
             $zohoSynced = false;
             if ($result['new_status'] === 'approved') {
-                $zohoSynced = $this->syncToZoho($invoice);
+                $zohoSynced = $this->syncToZoho($invoice, $zohoSyncDate);
             }
 
             return response()->json([
@@ -597,7 +600,7 @@ public function vendors()
 }
 
 
-private function syncToZoho($invoice)
+private function syncToZoho($invoice, $zohoSyncDate = null)
 {
     try {
         $zohoService = app(ZohoService::class);
@@ -607,6 +610,12 @@ private function syncToZoho($invoice)
                 'invoice_id' => $invoice->id,
             ]);
             return false;
+        }
+        
+        // Save zoho_sync_date to invoice - FORMAT AS DATE ONLY!
+        if ($zohoSyncDate) {
+            $invoice->zoho_sync_date = \Carbon\Carbon::parse($zohoSyncDate)->format('Y-m-d');
+            $invoice->save();
         }
         
         $zohoService->createTravelBill($invoice);

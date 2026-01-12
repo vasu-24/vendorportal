@@ -30,40 +30,52 @@ class DashboardController extends Controller
         try {
             $now = Carbon::now();
             $startOfMonth = $now->copy()->startOfMonth();
+// Vendor stats
+$totalVendors = Vendor::count();
+$pendingApprovals = Vendor::where('approval_status', 'pending_approval')->count();
+$newVendorsThisMonth = Vendor::where('created_at', '>=', $startOfMonth)->count();
 
-            // Vendor stats
-            $totalVendors = Vendor::count();
-            $newVendorsThisMonth = Vendor::where('created_at', '>=', $startOfMonth)->count();
-            
-            // Invoice stats
-            $totalInvoices = Invoice::count();
-            $invoicesProcessed = Invoice::where('created_at', '>=', $startOfMonth)
-                ->whereIn('status', ['approved', 'paid'])
-                ->count();
-            
-            // Financial stats
-            $thisMonthAmount = Invoice::where('created_at', '>=', $startOfMonth)
-                ->whereIn('status', ['approved', 'paid'])
-                ->sum('grand_total') ?? 0;
-            
-            $unpaidAmount = Invoice::where('status', 'approved')
-                ->sum('grand_total') ?? 0;
+// Contract stats
+$totalContracts = \App\Models\Contract::count();
 
-            // Average approval time (in days)
-            $avgApprovalDays = $this->calculateAvgApprovalTime();
+// Invoice stats
+$totalInvoices = Invoice::count();
+$adhocInvoices = Invoice::where('invoice_type', 'adhoc')->count();
 
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'total_vendors' => $totalVendors,
-                    'total_invoices' => $totalInvoices,
-                    'new_vendors_this_month' => $newVendorsThisMonth,
-                    'invoices_processed' => $invoicesProcessed,
-                    'this_month_amount' => $thisMonthAmount,
-                    'unpaid_amount' => $unpaidAmount,
-                    'avg_approval_days' => $avgApprovalDays,
-                ]
-            ]);
+// Travel invoices (exclude draft)
+$travelInvoices = \App\Models\TravelInvoice::where('status', '!=', 'draft')->count();
+
+$invoicesProcessed = Invoice::where('created_at', '>=', $startOfMonth)
+    ->whereIn('status', ['approved', 'paid'])
+    ->count();
+
+// Financial stats
+$thisMonthAmount = Invoice::where('created_at', '>=', $startOfMonth)
+    ->whereIn('status', ['approved', 'paid'])
+    ->sum('grand_total') ?? 0;
+
+$unpaidAmount = Invoice::where('status', 'approved')
+    ->sum('grand_total') ?? 0;
+
+// Average approval time (in days)
+$avgApprovalDays = $this->calculateAvgApprovalTime();
+
+return response()->json([
+    'success' => true,
+    'data' => [
+        'total_vendors' => $totalVendors,
+        'pending_approvals' => $pendingApprovals,
+        'total_contracts' => $totalContracts,
+        'total_invoices' => $totalInvoices,
+        'adhoc_invoices' => $adhocInvoices,
+        'travel_invoices' => $travelInvoices,
+        'new_vendors_this_month' => $newVendorsThisMonth,
+        'invoices_processed' => $invoicesProcessed,
+        'this_month_amount' => $thisMonthAmount,
+        'unpaid_amount' => $unpaidAmount,
+        'avg_approval_days' => $avgApprovalDays,
+    ]
+]);
 
         } catch (\Exception $e) {
             Log::error('Dashboard summary error', ['error' => $e->getMessage()]);

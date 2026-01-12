@@ -410,6 +410,12 @@ public function downloadWord($id, Request $request)
                 $templateProcessor->setValue('CLIENT_CIN', $request->input('client_cin') ?? '');
                 $templateProcessor->setValue('CLIENT_REGISTERED_ADDRESS', $request->input('client_registered_address') ?? '');
                 $templateProcessor->setValue('SERVICES_DESCRIPTION', $request->input('services_description') ?? '');
+                $scopeOfWork = $request->input('scope_of_work') ?? '';
+                 if ($scopeOfWork) {
+                 $scopeOfWork = str_replace("\n", '</w:t><w:br/><w:t>', $scopeOfWork);
+                   }
+                $templateProcessor->setValue('SOW_SCOPE_OF_WORK', $scopeOfWork);
+                Log::info('STEP 8: Scope of Work set with line breaks');
                 $templateProcessor->setValue('INITIAL_TERM_MONTHS', $request->input('initial_term_months') ?? '');
                 $templateProcessor->setValue('TERMINATION_NOTICE_DAYS', $request->input('termination_notice_days') ?? '30');
                 $templateProcessor->setValue('SOW_START_DATE', $sowStartDate ?? '');
@@ -521,4 +527,4 @@ public function downloadWord($id, Request $request)
             ], 500);
         }
     }
-}
+} 

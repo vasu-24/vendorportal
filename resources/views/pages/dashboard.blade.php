@@ -110,7 +110,7 @@
 
     .focus-content { flex: 1; }
     .focus-content-title { font-weight: 600; font-size: 0.8rem; color: var(--text-dark); }
-    .focus-content-sub { font-size: 0.65rem; color: var(--text-grey); }
+    .focus-content-sub { font-size: 0.65rem; color: var(--text-grey); margin-top: 2px; }
 
     .focus-action {
         font-size: 0.65rem;
@@ -272,6 +272,7 @@
     </div>
 
     <!-- Summary Cards Row -->
+
     <div class="row g-2 mb-3">
         <div class="col">
             <div class="summary-card" onclick="location.href='{{ route('vendors.index') }}'">
@@ -288,19 +289,19 @@
             </div>
         </div>
         <div class="col">
-            <div class="summary-card" onclick="location.href='{{ route('vendors.index') }}'">
-                <div class="summary-icon"><i class="bi bi-check-circle"></i></div>
-                <div class="summary-count" id="countApproved">0</div>
-                <div class="summary-label">Approved</div>
+            <div class="summary-card" onclick="location.href='{{ route('invoices.index') }}'">
+                <div class="summary-icon"><i class="bi bi-lightning-fill"></i></div>
+                <div class="summary-count" id="countAdhoc">0</div>
+                <div class="summary-label">ADHOC</div>
             </div>
         </div>
-        <div class="col">
-            <div class="summary-card" onclick="location.href='{{ route('vendors.index') }}'">
-                <div class="summary-icon"><i class="bi bi-x-circle"></i></div>
-                <div class="summary-count" id="countRejected">0</div>
-                <div class="summary-label">Rejected</div>
-            </div>
-        </div>
+ <div class="col">
+    <div class="summary-card" onclick="location.href='{{ route('admin.travel-invoices.index') }}'">
+        <div class="summary-icon"><i class="bi bi-airplane"></i></div>
+        <div class="summary-count" id="countTravel">0</div>
+        <div class="summary-label">Travel</div>
+    </div>
+</div>
         <div class="col">
             <div class="summary-card" onclick="location.href='{{ route('invoices.index') }}'">
                 <div class="summary-icon"><i class="bi bi-receipt"></i></div>
@@ -438,12 +439,12 @@ async function loadDashboardData() {
         const summaryRes = await axios.get('/api/dashboard/summary');
         if (summaryRes.data.success) {
             const d = summaryRes.data.data;
-            $('#countVendors').text(d.total_vendors || 0);
-            $('#countPending').text(d.pending_approvals || 0);
-            $('#countApproved').text(d.approved_vendors || 0);
-            $('#countRejected').text(d.rejected_vendors || 0);
-            $('#countInvoices').text(d.total_invoices || 0);
-            $('#countContracts').text(d.total_contracts || 0);
+    $('#countVendors').text(d.total_vendors || 0);
+$('#countPending').text(d.pending_approvals || 0);
+$('#countInvoices').text(d.total_invoices || 0);
+$('#countContracts').text(d.total_contracts || 0);
+$('#countAdhoc').text(d.adhoc_invoices || 0);
+$('#countTravel').text(d.travel_invoices || 0);
             $('#statNewVendors').text('+' + (d.new_vendors_this_month || 0));
             $('#statUnpaid').text(formatCurrency(d.unpaid_amount || 0));
             $('#statAvgApproval').text((d.avg_approval_days || 0) + ' days');

@@ -333,6 +333,143 @@
 </div>
 @endsection
 
+
+@push('styles')
+<style>
+/* SUPER COMPACT EXCEED ROW STYLES */
+.compact-exceed-row {
+    display: none;
+}
+.compact-exceed-row.show {
+    display: table-row;
+}
+.compact-exceed-cell {
+    padding: 8px !important;
+    background: #fffbeb;
+    border-left: 3px solid #f59e0b;
+    border-bottom: 1px solid #fbbf24;
+}
+.compact-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 10px;
+}
+.comparison-inline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.compare-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    background: white;
+    border-radius: 4px;
+    border: 1px solid #e5e7eb;
+}
+.compare-label {
+    font-weight: 600;
+    color: #6b7280;
+    font-size: 9px;
+    text-transform: uppercase;
+}
+.contract-val {
+    color: #059669;
+    font-weight: 700;
+    font-size: 11px;
+}
+.arrow {
+    color: #9ca3af;
+    font-size: 10px;
+}
+.invoice-val {
+    color: #dc2626;
+    font-weight: 700;
+    font-size: 11px;
+}
+.diff-val {
+    color: #92400e;
+    font-weight: 700;
+    background: #fef3c7;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 9px;
+}
+.reason-compact {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.reason-compact label {
+    font-size: 9px;
+    font-weight: 600;
+    color: #374151;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+.reason-compact i {
+    color: #8b5cf6;
+    font-size: 11px;
+}
+.reason-input {
+    width: 100%;
+    padding: 5px 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 10px;
+    resize: none;
+    height: 32px;
+    font-family: inherit;
+}
+.reason-input:focus {
+    outline: none;
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.1);
+}
+.reason-input::placeholder {
+    color: #9ca3af;
+    font-size: 10px;
+}
+.save-btn-compact {
+    padding: 5px 10px;
+    background: #10b981;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+}
+.save-btn-compact:hover {
+    background: #059669;
+}
+.input-exceeded {
+    border-color: #f59e0b !important;
+    background: #fffbeb !important;
+}
+.warning-icon-inline {
+    color: #f59e0b;
+    font-size: 12px;
+    margin-left: 4px;
+    animation: pulse 2s infinite;
+}
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+</style>
+@endpush
+
+
+
 @push('scripts')
 <script>
 const API_BASE = '/api/vendor/invoices';
@@ -350,6 +487,11 @@ let allCategories = [];
 let rowCounter = 0;
 let isAdhocInvoice = URL_INVOICE_TYPE === 'adhoc';
 let currentContract = null;
+// Exceed notes data structure
+let exceedNotesData = {
+    items: [],
+    contract: null
+};
 
 // =====================================================
 // INITIALIZATION
@@ -754,6 +896,15 @@ function bindLineItemEvents(rowId) {
     $(`#${rowId} .qty-input, #${rowId} .rate-input`).on('input', function() {
         calculateLineItemAmount(rowId);
     });
+    
+    // Validate on blur
+    $(`#${rowId} .qty-input`).on('blur', function() {
+        validateQuantity(rowId);
+    });
+    
+    $(`#${rowId} .rate-input`).on('blur', function() {
+        validateRate(rowId);
+    });
 }
 
 // =====================================================
@@ -770,15 +921,333 @@ function calculateLineItemAmount(rowId) {
 }
 
 // =====================================================
+// VALIDATE QUANTITY (Contract Exceed Check)
+// =====================================================
+function validateQuantity(rowId) {
+    const row = $(`#${rowId}`);
+    const contractItemId = row.find('.contract-item-id').val();
+    
+    if (!contractItemId) return; // Skip if no contract item
+    
+    const enteredQty = parseFloat(row.find('.qty-input').val()) || 0;
+    const contractItem = contractItems.find(item => item.id == contractItemId);
+    
+    if (!contractItem || !contractItem.quantity) return;
+    
+    const contractQty = parseFloat(contractItem.quantity);
+    const qtyInput = row.find('.qty-input');
+    
+    if (enteredQty > contractQty) {
+        // EXCEEDS - Show compact panel
+        qtyInput.addClass('input-exceeded');
+        showCompactPanel(rowId, 'quantity', contractItem.category_name, contractQty, enteredQty);
+    } else {
+        // Within limits - Remove exceeded styling and panel
+        qtyInput.removeClass('input-exceeded');
+        removeExceedNote(rowId, 'quantity');
+        hideCompactPanelIfNoExceeds(rowId);
+    }
+}
+
+// =====================================================
+// VALIDATE RATE (Contract Exceed Check)
+// =====================================================
+function validateRate(rowId) {
+    const row = $(`#${rowId}`);
+    const contractItemId = row.find('.contract-item-id').val();
+    
+    if (!contractItemId) return; // Skip if no contract item
+    
+    const enteredRate = parseFloat(row.find('.rate-input').val()) || 0;
+    const contractItem = contractItems.find(item => item.id == contractItemId);
+    
+    if (!contractItem || !contractItem.rate) return;
+    
+    const contractRate = parseFloat(contractItem.rate);
+    const rateInput = row.find('.rate-input');
+    
+    if (enteredRate > contractRate) {
+        // EXCEEDS - Show compact panel
+        rateInput.addClass('input-exceeded');
+        showCompactPanel(rowId, 'rate', contractItem.category_name, contractRate, enteredRate);
+    } else {
+        // Within limits - Remove exceeded styling and panel
+        rateInput.removeClass('input-exceeded');
+        removeExceedNote(rowId, 'rate');
+        hideCompactPanelIfNoExceeds(rowId);
+    }
+}
+
+// =====================================================
+// SHOW COMPACT PANEL
+// =====================================================
+function showCompactPanel(rowId, type, itemName, contractValue, enteredValue) {
+    const row = $(`#${rowId}`);
+    const panelId = `${rowId}_exceed_panel`;
+    
+    // Check if panel already exists
+    let panelRow = $(`#${panelId}`);
+    
+    if (panelRow.length === 0) {
+        // Create new panel row
+        const panelHtml = `
+            <tr id="${panelId}" class="compact-exceed-row show">
+                <td colspan="9" class="compact-exceed-cell">
+                    <div class="compact-content" id="${panelId}_content">
+                        <!-- Content will be updated dynamically -->
+                    </div>
+                </td>
+            </tr>
+        `;
+        row.after(panelHtml);
+        panelRow = $(`#${panelId}`);
+    }
+    
+    // Update panel content with current exceeds
+    updateCompactPanelContent(rowId, panelId);
+}
+
+// =====================================================
+// UPDATE COMPACT PANEL CONTENT
+// =====================================================
+function updateCompactPanelContent(rowId, panelId) {
+    const row = $(`#${rowId}`);
+    const contractItemId = row.find('.contract-item-id').val();
+    const contractItem = contractItems.find(item => item.id == contractItemId);
+    
+    if (!contractItem) return;
+    
+    const enteredQty = parseFloat(row.find('.qty-input').val()) || 0;
+    const enteredRate = parseFloat(row.find('.rate-input').val()) || 0;
+    const contractQty = parseFloat(contractItem.quantity) || 0;
+    const contractRate = parseFloat(contractItem.rate) || 0;
+    
+    const qtyExceeds = enteredQty > contractQty;
+    const rateExceeds = enteredRate > contractRate;
+    
+    let comparisonHtml = '<div class="comparison-inline">';
+    
+    // Quantity comparison
+    if (qtyExceeds) {
+        const qtyDiff = enteredQty - contractQty;
+        comparisonHtml += `
+            <div class="compare-item">
+                <span class="compare-label">Qty:</span>
+                <span class="contract-val">${contractQty}</span>
+                <span class="arrow">→</span>
+                <span class="invoice-val">${enteredQty}</span>
+                <span class="diff-val">+${qtyDiff.toFixed(2)}</span>
+            </div>
+        `;
+    } else {
+        comparisonHtml += `
+            <div class="compare-item">
+                <span class="compare-label">Qty:</span>
+                <span class="contract-val">${contractQty}</span>
+                <i class="bi bi-check-circle-fill" style="color: #10b981; font-size: 10px;"></i>
+            </div>
+        `;
+    }
+    
+    // Rate comparison
+    if (rateExceeds) {
+        const rateDiff = enteredRate - contractRate;
+        comparisonHtml += `
+            <div class="compare-item">
+                <span class="compare-label">Rate:</span>
+                <span class="contract-val">₹${contractRate}</span>
+                <span class="arrow">→</span>
+                <span class="invoice-val">₹${enteredRate}</span>
+                <span class="diff-val">+₹${rateDiff.toFixed(2)}</span>
+            </div>
+        `;
+    } else {
+        comparisonHtml += `
+            <div class="compare-item">
+                <span class="compare-label">Rate:</span>
+                <span class="contract-val">₹${contractRate}</span>
+                <i class="bi bi-check-circle-fill" style="color: #10b981; font-size: 10px;"></i>
+            </div>
+        `;
+    }
+    
+    comparisonHtml += '</div>';
+    
+    // Get existing note if any
+    const existingNote = getExceedNote(rowId);
+    const noteValue = existingNote ? existingNote.note : '';
+    
+    // Reason input
+    const reasonHtml = `
+        <div class="reason-compact">
+            <label>
+                <i class="bi bi-pencil-square"></i>
+                Reason <span style="color: #dc2626;">*</span>
+            </label>
+            <input 
+                type="text" 
+                class="reason-input" 
+                id="${panelId}_reason"
+                placeholder="e.g., Urgent deadline - approved by manager"
+                value="${noteValue}"
+                required
+            >
+        </div>
+    `;
+    
+    // Save button
+    const saveButton = `
+        <button class="save-btn-compact" type="button" onclick="saveExceedNote('${rowId}', '${contractItem.category_name}')">
+            <i class="bi bi-check-lg"></i> Save
+        </button>
+    `;
+    
+    // Update content
+    $(`#${panelId}_content`).html(comparisonHtml + reasonHtml + saveButton);
+}
+
+// =====================================================
+// SAVE EXCEED NOTE
+// =====================================================
+function saveExceedNote(rowId, itemName) {
+    const panelId = `${rowId}_exceed_panel`;
+    
+    // CHECK IF ALREADY SAVED - DON'T SAVE AGAIN
+    const saveBtn = $(`#${panelId}`).find('.save-btn-compact');
+    if (saveBtn.prop('disabled')) {
+        return; // Already saved, exit
+    }
+    
+    const note = $(`#${panelId}_reason`).val();
+    
+    if (!note || note.trim() === '') {
+        showAlert('warning', 'Please provide a reason for exceeding contract values');
+        return;
+    }
+    
+    const row = $(`#${rowId}`);
+    const contractItemId = row.find('.contract-item-id').val();
+    const contractItem = contractItems.find(item => item.id == contractItemId);
+    
+    if (!contractItem) return;
+    
+    const enteredQty = parseFloat(row.find('.qty-input').val()) || 0;
+    const enteredRate = parseFloat(row.find('.rate-input').val()) || 0;
+    const contractQty = parseFloat(contractItem.quantity) || 0;
+    const contractRate = parseFloat(contractItem.rate) || 0;
+    
+    // Remove existing notes for this row
+    exceedNotesData.items = exceedNotesData.items.filter(item => item.row_id !== rowId);
+    
+    // Add quantity exceed note if applicable
+    if (enteredQty > contractQty) {
+        exceedNotesData.items.push({
+            row_id: rowId,
+            item_name: itemName,
+            type: 'quantity_exceeded',
+            contract_value: contractQty,
+            entered_value: enteredQty,
+            note: note
+        });
+    }
+    
+    // Add rate exceed note if applicable
+    if (enteredRate > contractRate) {
+        exceedNotesData.items.push({
+            row_id: rowId,
+            item_name: itemName,
+            type: 'rate_exceeded',
+            contract_value: contractRate,
+            entered_value: enteredRate,
+            note: note
+        });
+    }
+    
+    console.log('Exceed notes saved:', exceedNotesData);
+    showAlert('success', 'Justification saved successfully!');
+
+    // UPDATE BUTTON TO "SAVED" STATE - DISABLE IT PERMANENTLY
+    saveBtn.html('<i class="bi bi-check-circle-fill"></i> Saved')
+        .css({
+            'background': '#059669',
+            'opacity': '0.7',
+            'cursor': 'not-allowed'
+        })
+        .prop('disabled', true)
+        .off('click'); // Remove click event
+
+    // ALSO DISABLE THE REASON INPUT
+    $(`#${panelId}_reason`).prop('readonly', true)
+        .css({
+            'background': '#f9fafb',
+            'cursor': 'not-allowed'
+        });
+}
+
+
+
+// =====================================================
+// GET EXCEED NOTE
+// =====================================================
+function getExceedNote(rowId) {
+    return exceedNotesData.items.find(item => item.row_id === rowId);
+}
+
+// =====================================================
+// REMOVE EXCEED NOTE
+// =====================================================
+function removeExceedNote(rowId, type) {
+    exceedNotesData.items = exceedNotesData.items.filter(item => {
+        if (item.row_id === rowId) {
+            if (type === 'quantity' && item.type === 'quantity_exceeded') return false;
+            if (type === 'rate' && item.type === 'rate_exceeded') return false;
+        }
+        return true;
+    });
+}
+
+// =====================================================
+// HIDE COMPACT PANEL IF NO EXCEEDS
+// =====================================================
+function hideCompactPanelIfNoExceeds(rowId) {
+    const row = $(`#${rowId}`);
+    const contractItemId = row.find('.contract-item-id').val();
+    const contractItem = contractItems.find(item => item.id == contractItemId);
+    
+    if (!contractItem) return;
+    
+    const enteredQty = parseFloat(row.find('.qty-input').val()) || 0;
+    const enteredRate = parseFloat(row.find('.rate-input').val()) || 0;
+    const contractQty = parseFloat(contractItem.quantity) || 0;
+    const contractRate = parseFloat(contractItem.rate) || 0;
+    
+    const qtyExceeds = enteredQty > contractQty;
+    const rateExceeds = enteredRate > contractRate;
+    
+    // If neither exceeds, hide and remove the panel
+    if (!qtyExceeds && !rateExceeds) {
+        const panelId = `${rowId}_exceed_panel`;
+        $(`#${panelId}`).remove();
+    } else {
+        // Update panel content to reflect current state
+        const panelId = `${rowId}_exceed_panel`;
+        updateCompactPanelContent(rowId, panelId);
+    }
+}
+
+// =====================================================
 // CALCULATE BASE TOTAL
 // =====================================================
 function calculateBaseTotal() {
     let baseTotal = 0;
     
-    $('#lineItemsBody tr').each(function() {
-        const amount = parseFloat($(this).find('.amount-input').val()) || 0;
-        baseTotal += amount;
-    });
+ $('#lineItemsBody tr[id^="row_"]').each(function() {
+    // Skip exceed panel rows
+    if ($(this).hasClass('compact-exceed-row')) return;
+    
+    const amount = parseFloat($(this).find('.amount-input').val()) || 0;
+    baseTotal += amount;
+});
     
     $('#baseTotal').val(baseTotal.toFixed(2));
     calculateTotals();
@@ -845,9 +1314,9 @@ function removeLineItem(rowId) {
 // UPDATE ROW NUMBERS
 // =====================================================
 function updateRowNumbers() {
-    $('#lineItemsBody tr').each(function(index) {
-        $(this).find('.row-number').text(index + 1);
-    });
+  $('#lineItemsBody tr[id^="row_"]').each(function(index) {
+    $(this).find('.row-number').text(index + 1);
+});
 }
 
 // =====================================================
@@ -971,9 +1440,12 @@ function handleFormSubmit(e) {
     const items = [];
     let hasError = false;
 
-    $('#lineItemsBody tr').each(function() {
-        const row = $(this);
-        const contractItemId = row.find('.contract-item-id').val();
+  $('#lineItemsBody tr[id^="row_"]').each(function() {
+    // Skip compact exceed panel rows
+    if ($(this).hasClass('compact-exceed-row')) return;
+    
+    const row = $(this);
+    const contractItemId = row.find('.contract-item-id').val();
         const categoryId = row.find('.category-id').val();
         const quantity = row.find('.qty-input').val();
         const rate = row.find('.rate-input').val();
@@ -1004,16 +1476,39 @@ function handleFormSubmit(e) {
         });
     });
 
-    if (hasError) {
-        showAlert('danger', 'Please fill all required fields in line items');
-        return;
-    }
+  if (hasError) {
+    showAlert('danger', 'Please fill all required fields in line items');
+    return;
+}
 
-    console.log('Submitting items:', items);
+// Check if any exceed panels need justification
+let missingJustifications = false;
+$('.compact-exceed-row.show').each(function() {
+    const panelId = $(this).attr('id');
+    const reasonInput = $(`#${panelId}_reason`);
+    if (reasonInput.length > 0 && !reasonInput.val().trim()) {
+        missingJustifications = true;
+        reasonInput.addClass('border-danger');
+    }
+});
+
+if (missingJustifications) {
+    showAlert('danger', 'Please provide justification for all items that exceed contract values');
+    return;
+}
+
+console.log('Submitting items:', items);
+console.log('Exceed notes:', exceedNotesData);
+
 
     const formData = new FormData(document.getElementById('invoiceForm'));
     formData.append('items', JSON.stringify(items));
     formData.append('invoice_type', isAdhocInvoice ? 'adhoc' : 'normal');
+    // Add exceed notes if any items exceed contract
+if (exceedNotesData.items.length > 0 || exceedNotesData.contract) {
+    formData.append('exceed_notes', JSON.stringify(exceedNotesData));
+}
+
 
     const selectedGstOption = $('#gstPercent option:selected');
     if (selectedGstOption.data('tax-id')) {

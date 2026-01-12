@@ -518,10 +518,12 @@ public function findVendorInZoho(Vendor $vendor): ?string
     // Default account as fallback
     $defaultAccountId = config('zoho.expense_account_id');
 
-    // Prepare line items - USE CATEGORY'S CHART OF ACCOUNT
+    // -----------------------------------------------------
+    // LINE ITEMS - TDS APPLIES ON BASE AMOUNT ONLY!
+    // -----------------------------------------------------
     $lineItems = [];
     foreach ($invoice->items as $item) {
-        // 🔥 Use category's zoho_account_id, fallback to default
+        // Use category's zoho_account_id, fallback to default
         $accountId = $item->category->zoho_account_id ?? $defaultAccountId;
         
         $lineItems[] = [
@@ -529,8 +531,9 @@ public function findVendorInZoho(Vendor $vendor): ?string
             'name' => $item->category->name ?? $item->particulars ?? 'Item',
             'description' => $item->particulars ?? '',
             'quantity' => (float) $item->quantity,
-            'rate' => (float) $item->rate,
+            'rate' => (float) $item->rate,  // Base rate (TDS applicable)
             'tax_percentage' => (float) ($item->tax_percent ?? 0),
+            'is_tds_applicable' => true,  // TDS applies on base rate
         ];
     }
 
@@ -541,29 +544,55 @@ public function findVendorInZoho(Vendor $vendor): ?string
             'name' => 'Invoice Amount',
             'description' => $invoice->description ?? '',
             'quantity' => 1,
-            'rate' => (float) $invoice->base_total,
+            'rate' => (float) $invoice->base_total,  // Base total (TDS applicable)
             'tax_percentage' => $invoice->base_total > 0 
                 ? round(($invoice->gst_total / $invoice->base_total) * 100, 2) 
                 : 0,
+            'is_tds_applicable' => true,  // TDS applies on base amount
         ];
     }
 
-    // Build bill data
+   
+// Build bill data
+// 🔥 USE ZOHO_SYNC_DATE IF AVAILABLE (CHANGED BY FINANCE), OTHERWISE USE INVOICE_DATE
+$billDate = $invoice->zoho_sync_date ?? $invoice->invoice_date;
+
 $zohoData = [
     'vendor_id' => $invoice->vendor->zoho_contact_id,
     'bill_number' => $invoice->invoice_number,
-    'date' => $invoice->invoice_date ? $invoice->invoice_date->format('Y-m-d') : now()->format('Y-m-d'),
-    'due_date' => $invoice->due_date ? $invoice->due_date->format('Y-m-d') : now()->addDays(30)->format('Y-m-d'),
+    'date' => $billDate ? \Carbon\Carbon::parse($billDate)->format('Y-m-d') : now()->format('Y-m-d'),
+    'due_date' => $invoice->due_date ? \Carbon\Carbon::parse($invoice->due_date)->format('Y-m-d') : now()->addDays(30)->format('Y-m-d'),
     'line_items' => $lineItems,
     'reference_number' => $invoice->invoice_number,
 ];
 
 // -----------------------------------------------------
-// TDS
+// TDS CONFIGURATION
+// TDS is applied on BASE AMOUNT only
+// We pass EXPLICIT tds_amount to override Zoho's calculation!
 // -----------------------------------------------------
 if (!empty($invoice->zoho_tds_tax_id)) {
     $zohoData['is_tds_applied'] = true;
     $zohoData['tds_tax_id'] = $invoice->zoho_tds_tax_id;
+    
+    // =====================================================
+    // EXPLICITLY SET TDS AMOUNT (Calculated on BASE only!)
+    // This overrides Zoho's default calculation
+    // =====================================================
+    $baseAmount = (float) ($invoice->base_total ?? 0);
+    $tdsPercent = (float) ($invoice->tds_percent ?? 0);
+    
+    if ($tdsPercent > 0 && $baseAmount > 0) {
+        $tdsAmount = round(($baseAmount * $tdsPercent) / 100, 2);
+        $zohoData['tds_amount'] = $tdsAmount;
+        
+        Log::info('TDS Calculation for Zoho (Regular Invoice)', [
+            'invoice_id' => $invoice->id,
+            'base_amount' => $baseAmount,
+            'tds_percent' => $tdsPercent,
+            'tds_amount' => $tdsAmount,
+        ]);
+    }
 }
 
 
@@ -859,15 +888,18 @@ public function syncTravelBillStatus(\App\Models\TravelInvoice $invoice): bool
 
         $invoice->load(['items', 'items.category']);
 
-        // Prepare line items
+        // -----------------------------------------------------
+        // LINE ITEMS - TDS APPLIES ON BASE AMOUNT ONLY!
+        // -----------------------------------------------------
         $lineItems = [];
         foreach ($invoice->items as $item) {
             $lineItems[] = [
                 'name' => $item->category->name ?? $item->particulars ?? 'Item',
                 'description' => $item->particulars ?? '',
                 'quantity' => (float) $item->quantity,
-                'rate' => (float) $item->rate,
+                'rate' => (float) $item->rate,  // Base rate (TDS applicable)
                 'tax_percentage' => (float) ($item->tax_percent ?? 0),
+                'is_tds_applicable' => true,  // TDS applies on base rate only
             ];
         }
 
@@ -879,11 +911,24 @@ public function syncTravelBillStatus(\App\Models\TravelInvoice $invoice): bool
             'notes' => $invoice->description ?? '',
         ];
 
-        // In createBill() - after $zohoData array
-if (!empty($invoice->zoho_tds_tax_id)) {
-    $zohoData['is_tds_applied'] = true;
-    $zohoData['tds_tax_id'] = $invoice->zoho_tds_tax_id;
-}
+        // -----------------------------------------------------
+        // TDS CONFIGURATION
+        // TDS is applied on BASE AMOUNT only
+        // We pass EXPLICIT tds_amount to override Zoho's calculation!
+        // -----------------------------------------------------
+        if (!empty($invoice->zoho_tds_tax_id)) {
+            $zohoData['is_tds_applied'] = true;
+            $zohoData['tds_tax_id'] = $invoice->zoho_tds_tax_id;
+            
+            // EXPLICITLY SET TDS AMOUNT
+            $baseAmount = (float) ($invoice->base_total ?? 0);
+            $tdsPercent = (float) ($invoice->tds_percent ?? 0);
+            
+            if ($tdsPercent > 0 && $baseAmount > 0) {
+                $tdsAmount = round(($baseAmount * $tdsPercent) / 100, 2);
+                $zohoData['tds_amount'] = $tdsAmount;
+            }
+        }
 
         $response = Http::withHeaders([
             'Authorization' => "Zoho-oauthtoken {$accessToken}",
@@ -1296,57 +1341,158 @@ public function createTravelBill(TravelInvoice $invoice): array
     }
 
     // -----------------------------------------------------
-    // LINE ITEMS
+    // LINE ITEMS - TDS APPLIES ON BASE AMOUNT ONLY!
     // -----------------------------------------------------
-   $defaultAccountId = config('zoho.expense_account_id');
+    $defaultAccountId = config('zoho.expense_account_id');
+    $lineItems = [];
 
-foreach ($invoice->items as $item) {
-    // Use category's zoho_account_id if available
-    $accountId = $invoice->category->zoho_account_id ?? $defaultAccountId;
-    
-    $lineItems[] = [
-        'account_id' => $accountId,
-            'name' => $item->mode_label ?? 'Travel Expense',
-            'description' => $item->particulars ?? '',
-            'quantity' => 1,
-            'rate' => (float) $item->gross_amount,
-        ];
+    foreach ($invoice->items as $item) {
+        // Use category's zoho_account_id if available
+        $accountId = $invoice->category->zoho_account_id ?? $defaultAccountId;
+        
+        // Get individual amounts
+        $basic = (float) ($item->basic ?? 0);
+        $taxes = (float) ($item->taxes ?? 0);
+        $serviceCharge = (float) ($item->service_charge ?? 0);
+        $gst = (float) ($item->gst ?? 0);
+        
+        // =====================================================
+        // LINE ITEM 1: BASE AMOUNT (TDS APPLICABLE)
+        // TDS will be calculated on THIS amount only!
+        // =====================================================
+        if ($basic > 0) {
+            $lineItems[] = [
+                'account_id' => $accountId,
+                'name' => $item->mode_label ?? 'Travel Expense',
+                'description' => $item->particulars ?? '',
+                'quantity' => 1,
+                'rate' => $basic,
+                'is_tds_applicable' => true,  // TDS applies on base amount
+            ];
+        }
+        
+        // =====================================================
+        // LINE ITEM 2: TAXES (NO TDS)
+        // =====================================================
+        if ($taxes > 0) {
+            $lineItems[] = [
+                'account_id' => $accountId,
+                'name' => 'Travel Taxes',
+                'description' => 'Taxes for ' . ($item->mode_label ?? 'travel'),
+                'quantity' => 1,
+                'rate' => $taxes,
+                'is_tds_applicable' => false,  // No TDS on taxes
+            ];
+        }
+        
+        // =====================================================
+        // LINE ITEM 3: SERVICE CHARGES (NO TDS)
+        // =====================================================
+        if ($serviceCharge > 0) {
+            $lineItems[] = [
+                'account_id' => $accountId,
+                'name' => 'Service Charges',
+                'description' => 'Service charges for ' . ($item->mode_label ?? 'travel'),
+                'quantity' => 1,
+                'rate' => $serviceCharge,
+                'is_tds_applicable' => false,  // No TDS on service charges
+            ];
+        }
+        
+        // =====================================================
+        // LINE ITEM 4: GST (NO TDS)
+        // =====================================================
+        if ($gst > 0) {
+            $lineItems[] = [
+                'account_id' => $accountId,
+                'name' => 'GST',
+                'description' => 'GST for ' . ($item->mode_label ?? 'travel'),
+                'quantity' => 1,
+                'rate' => $gst,
+                'is_tds_applicable' => false,  // No TDS on GST
+            ];
+        }
     }
 
+    // Fallback if no items - use invoice totals
     if (empty($lineItems)) {
-        $lineItems[] = [
-            'account_id' => $defaultAccountId,
-            'name' => $invoice->category->name ?? 'Travel Expense',
-            'description' => $invoice->description ?? '',
-            'quantity' => 1,
-            'rate' => (float) $invoice->gross_amount,
-        ];
+        $basic = (float) ($invoice->basic_total ?? $invoice->gross_amount);
+        $taxes = (float) ($invoice->taxes_total ?? 0);
+        $serviceCharge = (float) ($invoice->service_charge_total ?? 0);
+        $gst = (float) ($invoice->gst_total ?? 0);
+        
+        // Base amount (TDS applicable)
+        if ($basic > 0) {
+            $lineItems[] = [
+                'account_id' => $defaultAccountId,
+                'name' => $invoice->category->name ?? 'Travel Expense',
+                'description' => $invoice->description ?? '',
+                'quantity' => 1,
+                'rate' => $basic,
+                'is_tds_applicable' => true,
+            ];
+        }
+        
+        // Other charges (No TDS)
+        $otherCharges = $taxes + $serviceCharge + $gst;
+        if ($otherCharges > 0) {
+            $lineItems[] = [
+                'account_id' => $defaultAccountId,
+                'name' => 'Taxes & Charges',
+                'description' => 'Taxes, Service Charges & GST',
+                'quantity' => 1,
+                'rate' => $otherCharges,
+                'is_tds_applicable' => false,
+            ];
+        }
     }
 
-    // -----------------------------------------------------
-    // BILL DATA
-    // -----------------------------------------------------
-    $zohoData = [
-        'vendor_id' => $vendor->zoho_contact_id,
-        'bill_number' => $invoice->invoice_number,
-        'date' => $invoice->invoice_date
-            ? $invoice->invoice_date->format('Y-m-d')
-            : ($invoice->travel_date
-                ? $invoice->travel_date->format('Y-m-d')
-                : now()->format('Y-m-d')),
-        'due_date' => now()->addDays(30)->format('Y-m-d'),
-        'line_items' => $lineItems,
-        'reference_number' => $invoice->invoice_number,
-    ];
+   
+// -----------------------------------------------------
+// BILL DATA
+// -----------------------------------------------------
+// 🔥 USE ZOHO_SYNC_DATE IF AVAILABLE (CHANGED BY FINANCE), OTHERWISE USE INVOICE_DATE
+$billDate = $invoice->zoho_sync_date 
+    ?? $invoice->invoice_date 
+    ?? $invoice->travel_date 
+    ?? now();
+
+$zohoData = [
+    'vendor_id' => $vendor->zoho_contact_id,
+    'bill_number' => $invoice->invoice_number,
+    'date' => \Carbon\Carbon::parse($billDate)->format('Y-m-d'),
+    'due_date' => now()->addDays(30)->format('Y-m-d'),
+    'line_items' => $lineItems,
+    'reference_number' => $invoice->invoice_number,
+];
 
     // -----------------------------------------------------
+    // TDS CONFIGURATION
+    // TDS is applied on BASE AMOUNT only
+    // We pass EXPLICIT tds_amount to override Zoho's calculation!
     // -----------------------------------------------------
-// TDS
-// -----------------------------------------------------
-if (!empty($invoice->tds_tax_id)) {
-    $zohoData['is_tds_applied'] = true;
-    $zohoData['tds_tax_id'] = $invoice->tds_tax_id;
-}
+    if (!empty($invoice->tds_tax_id) && $invoice->tds_percent > 0) {
+        $zohoData['is_tds_applied'] = true;
+        $zohoData['tds_tax_id'] = $invoice->tds_tax_id;
+        
+        // =====================================================
+        // EXPLICITLY SET TDS AMOUNT (Calculated on BASE only!)
+        // This overrides Zoho's default calculation
+        // =====================================================
+        $baseAmount = (float) ($invoice->basic_total ?? 0);
+        $tdsPercent = (float) $invoice->tds_percent;
+        $tdsAmount = round(($baseAmount * $tdsPercent) / 100, 2);
+        
+        $zohoData['tds_amount'] = $tdsAmount;
+        
+        Log::info('TDS Calculation for Zoho', [
+            'invoice_id' => $invoice->id,
+            'base_amount' => $baseAmount,
+            'tds_percent' => $tdsPercent,
+            'tds_amount' => $tdsAmount,
+            'gross_amount' => $invoice->gross_amount,
+        ]);
+    }
 
     // -----------------------------------------------------
     // NOTES
@@ -1376,8 +1522,8 @@ $notes[] = "──────────────────────�
 
 if ($invoice->employee) {
     $notes[] = "Name: {$invoice->employee->employee_name}";
-    if ($invoice->employee->employee_id) {
-        $notes[] = "Employee ID: {$invoice->employee->employee_id}";
+    if ($invoice->employee->employee_code) {
+        $notes[] = "Employee Code: {$invoice->employee->employee_code}";
     }
     if ($invoice->employee->department) {
         $notes[] = "Department: {$invoice->employee->department}";
@@ -1407,13 +1553,42 @@ if ($invoice->tag_name) {
     $notes[] = "Project/Tag: {$invoice->tag_name}";
 }
 
-if ($invoice->project_code) {
-    $notes[] = "Project Code: {$invoice->project_code}";
-}
+// =====================================================
+// AMOUNT BREAKDOWN WITH TDS
+// =====================================================
+$notes[] = "";
+$notes[] = "───────────────────────────────────";
+$notes[] = " AMOUNT BREAKDOWN";
+$notes[] = "───────────────────────────────────";
 
-if ($invoice->description) {
+$basicTotal = (float) ($invoice->basic_total ?? 0);
+$taxesTotal = (float) ($invoice->taxes_total ?? 0);
+$serviceTotal = (float) ($invoice->service_charge_total ?? 0);
+$gstTotal = (float) ($invoice->gst_total ?? 0);
+$grossTotal = (float) ($invoice->gross_amount ?? 0);
+$tdsPercent = (float) ($invoice->tds_percent ?? 0);
+$tdsAmount = (float) ($invoice->tds_amount ?? 0);
+$netAmount = (float) ($invoice->net_amount ?? 0);
+
+$notes[] = "Basic Amount:      ₹" . number_format($basicTotal, 2);
+if ($taxesTotal > 0) {
+    $notes[] = "Taxes:             ₹" . number_format($taxesTotal, 2);
+}
+if ($serviceTotal > 0) {
+    $notes[] = "Service Charges:   ₹" . number_format($serviceTotal, 2);
+}
+if ($gstTotal > 0) {
+    $notes[] = "GST:               ₹" . number_format($gstTotal, 2);
+}
+$notes[] = "                   ─────────────";
+$notes[] = "Gross Total:       ₹" . number_format($grossTotal, 2);
+
+if ($tdsPercent > 0) {
     $notes[] = "";
-    $notes[] = "Description: {$invoice->description}";
+    $notes[] = "TDS @ {$tdsPercent}% on Base: -₹" . number_format($tdsAmount, 2);
+    $notes[] = "  (Calculated on ₹" . number_format($basicTotal, 2) . ")";
+    $notes[] = "                   ─────────────";
+    $notes[] = "Net Payable:       ₹" . number_format($netAmount, 2);
 }
 
 $notes[] = "";

@@ -197,6 +197,77 @@
     .btn-reject { background: white; color: #dc2626; border: 1px solid #dc2626; }
     .btn-reject:hover { background: #dc2626; color: white; }
     
+    /* TDS Inline Expansion Panel */
+    .tds-expansion-panel { background: #fffbeb; border: 2px solid #f59e0b; border-radius: 10px; padding: 16px; margin-bottom: 20px; display: none; animation: slideDown 0.3s ease; }
+    .tds-expansion-panel.show { display: block; }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    .tds-alert-box { background: white; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 6px; margin-bottom: 16px; display: flex; align-items: start; gap: 12px; }
+    .tds-alert-box i { color: #f59e0b; font-size: 20px; flex-shrink: 0; }
+    .tds-alert-box.overdue { border-left-color: #dc2626; }
+    .tds-alert-box.overdue i { color: #dc2626; }
+    .tds-alert-box.success { border-left-color: #10b981; }
+    .tds-alert-box.success i { color: #10b981; }
+    .tds-alert-text { flex: 1; }
+    .tds-alert-title { font-weight: 600; color: #92400e; font-size: 13px; margin-bottom: 4px; }
+    .tds-alert-message { font-size: 12px; color: #78350f; }
+    .tds-date-section { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 12px; }
+    .tds-date-group { width: 100%; }
+    .tds-date-label { font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 6px; display: block; }
+    .tds-date-input { width: 100%; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; }
+    .tds-date-input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+    .tds-note { font-size: 11px; color: #6b7280; padding: 8px 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+    .tds-actions { display: flex; gap: 8px; justify-content: flex-end; }
+    .tds-btn-cancel { padding: 8px 16px; border: 1px solid #d1d5db; background: white; color: #6b7280; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .tds-btn-push { padding: 8px 16px; background: #059669; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
+    
+    /* Loading Overlay for Zoho Push */
+    .zoho-loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+    }
+    .zoho-loading-overlay.show {
+        display: flex;
+    }
+    .zoho-loading-content {
+        background: white;
+        padding: 40px 50px;
+        border-radius: 12px;
+        text-align: center;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+    .zoho-loading-spinner {
+        width: 60px;
+        height: 60px;
+        border: 6px solid #e5e7eb;
+        border-top-color: #059669;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px;
+    }
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    .zoho-loading-text {
+        font-size: 16px;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 8px;
+    }
+    .zoho-loading-subtext {
+        font-size: 13px;
+        color: #6b7280;
+    }
+
+
+    
     .btn-summary {
         background: #3B82F6;
         color: white;
@@ -470,6 +541,85 @@
         font-weight: 700;
         color: #78350f;
     }
+
+    /* Hide approve button when TDS panel is open */
+.tds-expansion-panel.show ~ div .btn-approve {
+    display: none !important;
+}
+
+/* Exceed Justifications - Super Compact */
+.exceed-section {
+    background: #fffbeb;
+    border: 1px solid #fbbf24;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+}
+
+.exceed-header {
+    font-size: 11px;
+    font-weight: 700;
+    color: #92400e;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.exceed-item {
+    background: white;
+    border-left: 3px solid #f59e0b;
+    padding: 6px 10px;
+    margin-bottom: 6px;
+    border-radius: 0 4px 4px 0;
+    font-size: 11px;
+}
+
+.exceed-item:last-child { margin-bottom: 0; }
+
+.exceed-item-name {
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 3px;
+}
+
+.exceed-type {
+    display: inline-block;
+    background: #fef3c7;
+    color: #92400e;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+}
+
+.exceed-values {
+    color: #6b7280;
+    margin-bottom: 3px;
+}
+
+.exceed-values .contract-val {
+    color: #059669;
+    font-weight: 600;
+}
+
+.exceed-values .invoice-val {
+    color: #dc2626;
+    font-weight: 600;
+}
+
+.exceed-reason {
+    color: #374151;
+    font-style: italic;
+    padding-left: 8px;
+    border-left: 2px solid #e5e7eb;
+}
+
+
 </style>
 
 <div class="page-container">
@@ -575,6 +725,7 @@
                 <!-- Line Items -->
                 <div class="col-12">
                     <div class="card-custom">
+
                         <div class="card-header-custom">
                             <i class="bi bi-list-ul text-primary"></i>Line Items
                             <span class="ms-auto badge bg-secondary" id="itemsCount">0 items</span>
@@ -599,6 +750,17 @@
                                 </table>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Vendor Justifications (Only if exceed_notes exists) -->
+                <div class="col-12" id="exceedJustificationsCard" style="display: none;">
+                    <div class="exceed-section">
+                        <div class="exceed-header">
+                            <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+                            Vendor Justifications for Contract Exceeds
+                        </div>
+                        <div id="exceedJustificationsContent"></div>
                     </div>
                 </div>
                 
@@ -841,6 +1003,16 @@
     </div>
 </div>
 
+
+<!-- Loading Overlay for Zoho Push -->
+<div class="zoho-loading-overlay" id="zohoLoadingOverlay">
+    <div class="zoho-loading-content">
+        <div class="zoho-loading-spinner"></div>
+        <div class="zoho-loading-text" id="zohoLoadingText">Pushing to Zoho Books...</div>
+        <div class="zoho-loading-subtext">Please do not close or refresh this page</div>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')
@@ -1066,11 +1238,71 @@ if (canEdit) {
         $('#rejectionBox').show();
     }
     
-    // Render sections
+ // Render sections
     renderLineItems(inv.items);
+    renderExceedJustifications(inv.exceed_notes); // ADD THIS LINE
     renderAttachments(inv.attachments);
     renderActions(inv.status);
 }
+
+
+
+
+
+
+// =====================================================
+// RENDER EXCEED JUSTIFICATIONS
+// =====================================================
+function renderExceedJustifications(exceedNotes) {
+    const card = $('#exceedJustificationsCard');
+    const content = $('#exceedJustificationsContent');
+    
+    if (!exceedNotes) {
+        card.hide();
+        return;
+    }
+    
+    let data = null;
+    try {
+        data = typeof exceedNotes === 'string' ? JSON.parse(exceedNotes) : exceedNotes;
+    } catch (e) {
+        console.error('Failed to parse exceed_notes:', e);
+        card.hide();
+        return;
+    }
+    
+    if (!data || !data.items || data.items.length === 0) {
+        card.hide();
+        return;
+    }
+    
+    let html = '';
+    data.items.forEach(item => {
+        const typeName = item.type === 'quantity_exceeded' ? 'Quantity Exceeded' : 'Rate Exceeded';
+        const unit = item.type === 'quantity_exceeded' ? '' : '₹';
+        
+        html += `
+            <div class="exceed-item">
+                <div class="exceed-item-name">📦 ${item.item_name}</div>
+                <div class="exceed-type">${typeName}</div>
+                <div class="exceed-values">
+                    Contract: <span class="contract-val">${unit}${formatNum(item.contract_value)}</span> 
+                    → Invoice: <span class="invoice-val">${unit}${formatNum(item.entered_value)}</span>
+                    <span class="text-danger">(+${unit}${formatNum(item.entered_value - item.contract_value)})</span>
+                </div>
+                <div class="exceed-reason">"${item.note}"</div>
+            </div>
+        `;
+    });
+    
+    content.html(html);
+    card.show();
+}
+
+
+
+
+
 
 // =====================================================
 // RENDER LINE ITEMS
@@ -1202,14 +1434,56 @@ function renderActions(status) {
     if (canApprove && !['approved', 'rejected', 'paid'].includes(status)) {
         html = `
             <div class="d-flex gap-2 flex-wrap">
-                <button class="btn-action btn-approve flex-grow-1" onclick="approveInvoice()">
+
+            <!-- TDS Expansion Panel (Finance Only) -->
+            <div class="tds-expansion-panel" id="tdsPanel">
+                <div class="tds-alert-box" id="tdsAlertBox">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <div class="tds-alert-text">
+                        <div class="tds-alert-title">TDS Payment Alert</div>
+                        <div class="tds-alert-message" id="tdsMessage">Loading TDS status...</div>
+                    </div>
+                </div>
+                <div class="tds-date-section">
+                    <div class="tds-date-group">
+                        <label class="tds-date-label">Original Invoice Date</label>
+                        <input type="text" class="tds-date-input" id="originalDate" readonly>
+                    </div>
+                    <div class="tds-date-group">
+                        <label class="tds-date-label">Zoho Sync Date (Optional)</label>
+                        <input type="date" class="tds-date-input" id="zohoSyncDate">
+                    </div>
+                </div>
+                <div class="tds-note">
+                    <i class="bi bi-info-circle"></i>
+                    Original date stays in system. Changed date only sent to Zoho Books.
+                </div>
+                <div class="tds-actions">
+                    <button class="tds-btn-cancel" onclick="hideTdsPanel()">Cancel</button>
+                    <button class="tds-btn-push" onclick="confirmPushToZoho()">
+                        <i class="bi bi-cloud-arrow-up"></i>
+                        Push to Zoho
+                    </button>
+                </div>
+            </div>
+            </div>
+            
+            <div class="d-flex gap-2 flex-wrap">
+                <button class="btn-action btn-approve flex-grow-1" onclick="handleApproveClick()">
                     <i class="bi bi-check-circle"></i>Approve
                 </button>
                 <button class="btn-action btn-reject" onclick="showRejectModal()">
                     <i class="bi bi-x-circle"></i>Reject
                 </button>
-                ${canEdit ? `<button class="btn-action btn-save w-100 mt-2" onclick="saveInvoice()"><i class="bi bi-save"></i>Save Changes</button>` : ''}
             </div>
+            
+            ${canEdit ? `
+            <div class="d-flex gap-2 flex-wrap mt-2">
+                <button class="btn-action btn-save w-100" onclick="saveInvoice()">
+                    <i class="bi bi-save"></i>Save Changes
+                </button>
+            </div>
+            ` : ''}
         `;
     } else if (status === 'approved' && (USER_ROLE === 'finance' || USER_ROLE === 'super-admin')) {
         html = `
@@ -1441,7 +1715,25 @@ function renderAdhocInfo(inv, contract) {
 function renderApprovalFlow(inv, contract) {
     const invoiceAmount = parseFloat(inv.grand_total) || 0;
     const contractOrSowValue = getContractOrSowValue();
-    const needsCEO = invoiceAmount > contractOrSowValue;
+    
+    // Check if CEO approval needed
+    let needsCEO = invoiceAmount > contractOrSowValue; // Total exceeded
+    
+    // Also check if any line item qty or rate exceeded
+    if (!needsCEO && inv.items && inv.items.length > 0) {
+        inv.items.forEach(item => {
+            const ci = item.contract_item || {};
+            const conQty = parseFloat(ci.quantity) || 0;
+            const conRate = parseFloat(ci.rate) || 0;
+            const invQty = parseFloat(item.quantity) || 0;
+            const invRate = parseFloat(item.rate) || 0;
+            
+            // If qty or rate exceeded, CEO needed
+            if (invQty > conQty || invRate > conRate) {
+                needsCEO = true;
+            }
+        });
+    }
     
     let steps = [
         { key: 'rm', label: 'RM', icon: 'bi-person' },
@@ -1605,6 +1897,168 @@ function renderActivityTimeline(inv) {
 // =====================================================
 // ACTIONS
 // =====================================================
+
+// =====================================================
+// TDS PANEL FUNCTIONS (Finance Only)
+// =====================================================
+
+function handleApproveClick() {
+    // Check if Finance at pending_finance stage
+    if (invoiceData.status === 'pending_finance' && (USER_ROLE === 'finance' || USER_ROLE === 'super-admin')) {
+        showTdsPanelForApproval();
+    } else {
+        // Other roles or stages - approve directly
+        approveInvoice();
+    }
+}
+
+function showTdsPanelForApproval() {
+    const panel = document.getElementById('tdsPanel');
+    const originalDateInput = document.getElementById('originalDate');
+    const zohoDateInput = document.getElementById('zohoSyncDate');
+    
+    if (invoiceData && invoiceData.invoice_date) {
+        // Clean date format
+        let cleanDate = invoiceData.invoice_date;
+        if (cleanDate.includes('T')) {
+            cleanDate = cleanDate.split('T')[0];
+        }
+        
+        originalDateInput.value = cleanDate;
+        zohoDateInput.value = cleanDate;
+    }
+    
+    // HIDE the approve button
+    const approveBtn = document.querySelector('.btn-approve');
+    if (approveBtn) approveBtn.style.display = 'none';
+    
+    panel.classList.add('show');
+    loadTdsWarning();
+    panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+
+
+function hideTdsPanel() {
+    const panel = document.getElementById('tdsPanel');
+    panel.classList.remove('show');
+    
+    // SHOW the approve button again
+    const approveBtn = document.querySelector('.btn-approve');
+    if (approveBtn) approveBtn.style.display = '';
+}
+
+
+function loadTdsWarning() {
+    if (!invoiceData || !invoiceData.invoice_date) {
+        console.error('Invoice or invoice date not available');
+        return;
+    }
+    
+    // Clean date format
+    let cleanDate = invoiceData.invoice_date;
+    if (cleanDate.includes('T')) {
+        cleanDate = cleanDate.split('T')[0];
+    }
+    
+  axios.get('/api/admin/settings/tds-config-invoice', {  // ← ADD /admin/
+        params: { invoice_date: cleanDate }
+    })
+        .then(res => {
+            if (res.data.success && res.data.data.warning) {
+                const warning = res.data.data.warning;
+                const messageEl = document.getElementById('tdsMessage');
+                const alertBox = document.getElementById('tdsAlertBox');
+                
+                if (warning.show_warning) {
+                    messageEl.innerHTML = warning.message;
+                    alertBox.classList.remove('success');
+                    if (warning.is_overdue) {
+                        alertBox.classList.add('overdue');
+                    } else {
+                        alertBox.classList.remove('overdue');
+                    }
+                } else {
+                    messageEl.innerHTML = 'No TDS payment due at this time. You can proceed with approval.';
+                    alertBox.classList.remove('overdue');
+                    alertBox.classList.add('success');
+                }
+            }
+        })
+        .catch(err => {
+            console.error('Failed to load TDS warning:', err);
+            const messageEl = document.getElementById('tdsMessage');
+            if (messageEl) {
+                messageEl.innerHTML = 'Could not load TDS status. You can still proceed.';
+            }
+        });
+}
+
+
+
+
+function confirmPushToZoho() {
+    const zohoDate = document.getElementById('zohoSyncDate').value;
+    if (!zohoDate) {
+        Toast.error('Please select a date');
+        return;
+    }
+    approveInvoiceWithDate(zohoDate);
+}
+
+
+function approveInvoiceWithDate(zohoSyncDate) {
+    if (!invoiceData || !invoiceData.id) {
+        showToast('error', 'Invoice not loaded');
+        return;
+    }
+    
+    const btn = event.target;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Approving...';
+    
+    // Show loading overlay
+    showZohoLoading('Pushing invoice to Zoho Books...');
+    
+    axios.post(API_BASE + '/' + INVOICE_ID + '/approve', { zoho_sync_date: zohoSyncDate })
+        .then(res => {
+            hideZohoLoading();
+            if (res.data.success) {
+                showToast('success', 'Invoice approved and pushed to Zoho!');
+                hideTdsPanel();
+                setTimeout(function() { window.location.reload(); }, 1500);
+            } else {
+                showToast('error', res.data.message || 'Failed to approve');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-cloud-arrow-up"></i> Push to Zoho';
+            }
+        })
+        .catch(err => {
+            hideZohoLoading();
+            showToast('error', err.response?.data?.message || 'Failed to approve invoice');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-cloud-arrow-up"></i> Push to Zoho';
+        });
+}
+
+
+// =====================================================
+// LOADING OVERLAY HELPERS
+// =====================================================
+
+function showZohoLoading(message) {
+    const overlay = document.getElementById('zohoLoadingOverlay');
+    const text = document.getElementById('zohoLoadingText');
+    if (text) text.textContent = message || 'Pushing to Zoho Books...';
+    if (overlay) overlay.classList.add('show');
+}
+
+function hideZohoLoading() {
+    const overlay = document.getElementById('zohoLoadingOverlay');
+    if (overlay) overlay.classList.remove('show');
+}
+
+
 function approveInvoice() {
     if (!confirm('Approve this invoice?')) return;
     

@@ -123,4 +123,40 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+
+
+
+// =====================================================
+// ADD THESE LINES TO YOUR config/app.php FILE
+// At the end, before the closing ];
+// =====================================================
+
+    /*
+    |--------------------------------------------------------------------------
+    | TDS Configuration
+    |--------------------------------------------------------------------------
+    |
+    | These settings control TDS payment deadline warnings.
+    |
+    */
+    
+    'tds_monthly_due_date' => env('TDS_MONTHLY_DUE_DATE', 7),
+    'tds_march_due_date' => env('TDS_MARCH_DUE_DATE', 30),
+    'tds_warning_days' => env('TDS_WARNING_DAYS', 3),
+    'tds_default_rate' => env('TDS_DEFAULT_RATE', 5),
+    'tds_show_dashboard_warning' => env('TDS_SHOW_DASHBOARD_WARNING', true),
+    'tds_show_invoice_warning' => env('TDS_SHOW_INVOICE_WARNING', true),
+
+// =====================================================
+// ALSO ADD THESE TO YOUR .env FILE (optional defaults)
+// =====================================================
+/*
+TDS_MONTHLY_DUE_DATE=7
+TDS_MARCH_DUE_DATE=30
+TDS_WARNING_DAYS=3
+TDS_DEFAULT_RATE=5
+TDS_SHOW_DASHBOARD_WARNING=true
+TDS_SHOW_INVOICE_WARNING=true
+*/
+
 ];

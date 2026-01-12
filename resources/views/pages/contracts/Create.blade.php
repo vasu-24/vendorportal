@@ -84,32 +84,24 @@
                         {{-- COMMON FIELDS FOR ALL TEMPLATES --}}
                         <div id="commonFields">
                             {{-- Company & Vendor --}}
-                           
-                           
-                           
                             <div class="row g-2 mb-2">
-<div class="col-md-6">
-    <label class="form-label mb-1"><strong>Company</strong></label>
-    <select id="company_id" name="company_id" class="form-select form-select-sm">
-        <option value="">– Select Company –</option>
-        @foreach($organisations as $org)
-            <option value="{{ $org->id }}"
-                    data-name="{{ $org->company_name }}"
-                    data-cin="{{ $org->cin }}"
-                    data-address="{{ $org->address }}"
-                    {{ $loop->first ? 'selected' : '' }}>
-                {{ $org->company_name }}
-            </option>
-        @endforeach
-    </select>
-    <input type="hidden" id="company_name" name="company_name">
-    <input type="hidden" id="company_cin" name="company_cin">
-    <input type="hidden" id="company_address" name="company_address">
-</div>
-
-
-
-
+                                <div class="col-md-6">
+                                    <label class="form-label mb-1"><strong>Company</strong></label>
+                                    <select id="company_id" name="company_id" class="form-select form-select-sm">
+                                        <option value="">– Select Company –</option>
+                                        @foreach($organisations as $org)
+                                            <option value="{{ $org->id }}"
+                                                    data-name="{{ $org->company_name }}"
+                                                    data-cin="{{ $org->cin }}"
+                                                    data-address="{{ $org->address }}">
+                                                {{ $org->company_name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <input type="hidden" id="company_name" name="company_name">
+                                    <input type="hidden" id="company_cin" name="company_cin">
+                                    <input type="hidden" id="company_address" name="company_address">
+                                </div>
 
                                 <div class="col-md-6">
                                     <label class="form-label mb-1"><strong>Vendor <span class="text-danger">*</span></strong></label>
@@ -552,24 +544,29 @@ const TEMPLATE_ADDITIONAL_FIELDS = {
     ],
 
     // ========== CONSULTING AGREEMENT ==========
-    'Consulting_Agreement_Bold.docx': [
-        { name: 'agreement_date', label: 'Agreement Date', type: 'date', required: true },
-        { name: 'consultant_name', label: 'Consultant Name', type: 'text', required: true },
-        { name: 'consultant_pan', label: 'Consultant PAN', type: 'text', required: true },
-        { name: 'consultant_address', label: 'Consultant Address', type: 'textarea', required: true, rows: 3 },
-        { name: 'client_legal_name', label: 'Client Legal Name', type: 'text', required: true },
-        { name: 'client_cin', label: 'Client CIN', type: 'text', required: true },
-        { name: 'client_registered_address', label: 'Client Registered Address', type: 'textarea', required: true, rows: 3 },
-        { name: 'services_description', label: 'Services Description', type: 'textarea', required: true, rows: 4 },
-        { name: 'initial_term_months', label: 'Initial Term (Months)', type: 'number', required: true, min: 1 },
-        { name: 'termination_notice_days', label: 'Termination Notice (Days)', type: 'number', required: false, min: 0 },
-        { name: 'sow_start_date', label: 'SOW Start Date', type: 'date', required: false },
-        { name: 'sow_end_date', label: 'SOW End Date', type: 'date', required: false },
-        { name: 'consultant_signatory_name', label: 'Consultant Signatory Name', type: 'text', required: true },
-        { name: 'client_signatory_name', label: 'Client Signatory Name', type: 'text', required: true },
-        { name: 'signing_place', label: 'Signing Place', type: 'text', required: true },
-        { name: 'signing_date', label: 'Signing Date', type: 'date', required: false }
-    ],
+    // ========== CONSULTING AGREEMENT ==========
+'Consulting_Agreement_Bold.docx': [
+    { name: 'agreement_date', label: 'Agreement Date', type: 'date', required: true },
+    { name: 'consultant_name', label: 'Consultant Name', type: 'text', required: true },
+    { name: 'consultant_pan', label: 'Consultant PAN', type: 'text', required: true },
+    { name: 'consultant_address', label: 'Consultant Address', type: 'textarea', required: true, rows: 3 },
+    { name: 'client_legal_name', label: 'Client Legal Name', type: 'text', required: true },
+    { name: 'client_cin', label: 'Client CIN', type: 'text', required: true },
+    { name: 'client_registered_address', label: 'Client Registered Address', type: 'textarea', required: true, rows: 3 },
+    { name: 'services_description', label: 'Services Description', type: 'textarea', required: true, rows: 4 },
+    
+    // ✅ NEW FIELD - SCOPE OF WORK ✅
+    { name: 'scope_of_work', label: 'Scope of Work (One item per line)', type: 'textarea', required: true, rows: 6 },
+    
+    { name: 'initial_term_months', label: 'Initial Term (Months)', type: 'number', required: true, min: 1 },
+    { name: 'termination_notice_days', label: 'Termination Notice (Days)', type: 'number', required: false, min: 0 },
+    { name: 'sow_start_date', label: 'SOW Start Date', type: 'date', required: false },
+    { name: 'sow_end_date', label: 'SOW End Date', type: 'date', required: false },
+    { name: 'consultant_signatory_name', label: 'Consultant Signatory Name', type: 'text', required: true },
+    { name: 'client_signatory_name', label: 'Client Signatory Name', type: 'text', required: true },
+    { name: 'signing_place', label: 'Signing Place', type: 'text', required: true },
+    { name: 'signing_date', label: 'Signing Date', type: 'date', required: false }
+],
 
     // ========== MSA AGREEMENT ==========
     'MSA_Template_Bold.docx': [
@@ -623,8 +620,7 @@ $(document).ready(function() {
     console.log('✓ Form initialized');
     console.log('✓ Paid Templates:', PAID_TEMPLATES);
     console.log('✓ Non-Paid Templates:', NON_PAID_TEMPLATES);
-    $('#company_id').trigger('change');
-
+    
     // Template change
     $('#agreementTemplate').change(function() {
         const file = this.value;
@@ -946,17 +942,40 @@ function handleSubmit(e) {
         start_date: $('#start_date').val() || null,
         end_date: $('#end_date').val() || null
     };
-    
     const additionalFields = TEMPLATE_ADDITIONAL_FIELDS[template];
-    if (additionalFields) {
-        additionalFields.forEach(field => {
-            apiData[field.name] = $(`#${field.name}`).val() || null;
-        });
-    }
+if (additionalFields) {
+    additionalFields.forEach(field => {
+        apiData[field.name] = $(`#${field.name}`).val() || null;
+    });
+}
+
+// ✅ AUTO-NUMBER SCOPE OF WORK - MOVED AFTER COLLECTING FIELDS
+console.log('🔍 Checking scope_of_work...');
+console.log('🔍 Raw value:', apiData.scope_of_work);
+
+if (apiData.scope_of_work && apiData.scope_of_work.trim() !== '') {
+    console.log('✅ Found scope_of_work, applying numbering...');
+    
+    const lines = apiData.scope_of_work
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
+    
+    console.log('🔍 Split into lines:', lines);
+    
+    const numberedList = lines
+        .map((line, index) => `${index + 1}. ${line}`)
+        .join('\n');
+    
+    console.log('✅ Numbered list:', numberedList);
+    
+    apiData.scope_of_work = numberedList;
+} else {
+    console.log('❌ No scope_of_work found or it is empty');
+}
 
     // =====================================================
-    // ONLY VALIDATE CONFIG FOR PAID TEMPLATES
-    // =====================================================
+    // ONLY VALIDATE CONFIG FOR PAID TEMPLATE   // =====================================================
     if (isPaid) {
         // Collect items with SINGLE tag
         const items = [];

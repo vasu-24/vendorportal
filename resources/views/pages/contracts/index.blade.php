@@ -400,11 +400,14 @@ if (isAdhoc) {
             `;
         }
         
-        actionsHtml += `
-            <a href="/contracts/${c.id}/edit" class="btn btn-outline-secondary" title="Edit">
-                <i class="bi bi-pencil"></i>
-            </a>
-        `;
+// Only show edit button for draft contracts
+if (c.status === 'draft') {
+    actionsHtml += `
+        <button class="btn btn-outline-secondary" onclick="window.location.href='/contracts/${c.id}/edit'" title="Edit">
+            <i class="bi bi-pencil"></i>
+        </button>
+    `;
+}
 
         html += `
             <tr>

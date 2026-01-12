@@ -18,6 +18,8 @@ use App\Http\Controllers\Api\VendorContractController;
 use App\Http\Controllers\Api\VendorRegistrationController;
 use App\Http\Middleware\CheckTravelAccess;
 use App\Http\Controllers\Api\VendorTravelInvoiceController;
+use App\Http\Controllers\Api\SettingsController;
+use App\Http\Controllers\Api\VendorDashboardController;
 
 // =====================================================
 // VENDOR REGISTRATION (Public - No Auth)
@@ -213,6 +215,13 @@ Route::put('/{id}/update', [InvoiceController::class, 'updateInvoice'])->middlew
 
 Route::middleware(['web', 'auth:vendor'])->group(function () {
 
+       Route::prefix('vendor/dashboard')->group(function () {
+        Route::get('/stats', [VendorDashboardController::class, 'getStats']);
+        Route::get('/recent-invoices', [VendorDashboardController::class, 'getRecentInvoices']);
+        Route::get('/monthly-data', [VendorDashboardController::class, 'getMonthlyData']);
+        Route::get('/recent-activities', [VendorDashboardController::class, 'getRecentActivities']);
+    });
+
 
     Route::get('vendor/categories', [VendorInvoiceController::class, 'getCategories']);
     // =====================================================
@@ -301,6 +310,18 @@ Route::put('/{id}/update', [TravelInvoiceController::class, 'updateInvoice']);
     Route::post('/batches/{batchId}/approve-all', [App\Http\Controllers\Api\TravelInvoiceController::class, 'approveAll']);
     Route::post('/batches/{batchId}/reject-all', [App\Http\Controllers\Api\TravelInvoiceController::class, 'rejectAll']);
 });
+
+   // =====================================================
+// SETTINGS API (Admin Only)
+// =====================================================
+Route::prefix('settings')->group(function () {
+    Route::get('/', [SettingsController::class, 'index']);
+    Route::post('/', [SettingsController::class, 'store']);
+    Route::get('/tds-config', [SettingsController::class, 'getTdsConfig']);
+    Route::get('/tds-config-invoice', [SettingsController::class, 'getTdsConfigForInvoice']); // ← ADD THIS!
+    Route::post('/test-email', [SettingsController::class, 'testEmail']);
+});
+
 });
 
 /*
@@ -343,4 +364,5 @@ Route::middleware(['web', 'auth:vendor', CheckTravelAccess::class])->prefix('ven
         // Submit
         Route::post('/batches/{batchId}/submit', [App\Http\Controllers\Api\VendorTravelInvoiceController::class, 'submitBatch']);
     });
+
 });

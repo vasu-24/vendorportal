@@ -103,18 +103,20 @@ public function getContractItems($id)
             ->where('is_visible_to_vendor', true)
             ->findOrFail($id);
 
-        $items = ContractItem::with(['category'])
-            ->where('contract_id', $id)
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'id' => $item->id,
-                    'category_id' => $item->category_id,
-                    'category_name' => $item->category->name ?? '',
-                    'tag_id' => $item->tag_id,
-                    'tag_name' => $item->tag_name,
-                ];
-            });
+      $items = ContractItem::with(['category'])
+    ->where('contract_id', $id)
+    ->get()
+    ->map(function ($item) {
+        return [
+            'id' => $item->id,
+            'category_id' => $item->category_id,
+            'category_name' => $item->category->name ?? '',
+            'quantity' => $item->quantity,      // ADD THIS
+            'rate' => $item->rate,              // ADD THIS
+            'tag_id' => $item->tag_id,
+            'tag_name' => $item->tag_name,
+        ];
+    });
 
         return response()->json([
             'success' => true,

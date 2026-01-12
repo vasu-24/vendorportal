@@ -326,15 +326,169 @@
         background: #f0fdf4;
     }
     
-    #previewTable th {
-        font-size: 11px;
-        text-transform: uppercase;
+    /* Line Items Styles */
+    .line-item {
+        display: flex;
+        align-items: center;
+        padding: 14px 16px;
+        border-bottom: 1px solid #e5e7eb;
+        gap: 12px;
+        transition: all 0.2s;
+    }
+    .line-item:hover { background: #f9fafb; }
+    .line-item:last-child { border-bottom: none; }
+    .line-item.is-invalid { background: #fef2f2; opacity: 0.7; }
+    .line-item.has-bill { background: #f0fdf4; }
+    
+    .line-item-number {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: #e5e7eb;
+        color: #374151;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         font-weight: 600;
-    }
-    #previewTable td {
         font-size: 13px;
-        vertical-align: middle;
+        flex-shrink: 0;
     }
+    .line-item.has-bill .line-item-number { background: #10b981; color: #fff; }
+    .line-item.is-invalid .line-item-number { background: #ef4444; color: #fff; }
+    
+    .line-item-info { flex: 1; min-width: 0; }
+    .line-item-main {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+    .line-item-invoice {
+        font-weight: 600;
+        color: #1f2937;
+        font-size: 14px;
+        min-width: 120px;
+    }
+    .line-item-employee {
+        color: #374151;
+        font-size: 13px;
+        font-weight: 500;
+    }
+    .line-item-badge {
+        background: #dbeafe;
+        color: #1e40af;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 500;
+    }
+    .line-item-badge.domestic { background: #dcfce7; color: #166534; }
+    .line-item-badge.international { background: #fef3c7; color: #92400e; }
+    
+    .line-item-details {
+        display: flex;
+        gap: 16px;
+        margin-top: 6px;
+        font-size: 12px;
+        color: #6b7280;
+    }
+    .line-item-details i { margin-right: 4px; }
+    
+    .line-item-amount {
+        font-weight: 700;
+        font-size: 15px;
+        color: #059669;
+        min-width: 100px;
+        text-align: right;
+    }
+    
+    .line-item-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+    
+    /* Upload Bill Button */
+    .upload-bill-btn {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        border: 2px dashed #d1d5db;
+        background: #fff;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 13px;
+        color: #6b7280;
+    }
+    .upload-bill-btn:hover {
+        border-color: #2563eb;
+        color: #2563eb;
+        background: #eff6ff;
+    }
+    .upload-bill-btn.has-file {
+        border-color: #10b981;
+        background: #ecfdf5;
+        color: #059669;
+        border-style: solid;
+    }
+    .upload-bill-btn i { font-size: 16px; }
+    
+    .bill-file-name {
+        max-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 12px;
+    }
+    
+    .remove-bill-btn {
+        background: none;
+        border: none;
+        color: #ef4444;
+        padding: 2px 6px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+    .remove-bill-btn:hover { color: #dc2626; }
+    
+    /* Status Badge */
+    .line-item-status {
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    .line-item-status.valid { background: #dcfce7; color: #166534; }
+    .line-item-status.invalid { background: #fee2e2; color: #991b1b; }
+    .line-item-status.ready { background: #dbeafe; color: #1e40af; }
+    
+    /* Error message */
+    .line-item-error {
+        color: #dc2626;
+        font-size: 12px;
+        margin-top: 4px;
+    }
+    
+    /* Summary Bar */
+    .preview-summary-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        background: #f8fafc;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    .preview-summary-bar .stats {
+        display: flex;
+        gap: 20px;
+        font-size: 13px;
+    }
+    .preview-summary-bar .stats span { font-weight: 600; }
+    
     .status-valid { color: #10b981; }
     .status-invalid { color: #ef4444; }
 
@@ -457,29 +611,15 @@
                     </div>
                 </div>
                 
-                <!-- Step 3: Preview -->
+                <!-- Step 3: Preview & Upload Bills -->
                 <div class="card mb-3" id="previewSection" style="display: none;">
                     <div class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-3-circle me-2"></i>Step 3: Preview & Confirm</span>
+                        <span><i class="bi bi-3-circle me-2"></i>Step 3: Review & Upload Bills</span>
                         <span class="badge bg-light text-dark" id="previewSummary">0 valid, 0 errors</span>
                     </div>
                     <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-sm table-hover mb-0" id="previewTable">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Row</th>
-                                        <th>Invoice No</th>
-                                        <th>Employee</th>
-                                        <th>Project</th>
-                                        <th>Location</th>
-                                        <th>Amount</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="previewTableBody"></tbody>
-                            </table>
-                        </div>
+                        <!-- Line Items Container -->
+                        <div id="lineItemsContainer"></div>
                     </div>
                     <div class="card-footer">
                         <div class="d-flex justify-content-between align-items-center">
@@ -487,8 +627,9 @@
                                 <span class="text-success"><i class="bi bi-check-circle"></i> Valid: <span id="validCount">0</span></span>
                                 <span class="ms-3 text-danger"><i class="bi bi-x-circle"></i> Errors: <span id="errorCount">0</span></span>
                                 <span class="ms-3 text-secondary"><i class="bi bi-dash-circle"></i> Skipped: <span id="skippedCount">0</span></span>
+                                <span class="ms-3 text-primary"><i class="bi bi-file-earmark"></i> Bills: <span id="billsUploadedCount">0</span>/<span id="totalValidCount">0</span></span>
                             </div>
-                            <button type="button" class="btn btn-primary" id="createInvoicesBtn" onclick="createInvoicesFromExcel()">
+                            <button type="button" class="btn btn-primary" id="createInvoicesBtn" onclick="createInvoicesFromExcel()" disabled>
                                 <i class="bi bi-check-lg me-2"></i>Create <span id="createCount">0</span> Invoice(s)
                             </button>
                         </div>
@@ -497,7 +638,8 @@
                 
             </div>
 
-         
+        </div>
+        <!-- END col-lg-8 -->
 
         <!-- Summary Sidebar -->
         <div class="col-lg-4">
@@ -1681,6 +1823,334 @@ async function submitBatchOnly() {
 // =====================================================
 function formatNumber(num) {
     return parseFloat(num || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// =====================================================
+// EXCEL BULK UPLOAD FUNCTIONS
+// =====================================================
+
+// Entry Mode Toggle
+$('input[name="entryMode"]').on('change', function() {
+    const mode = $(this).val();
+    
+    if (mode === 'manual') {
+        $('#manualEntrySection').show();
+        $('#bulkUploadSection').hide();
+    } else {
+        $('#manualEntrySection').hide();
+        $('#bulkUploadSection').show();
+    }
+});
+
+// Excel file input change
+$('#excelFileInput').on('change', function() {
+    const file = this.files[0];
+    if (file) {
+        handleExcelFile(file);
+    }
+});
+
+// Drag and drop setup
+$(document).ready(function() {
+    const uploadArea = document.getElementById('excelUploadArea');
+    
+    if (uploadArea) {
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('drag-over');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('drag-over');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('drag-over');
+            
+            const file = e.dataTransfer.files[0];
+            if (file && (file.name.endsWith('.xlsx') || file.name.endsWith('.xls'))) {
+                handleExcelFile(file);
+            } else {
+                Toast.error('Please upload a valid Excel file (.xlsx or .xls)');
+            }
+        });
+        
+        uploadArea.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'BUTTON') {
+                document.getElementById('excelFileInput').click();
+            }
+        });
+    }
+});
+
+let selectedExcelFile = null;
+
+// Download Template
+function downloadExcelTemplate() {
+    const btn = $('#downloadTemplateBtn');
+    btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Generating...');
+    
+    window.location.href = `${API_BASE}/excel/download-template`;
+    
+    setTimeout(() => {
+        btn.prop('disabled', false).html('<i class="bi bi-download me-2"></i>Download Excel Template');
+    }, 2000);
+}
+
+// Handle Excel File Selection
+function handleExcelFile(file) {
+    selectedExcelFile = file;
+    
+    $('#selectedFileName').removeClass('d-none');
+    $('#selectedFileName .file-name').text(file.name);
+    $('#excelUploadArea').addClass('has-file');
+    
+    previewExcelFile();
+}
+
+function clearSelectedFile() {
+    selectedExcelFile = null;
+    $('#excelFileInput').val('');
+    $('#selectedFileName').addClass('d-none');
+    $('#excelUploadArea').removeClass('has-file');
+    $('#previewSection').hide();
+}
+
+// Preview Excel File
+function previewExcelFile() {
+    if (!selectedExcelFile) {
+        Toast.error('Please select an Excel file first');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('excel_file', selectedExcelFile);
+    
+    $('#previewSection').show();
+    $('#previewTableBody').html(`
+        <tr>
+            <td colspan="7" class="text-center py-4">
+                <span class="spinner-border spinner-border-sm me-2"></span>Processing Excel...
+            </td>
+        </tr>
+    `);
+    
+    axios.post(`${API_BASE}/excel/preview`, formData)
+        .then(res => {
+            if (res.data.success) {
+                renderPreview(res.data.data);
+            } else {
+                Toast.error(res.data.message || 'Preview failed');
+            }
+        })
+        .catch(err => {
+            Toast.error(err.response?.data?.message || 'Failed to preview Excel');
+            $('#previewSection').hide();
+        });
+}
+
+// Store preview data and bill files globally
+let previewData = [];
+let billFiles = {};
+
+// Render Preview as Line Items
+function renderPreview(data) {
+    previewData = data.preview || [];
+    const summary = data.summary || {};
+    
+    $('#validCount').text(summary.valid || 0);
+    $('#errorCount').text(summary.invalid || 0);
+    $('#skippedCount').text(summary.skipped || 0);
+    $('#createCount').text(summary.valid || 0);
+    $('#totalValidCount').text(summary.valid || 0);
+    $('#billsUploadedCount').text(0);
+    $('#previewSummary').text(`${summary.valid || 0} valid, ${summary.invalid || 0} errors`);
+    
+    // Reset bill files
+    billFiles = {};
+    
+    let html = '';
+    
+    if (previewData.length === 0) {
+        html = `
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-inbox display-4 d-block mb-3"></i>
+                <p>No invoices found in Excel. Please fill Invoice No, Travel Type, and Basic Amount columns.</p>
+            </div>
+        `;
+    } else {
+        previewData.forEach((row, index) => {
+            const isValid = row.status === 'valid';
+            const itemClass = isValid ? '' : 'is-invalid';
+            const travelTypeClass = (row.travel_type || '').toLowerCase().includes('international') ? 'international' : 'domestic';
+            
+            html += `
+                <div class="line-item ${itemClass}" data-row="${row.row}" data-index="${index}">
+                    <div class="line-item-number">${index + 1}</div>
+                    
+                    <div class="line-item-info">
+                        <div class="line-item-main">
+                            <span class="line-item-invoice">${row.invoice_no}</span>
+                            <span class="line-item-employee">${row.employee_name}</span>
+                            ${row.travel_type ? `<span class="line-item-badge ${travelTypeClass}">${row.travel_type}</span>` : ''}
+                        </div>
+                        <div class="line-item-details">
+                            <span><i class="bi bi-geo-alt"></i>${row.location || '-'}</span>
+                            <span><i class="bi bi-calendar"></i>${row.invoice_date || '-'}</span>
+                            <span><i class="bi bi-briefcase"></i>${row.project || '-'}</span>
+                            ${row.mode ? `<span><i class="bi bi-truck"></i>${row.mode}</span>` : ''}
+                        </div>
+                        ${!isValid ? `<div class="line-item-error"><i class="bi bi-exclamation-circle me-1"></i>${row.error}</div>` : ''}
+                    </div>
+                    
+                    <div class="line-item-amount">₹${formatNumber(row.amount)}</div>
+                    
+                    <div class="line-item-actions">
+                        ${isValid ? `
+                            <label class="upload-bill-btn" id="uploadBtn-${index}">
+                                <i class="bi bi-cloud-upload"></i>
+                                <span class="btn-text">Upload Bill</span>
+                                <input type="file" class="d-none bill-input" data-index="${index}" accept=".pdf,.jpg,.jpeg,.png" onchange="handleBillUpload(this, ${index})">
+                            </label>
+                        ` : `
+                            <span class="line-item-status invalid">Invalid</span>
+                        `}
+                    </div>
+                </div>
+            `;
+        });
+    }
+    
+    $('#lineItemsContainer').html(html);
+    updateCreateButtonState();
+}
+
+// Handle Bill Upload for each line item
+function handleBillUpload(input, index) {
+    const file = input.files[0];
+    const btn = $(`#uploadBtn-${index}`);
+    
+    if (file) {
+        // Validate file size (max 10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            Toast.error('File size must be less than 10MB');
+            input.value = '';
+            return;
+        }
+        
+        // Store file
+        billFiles[index] = file;
+        
+        // Update button UI
+        btn.addClass('has-file');
+        btn.find('.btn-text').text(file.name.length > 15 ? file.name.substring(0, 12) + '...' : file.name);
+        btn.find('i').removeClass('bi-cloud-upload').addClass('bi-check-circle-fill');
+        
+        // Update line item
+        btn.closest('.line-item').addClass('has-bill');
+        
+        updateBillCount();
+        Toast.success(`Bill uploaded for Invoice ${previewData[index].invoice_no}`);
+    }
+}
+
+// Remove bill
+function removeBill(index) {
+    delete billFiles[index];
+    
+    const btn = $(`#uploadBtn-${index}`);
+    btn.removeClass('has-file');
+    btn.find('.btn-text').text('Upload Bill');
+    btn.find('i').removeClass('bi-check-circle-fill').addClass('bi-cloud-upload');
+    btn.find('.bill-input').val('');
+    btn.closest('.line-item').removeClass('has-bill');
+    
+    updateBillCount();
+}
+
+// Update bill count
+function updateBillCount() {
+    const count = Object.keys(billFiles).length;
+    $('#billsUploadedCount').text(count);
+    updateCreateButtonState();
+}
+
+// Update create button state
+function updateCreateButtonState() {
+    const validCount = previewData.filter(r => r.status === 'valid').length;
+    const billCount = Object.keys(billFiles).length;
+    
+    // Enable button only if all valid items have bills
+    const allHaveBills = billCount >= validCount;
+    
+    $('#createInvoicesBtn').prop('disabled', validCount === 0 || !allHaveBills);
+    
+    if (validCount > 0 && !allHaveBills) {
+        $('#createInvoicesBtn').html(`<i class="bi bi-exclamation-circle me-2"></i>Upload Bills (${billCount}/${validCount})`);
+    } else if (validCount > 0) {
+        $('#createInvoicesBtn').html(`<i class="bi bi-check-lg me-2"></i>Create ${validCount} Invoice(s)`);
+    }
+}
+
+// Create Invoices From Excel with Bills
+function createInvoicesFromExcel() {
+    if (!selectedExcelFile) {
+        Toast.error('Please select an Excel file first');
+        return;
+    }
+    
+    const validCount = previewData.filter(r => r.status === 'valid').length;
+    const billCount = Object.keys(billFiles).length;
+    
+    if (billCount < validCount) {
+        Toast.error(`Please upload bills for all invoices (${billCount}/${validCount} uploaded)`);
+        return;
+    }
+    
+    const btn = $('#createInvoicesBtn');
+    btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Creating...');
+    
+    const formData = new FormData();
+    formData.append('excel_file', selectedExcelFile);
+    
+    // Append all bill files with their row index
+    Object.keys(billFiles).forEach(index => {
+        const row = previewData[index];
+        formData.append(`bills[${row.row}]`, billFiles[index]);
+    });
+    
+    axios.post(`${API_BASE}/excel/upload`, formData)
+        .then(res => {
+            if (res.data.success) {
+                Toast.success(res.data.message);
+                
+                const data = res.data.data;
+                
+                if (data.errors && data.errors.length > 0) {
+                    let errorMsg = `Created ${data.created_count} invoices.\n\nErrors (${data.error_count}):\n`;
+                    data.errors.forEach(err => {
+                        errorMsg += `• Row ${err.row}: ${err.error}\n`;
+                    });
+                    alert(errorMsg);
+                }
+                
+                if (data.batch) {
+                    setTimeout(() => {
+                        window.location.href = `{{ route('vendor.travel-invoices.index') }}?batch_id=${data.batch.id}`;
+                    }, 1500);
+                }
+            } else {
+                Toast.error(res.data.message || 'Upload failed');
+                btn.prop('disabled', false);
+                updateCreateButtonState();
+            }
+        })
+        .catch(err => {
+            Toast.error(err.response?.data?.message || 'Failed to create invoices');
+            btn.prop('disabled', false);
+            updateCreateButtonState();
+        });
 }
 </script>
 @endpush

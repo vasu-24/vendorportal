@@ -173,17 +173,9 @@
             
             <!-- General Settings -->
             <li>
-              <a class="dropdown-item {{ request()->routeIs('settings.general') ? 'active' : '' }}"
-                 href="{{ route('settings.general') }}">
-                 <i class="bi bi-gear me-2"></i>General Settings
-              </a>
-            </li>
-
-            <!-- Zoho Books -->
-            <li>
-              <a class="dropdown-item {{ request()->routeIs('settings.zoho') ? 'active' : '' }}"
-                 href="{{ route('settings.zoho') }}">
-                 <i class="bi bi-book me-2"></i>Zoho Books
+              <a class="dropdown-item {{ request()->routeIs('admin.settings') ? 'active' : '' }}"
+                 href="{{ route('admin.settings') }}">
+                 <i class="bi bi-sliders me-2"></i>Settings
               </a>
             </li>
 

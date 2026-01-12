@@ -485,12 +485,16 @@
         let html = '';
         invoices.forEach((inv, i) => {
             html += `
-                <tr>
-                    <td class="ps-3">${i + 1}</td>
-                    <td>
-                        <div class="fw-medium">${escapeHtml(inv.invoice_number)}</div>
-                        <small class="text-muted">${inv.description ? escapeHtml(inv.description.substring(0, 25)) + '...' : '-'}</small>
-                    </td>
+    <tr>
+        <td class="ps-3">${i + 1}</td>
+        <td>
+            <div class="fw-medium">
+                ${escapeHtml(inv.invoice_number)}
+                ${inv.exceed_notes ? '<span class="badge bg-warning text-dark ms-1" style="font-size: 9px; padding: 2px 6px;"><i class="bi bi-exclamation-triangle"></i></span>' : ''}
+            </div>
+            <small class="text-muted">${inv.description ? escapeHtml(inv.description.substring(0, 25)) + '...' : '-'}</small>
+        </td>
+        
                     <td>${getTypeBadge(inv.invoice_type)}</td>
                     <td>
                         ${inv.contract ? `

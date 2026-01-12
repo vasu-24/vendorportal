@@ -55,6 +55,7 @@ class Invoice extends Model
     'finance_approved_by',
     'finance_approved_at',
     'assigned_rm_id',
+     'exceed_notes',
 'assigned_tag_id',
 'assigned_tag_name',
   'rejected_by_role'
@@ -79,6 +80,7 @@ class Invoice extends Model
         'paid_at' => 'datetime',
         'zoho_synced_at' => 'datetime',
         'exceeds_contract' => 'boolean',
+        'exceed_notes' => 'array',
     'rm_approved_at' => 'datetime',
     'vp_approved_at' => 'datetime',
     'ceo_approved_at' => 'datetime',

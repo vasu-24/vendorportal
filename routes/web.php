@@ -480,3 +480,11 @@ Route::middleware(['auth:vendor'])->prefix('vendor')->group(function () {
 Route::get('/admin/master/approval-matrix/invoice-flow', function () {
     return view('pages.master.approval_matrix.invoice-flow');
 })->middleware(['auth'])->name('master.invoice-flow');
+
+
+// =====================================================
+// ADMIN SETTINGS
+// =====================================================
+Route::get('/admin/settings', function () {
+    return view('pages.admin.settings');
+})->middleware(['auth'])->name('admin.settings');

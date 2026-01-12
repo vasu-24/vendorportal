@@ -37,18 +37,23 @@ class VendorInvoiceController extends Controller
         try {
             $vendor = $this->getVendor();
 
-            $stats = [
-                'total' => Invoice::where('vendor_id', $vendor->id)->count(),
-                'draft' => Invoice::where('vendor_id', $vendor->id)->where('status', 'draft')->count(),
-                'submitted' => Invoice::where('vendor_id', $vendor->id)->where('status', 'submitted')->count(),
-                'under_review' => Invoice::where('vendor_id', $vendor->id)->where('status', 'under_review')->count(),
-                'approved' => Invoice::where('vendor_id', $vendor->id)->where('status', 'approved')->count(),
-                'rejected' => Invoice::where('vendor_id', $vendor->id)->where('status', 'rejected')->count(),
-                'paid' => Invoice::where('vendor_id', $vendor->id)->where('status', 'paid')->count(),
-                'total_amount' => Invoice::where('vendor_id', $vendor->id)->sum('grand_total'),
-                'total_approved' => Invoice::where('vendor_id', $vendor->id)->where('status', 'approved')->sum('grand_total'),
-                'total_paid' => Invoice::where('vendor_id', $vendor->id)->where('status', 'paid')->sum('grand_total'),
-            ];
+        $stats = [
+    'total' => Invoice::where('vendor_id', $vendor->id)->count(),
+    'draft' => Invoice::where('vendor_id', $vendor->id)->where('status', 'draft')->count(),
+    'submitted' => Invoice::where('vendor_id', $vendor->id)->where('status', 'submitted')->count(),
+    'under_review' => Invoice::where('vendor_id', $vendor->id)->where('status', 'under_review')->count(),
+    'resubmitted' => Invoice::where('vendor_id', $vendor->id)->where('status', 'resubmitted')->count(),
+    'pending_rm' => Invoice::where('vendor_id', $vendor->id)->where('status', 'pending_rm')->count(),
+    'pending_vp' => Invoice::where('vendor_id', $vendor->id)->where('status', 'pending_vp')->count(),
+    'pending_ceo' => Invoice::where('vendor_id', $vendor->id)->where('status', 'pending_ceo')->count(),
+    'pending_finance' => Invoice::where('vendor_id', $vendor->id)->where('status', 'pending_finance')->count(),
+    'approved' => Invoice::where('vendor_id', $vendor->id)->where('status', 'approved')->count(),
+    'rejected' => Invoice::where('vendor_id', $vendor->id)->where('status', 'rejected')->count(),
+    'paid' => Invoice::where('vendor_id', $vendor->id)->where('status', 'paid')->count(),
+    'total_amount' => Invoice::where('vendor_id', $vendor->id)->sum('grand_total'),
+    'total_approved' => Invoice::where('vendor_id', $vendor->id)->where('status', 'approved')->sum('grand_total'),
+    'total_paid' => Invoice::where('vendor_id', $vendor->id)->where('status', 'paid')->sum('grand_total'),
+];
 
             return response()->json([
                 'success' => true,
@@ -73,61 +78,74 @@ class VendorInvoiceController extends Controller
      * Get list of vendor's invoices
      */
     public function index(Request $request)
-    {
-        try {
-            $vendor = $this->getVendor();
+{
+    try {
+        $vendor = $this->getVendor();
 
-            $query = Invoice::with(['attachments', 'contract', 'items.category'])
-                ->where('vendor_id', $vendor->id)
-                ->orderBy('created_at', 'desc');
+        $query = Invoice::with(['attachments', 'contract', 'items.category'])
+            ->where('vendor_id', $vendor->id)
+            ->orderBy('created_at', 'desc');
 
-            // Filter by status
-            if ($request->has('status') && $request->status !== 'all') {
-                if ($request->status === 'pending') {
-                    $query->whereIn('status', ['submitted', 'under_review', 'resubmitted']);
-                } else {
-                    $query->where('status', $request->status);
-                }
-            }
-
-            // Filter by type
-            if ($request->has('type') && $request->type !== 'all') {
-                $query->where('invoice_type', $request->type);
-            }
-
-            // Search
-            if ($request->has('search') && $request->search) {
-                $search = $request->search;
-                $query->where(function ($q) use ($search) {
-                    $q->where('invoice_number', 'like', "%{$search}%")
-                      ->orWhere('description', 'like', "%{$search}%");
-                });
-            }
-
-            // Date filter
-            if ($request->has('from_date') && $request->from_date) {
-                $query->whereDate('invoice_date', '>=', $request->from_date);
-            }
-            if ($request->has('to_date') && $request->to_date) {
-                $query->whereDate('invoice_date', '<=', $request->to_date);
-            }
-
-            $invoices = $query->paginate($request->get('per_page', 10));
-
-            return response()->json([
-                'success' => true,
-                'data' => $invoices
+        // Filter by status
+     // Filter by status
+if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
+    if ($request->status === 'pending') {
+        $query->where(function($q) {
+            $q->whereIn('status', [
+                'submitted', 
+                'under_review', 
+                'resubmitted', 
+                'pending_rm', 
+                'pending_vp', 
+                'pending_ceo', 
+                'pending_finance'
             ]);
-
-        } catch (\Exception $e) {
-            Log::error('Vendor Get Invoices Error: ' . $e->getMessage());
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Something went wrong.'
-            ], 500);
-        }
+        });
+    } else {
+        $query->where('status', $request->status);
     }
+}
+
+        // Filter by type
+        if ($request->has('type') && $request->type !== 'all') {
+            $query->where('invoice_type', $request->type);
+        }
+
+        // Search
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('invoice_number', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        // Date filter
+        if ($request->has('from_date') && $request->from_date) {
+            $query->whereDate('invoice_date', '>=', $request->from_date);
+        }
+        if ($request->has('to_date') && $request->to_date) {
+            $query->whereDate('invoice_date', '<=', $request->to_date);
+        }
+
+        $invoices = $query->paginate($request->get('per_page', 10));
+
+        return response()->json([
+            'success' => true,
+            'data' => $invoices
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Vendor Get Invoices Error: ' . $e->getMessage());
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Something went wrong.'
+        ], 500);
+    }
+}
+
+
 
     // =====================================================
     // GET INVOICES BY STATUS
@@ -244,6 +262,7 @@ class VendorInvoiceController extends Controller
                 'gst_percent' => 'nullable|numeric',
                 'tds_percent' => 'nullable|numeric',
                 'invoice_type' => 'nullable|in:normal,adhoc',
+                'exceed_notes' => 'nullable|string',
             ]);
 
             // Custom validation for unique invoice number per vendor
@@ -317,6 +336,7 @@ class VendorInvoiceController extends Controller
                 'timesheet_filename' => $timesheetFilename,
                 'zoho_gst_tax_id' => $request->zoho_gst_tax_id,
                 'status' => 'draft',
+                'exceed_notes' => $request->exceed_notes,
             ]);
 
             // Create line items
@@ -452,6 +472,7 @@ class VendorInvoiceController extends Controller
                 'include_timesheet' => 'nullable|boolean',
                 'gst_percent' => 'nullable|numeric',
                 'tds_percent' => 'nullable|numeric',
+                'exceed_notes' => 'nullable|string',
             ]);
 
             // Check unique invoice number (excluding current)
@@ -535,6 +556,7 @@ class VendorInvoiceController extends Controller
                 'zoho_gst_tax_id' => $request->zoho_gst_tax_id,
                 'status' => $newStatus,
                 'rejection_reason' => null,
+                'exceed_notes' => $request->exceed_notes,
             ]);
 
             // Delete old line items and create new ones

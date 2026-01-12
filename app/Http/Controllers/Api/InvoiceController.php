@@ -867,6 +867,9 @@ public function approve(Request $request, $id)
         $userId = $user->id ?? 1;
         $userRole = $user->role->slug ?? 'admin';
         
+        // Get Zoho sync date (optional - defaults to invoice date)
+        $zohoSyncDate = $request->input('zoho_sync_date', $invoice->invoice_date);
+        
         // Check if invoice can be approved
         $allowedStatuses = ['submitted', 'resubmitted', 'pending_rm', 'pending_vp', 'pending_ceo', 'pending_finance'];
         if (!in_array($invoice->status, $allowedStatuses)) {
@@ -1058,6 +1061,10 @@ case 'pending_rm':
                 $zohoService = app(ZohoService::class);
                 
                 if ($zohoService->isConnected()) {
+                    
+                    // Save zoho_sync_date
+                    $invoice->zoho_sync_date = $zohoSyncDate;
+                    $invoice->save();
                     $zohoService->createBill($invoice);
                     $zohoSynced = true;
                     
