@@ -12,6 +12,7 @@ use App\Models\VendorTaxInfo;
 use App\Models\VendorBusinessProfile;
 use App\Models\VendorDocument;
 use App\Models\VendorApprovalHistory;
+use App\Models\MailTemplate; // 🔥 ADDED FOR DB TEMPLATES
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -19,9 +20,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
-use App\Mail\VendorRejectionMail;
-use App\Mail\VendorSetPasswordMail;
-use App\Services\ZohoService; // 🔥 ZOHO SERVICE
+use App\Mail\VendorRejectionMail; // 🔥 UPDATED MAILABLE
+use App\Mail\VendorApprovalMail; // 🔥 UPDATED MAILABLE (renamed from VendorSetPasswordMail)
+use App\Services\ZohoService;
 
 class VendorApprovalController extends Controller
 {
@@ -188,37 +189,37 @@ class VendorApprovalController extends Controller
     }
 
 
-/**
- * Toggle travel access for vendor
- */
-public function toggleTravelAccess($id)
-{
-    try {
-        $vendor = Vendor::findOrFail($id);
-        
-        $vendor->update([
-            'has_travel_access' => !$vendor->has_travel_access
-        ]);
-        
-        return response()->json([
-            'success' => true,
-            'message' => $vendor->has_travel_access 
-                ? 'Travel access enabled' 
-                : 'Travel access disabled',
-            'has_travel_access' => $vendor->has_travel_access
-        ]);
-        
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to update travel access'
-        ], 500);
+    /**
+     * Toggle travel access for vendor
+     */
+    public function toggleTravelAccess($id)
+    {
+        try {
+            $vendor = Vendor::findOrFail($id);
+            
+            $vendor->update([
+                'has_travel_access' => !$vendor->has_travel_access
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => $vendor->has_travel_access 
+                    ? 'Travel access enabled' 
+                    : 'Travel access disabled',
+                'has_travel_access' => $vendor->has_travel_access
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update travel access'
+            ], 500);
+        }
     }
-}
 
 
     // =====================================================
-    // 🔥 APPROVE VENDOR (WITH EMAIL + ZOHO SYNC)
+    // 🔥 APPROVE VENDOR (UPDATED - WITH DB TEMPLATE + EMAIL + ZOHO)
     // =====================================================
     
     public function approveVendor(Request $request, $id)
@@ -288,35 +289,61 @@ public function toggleTravelAccess($id)
             DB::commit();
 
             // =====================================================
-            // 🔥 STEP 1: SEND SET PASSWORD EMAIL TO VENDOR
+            // 🔥 SEND APPROVAL EMAIL WITH DB TEMPLATE
             // =====================================================
             $emailSent = false;
             try {
-                $setPasswordUrl = route('vendor.password.show', $vendor->token);
-                
-                Mail::to($vendor->vendor_email)->send(
-                    new VendorSetPasswordMail(
-                        $vendor->vendor_name,
-                        $vendor->vendor_email,
-                        $setPasswordUrl
-                    )
-                );
-                $emailSent = true;
+                $template = MailTemplate::where('name', 'Vendor Approval')
+                                        ->where('status', 'active')
+                                        ->first();
+
+                if ($template) {
+                    $setPasswordUrl = route('vendor.password.show', $vendor->token);
+                    
+                    // Replace placeholders
+                    $templateBody = $template->body;
+                    $templateSubject = $template->subject;
+
+                    $companyName = $vendor->companyInfo ? $vendor->companyInfo->legal_entity_name : $vendor->vendor_name;
+
+                    $placeholders = [
+                        '{vendor_name}' => $vendor->vendor_name,
+                        '{vendor_email}' => $vendor->vendor_email,
+                        '{company_name}' => $companyName,
+                        '{vendor_id}' => 'VEN-' . str_pad($vendor->id, 6, '0', STR_PAD_LEFT),
+                        '{set_password_url}' => $setPasswordUrl,
+                        '{current_date}' => now()->format('d-M-Y'),
+                        '{year}' => date('Y'),
+                    ];
+
+                    foreach ($placeholders as $placeholder => $value) {
+                        $templateBody = str_replace($placeholder, $value, $templateBody);
+                        $templateSubject = str_replace($placeholder, $value, $templateSubject);
+                    }
+
+                    Mail::to($vendor->vendor_email)->send(
+                        new VendorApprovalMail(
+                            $templateSubject,
+                            $templateBody,
+                            $setPasswordUrl,
+                            $vendor
+                        )
+                    );
+                    $emailSent = true;
+                }
                 
             } catch (\Exception $e) {
-                Log::error('Set Password Email Error: ' . $e->getMessage());
+                Log::error('Approval Email Error: ' . $e->getMessage());
             }
 
             // =====================================================
-            // 🔥 STEP 2: PUSH TO ZOHO BOOKS
+            // 🔥 PUSH TO ZOHO BOOKS (Keep as is)
             // =====================================================
             $zohoSynced = false;
             try {
                 $zohoService = app(ZohoService::class);
                 
-                // Check if Zoho is connected
                 if ($zohoService->isConnected()) {
-                    // Create vendor in Zoho Books
                     $zohoService->createVendor($vendor);
                     $zohoSynced = $vendor->fresh()->zoho_contact_id ? true : false;
                     
@@ -331,7 +358,6 @@ public function toggleTravelAccess($id)
                     'error' => $e->getMessage(),
                 ]);
             }
-            // =====================================================
 
             // Build response message
             $message = 'Vendor approved successfully.';
@@ -412,7 +438,7 @@ public function toggleTravelAccess($id)
     }
 
     // =====================================================
-    // 🔥 REJECT VENDOR (WITH EMAIL)
+    // 🔥 REJECT VENDOR (UPDATED - WITH DB TEMPLATE + EMAIL)
     // =====================================================
     
     public function rejectVendor(Request $request, $id)
@@ -475,19 +501,45 @@ public function toggleTravelAccess($id)
 
             DB::commit();
 
-            // Send rejection email
+            // =====================================================
+            // 🔥 SEND REJECTION EMAIL WITH DB TEMPLATE
+            // =====================================================
             $emailSent = false;
             try {
-                $correctionUrl = route('vendor.registration', $vendor->token);
+                $template = MailTemplate::where('name', 'Vendor Rejection')
+                                        ->where('status', 'active')
+                                        ->first();
 
-                Mail::to($vendor->vendor_email)->send(
-                    new VendorRejectionMail(
-                        $vendor,
-                        $request->rejection_reason,
-                        $correctionUrl
-                    )
-                );
-                $emailSent = true;
+                if ($template) {
+                    $correctionUrl = route('vendor.registration', $vendor->token);
+                    
+                    // Replace placeholders
+                    $templateBody = $template->body;
+                    $templateSubject = $template->subject;
+
+                    $placeholders = [
+                        '{vendor_name}' => $vendor->vendor_name,
+                        '{rejection_reason}' => $request->rejection_reason,
+                        '{correction_url}' => $correctionUrl,
+                        '{current_date}' => now()->format('d-M-Y'),
+                        '{year}' => date('Y'),
+                    ];
+
+                    foreach ($placeholders as $placeholder => $value) {
+                        $templateBody = str_replace($placeholder, $value, $templateBody);
+                        $templateSubject = str_replace($placeholder, $value, $templateSubject);
+                    }
+
+                    Mail::to($vendor->vendor_email)->send(
+                        new VendorRejectionMail(
+                            $templateSubject,
+                            $templateBody,
+                            $correctionUrl,
+                            $vendor
+                        )
+                    );
+                    $emailSent = true;
+                }
                 
             } catch (\Exception $e) {
                 Log::error('Rejection Email Error: ' . $e->getMessage());

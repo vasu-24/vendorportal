@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\Vendor;
+use App\Models\MailTemplate; // 🔥 ADDED FOR DB TEMPLATES
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use App\Mail\VendorOtpMail; // 🔥 ADDED FOR OTP EMAIL
 use Carbon\Carbon;
 
 class VendorForgotPasswordController extends Controller
@@ -21,7 +23,7 @@ class VendorForgotPasswordController extends Controller
     }
 
     /**
-     * Send OTP to email
+     * Send OTP to email (UPDATED - WITH DB TEMPLATE)
      */
     public function sendOtp(Request $request)
     {
@@ -51,19 +53,40 @@ class VendorForgotPasswordController extends Controller
         DB::table('vendor_password_resets')->insert([
             'email' => $request->email,
             'token' => Hash::make($otp),
-            'otp' => $otp, // Store plain OTP for verification (will be deleted after use)
+            'otp' => $otp,
             'created_at' => Carbon::now()
         ]);
 
-        // Send OTP email
+        // 🔥 FETCH TEMPLATE FROM DATABASE
         try {
-            Mail::send('emails.vendor-otp', [
-                'otp' => $otp,
-                'vendor' => $vendor
-            ], function ($message) use ($request) {
-                $message->to($request->email);
-                $message->subject('Your OTP for Password Reset - Vendor Portal');
-            });
+            $template = MailTemplate::where('name', 'Password Reset OTP')
+                                    ->where('status', 'active')
+                                    ->first();
+
+            if (!$template) {
+                throw new \Exception('Email template not found');
+            }
+
+            // Replace placeholders
+            $templateBody = $template->body;
+            $templateSubject = $template->subject;
+
+            $placeholders = [
+                '{vendor_name}' => $vendor->vendor_name,
+                '{otp}' => $otp,
+                '{current_date}' => now()->format('d-M-Y'),
+                '{year}' => date('Y'),
+            ];
+
+            foreach ($placeholders as $placeholder => $value) {
+                $templateBody = str_replace($placeholder, $value, $templateBody);
+                $templateSubject = str_replace($placeholder, $value, $templateSubject);
+            }
+
+            // Send email using VendorOtpMail
+            Mail::to($request->email)->send(
+                new \App\Mail\VendorOtpMail($templateSubject, $templateBody, $otp, $vendor)
+            );
 
             // Store email in session for next step
             session(['reset_email' => $request->email]);
@@ -143,7 +166,7 @@ class VendorForgotPasswordController extends Controller
     }
 
     /**
-     * Resend OTP
+     * Resend OTP (UPDATED - WITH DB TEMPLATE)
      */
     public function resendOtp()
     {
@@ -173,15 +196,36 @@ class VendorForgotPasswordController extends Controller
             'created_at' => Carbon::now()
         ]);
 
-        // Send OTP email
+        // 🔥 FETCH TEMPLATE FROM DATABASE
         try {
-            Mail::send('emails.vendor-otp', [
-                'otp' => $otp,
-                'vendor' => $vendor
-            ], function ($message) use ($email) {
-                $message->to($email);
-                $message->subject('Your OTP for Password Reset - Vendor Portal');
-            });
+            $template = MailTemplate::where('name', 'Password Reset OTP')
+                                    ->where('status', 'active')
+                                    ->first();
+
+            if (!$template) {
+                throw new \Exception('Email template not found');
+            }
+
+            // Replace placeholders
+            $templateBody = $template->body;
+            $templateSubject = $template->subject;
+
+            $placeholders = [
+                '{vendor_name}' => $vendor->vendor_name,
+                '{otp}' => $otp,
+                '{current_date}' => now()->format('d-M-Y'),
+                '{year}' => date('Y'),
+            ];
+
+            foreach ($placeholders as $placeholder => $value) {
+                $templateBody = str_replace($placeholder, $value, $templateBody);
+                $templateSubject = str_replace($placeholder, $value, $templateSubject);
+            }
+
+            // Send email
+            Mail::to($email)->send(
+                new \App\Mail\VendorOtpMail($templateSubject, $templateBody, $otp, $vendor)
+            );
 
             return back()->with('success', 'New OTP has been sent to your email.');
 

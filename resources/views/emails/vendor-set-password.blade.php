@@ -4,142 +4,207 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             line-height: 1.6;
-            color: #333;
-            background-color: #f4f7fa;
+            color: #1f2937;
+            background-color: #f3f4f6;
             margin: 0;
-            padding: 0;
+            padding: 20px 0;
         }
-        .email-wrapper {
+        .email-container {
             max-width: 600px;
-            margin: 30px auto;
+            margin: 0 auto;
             background: #ffffff;
-            border-radius: 12px;
+            border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
+        /* Header Section */
         .email-header {
-            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a8a 100%);
-            color: white;
-            padding: 40px 30px;
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            padding: 40px 40px 35px 40px;
             text-align: center;
         }
-        .email-header h1 {
+        .logo-section h1 {
+            color: white;
+            font-size: 32px;
+            font-weight: 700;
             margin: 0;
-            font-size: 28px;
-            font-weight: 600;
+            letter-spacing: -0.5px;
         }
-        .email-header p {
+        .header-subtitle {
+            color: rgba(255,255,255,0.9);
+            font-size: 15px;
             margin: 8px 0 0 0;
-            opacity: 0.95;
-            font-size: 14px;
+            font-weight: 400;
         }
+        
+        /* Body Section */
         .email-body {
-            padding: 40px 35px;
-        }
-        .greeting {
-            font-size: 18px;
-            color: #1e3a5f;
-            margin-bottom: 20px;
+            padding: 40px 40px 35px 40px;
+            background: #ffffff;
         }
         .content-section {
-            line-height: 1.8;
             color: #374151;
-            margin-bottom: 30px;
+            font-size: 15px;
+            line-height: 1.7;
+            white-space: pre-line;
         }
-        .highlight-box {
-            background: #f0f9ff;
-            border-left: 4px solid #1e3a5f;
-            padding: 15px 20px;
-            margin: 20px 0;
-            border-radius: 0 8px 8px 0;
-        }
-        .button-container {
+        
+        /* Button Section */
+        .button-section {
+            margin: 35px 0 30px 0;
+            padding: 30px 0;
             text-align: center;
-            margin: 35px 0;
+            border-top: 2px solid #f3f4f6;
+            border-bottom: 2px solid #f3f4f6;
+        }
+        .button-label {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 20px;
+            font-weight: 500;
         }
         .btn {
             display: inline-block;
-            padding: 16px 50px;
+            padding: 15px 45px;
             text-decoration: none;
             border-radius: 8px;
             font-weight: 600;
-            font-size: 16px;
-            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a8a 100%);
-            color: white !important;
-            box-shadow: 0 4px 15px rgba(30, 58, 95, 0.3);
+            font-size: 15px;
+            transition: all 0.3s ease;
         }
-        .btn:hover {
-            background: linear-gradient(135deg, #2d5a8a 0%, #1e3a5f 100%);
+        .btn-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
         }
-        .note {
-            background: #fefce8;
-            border: 1px solid #fef08a;
-            padding: 15px;
-            border-radius: 8px;
+        .btn-success:hover {
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+            transform: translateY(-2px);
+        }
+        
+        /* Info Box */
+        .info-box {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 16px 20px;
+            margin: 25px 0;
+            border-radius: 6px;
+        }
+        .info-box p {
+            margin: 0;
+            font-size: 14px;
+            color: #166534;
+            line-height: 1.6;
+        }
+        
+        /* Warning Box */
+        .warning-box {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 16px 20px;
+            margin: 25px 0;
+            border-radius: 6px;
+        }
+        .warning-box p {
+            margin: 0;
             font-size: 13px;
-            color: #854d0e;
-            margin-top: 25px;
+            color: #92400e;
+            line-height: 1.6;
         }
+        
+        /* Footer Section */
         .email-footer {
             background: #f9fafb;
+            padding: 35px 40px;
             text-align: center;
-            padding: 30px;
             border-top: 1px solid #e5e7eb;
         }
-        .email-footer p {
-            margin: 5px 0;
+        .footer-brand {
+            font-weight: 600;
+            color: #1f2937;
+            font-size: 16px;
+            margin-bottom: 12px;
+        }
+        .footer-text {
             color: #6b7280;
             font-size: 13px;
+            margin: 8px 0;
+            line-height: 1.6;
+        }
+        .copyright {
+            color: #9ca3af;
+            font-size: 12px;
+            margin-top: 15px;
+        }
+        
+        /* Responsive Design */
+        @media only screen and (max-width: 600px) {
+            .email-header,
+            .email-body,
+            .email-footer {
+                padding-left: 25px;
+                padding-right: 25px;
+            }
+            .btn {
+                display: block;
+                width: 100%;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="email-wrapper">
+    <div class="email-container">
         
         <!-- Header -->
         <div class="email-header">
-            <h1>🎉 Account Approved!</h1>
-            <p>Your vendor registration has been approved</p>
+            <div class="logo-section">
+                <h1>🏢 FIDE</h1>
+            </div>
+            <p class="header-subtitle">Vendor Management System</p>
         </div>
         
         <!-- Body -->
         <div class="email-body">
             
-            <p class="greeting">Dear <strong>{{ $vendorName }}</strong>,</p>
-            
+            <!-- Dynamic Content -->
             <div class="content-section">
-                <p>Great news! Your vendor registration has been <strong>approved</strong>. You're just one step away from accessing your Vendor Portal account.</p>
-                
-                <p>Please click the button below to set up your password and complete your account setup.</p>
+                {!! nl2br(e($body)) !!}
             </div>
-
-            <div class="highlight-box">
-                <strong>📧 Your Login Email:</strong><br>
-                {{ $vendorEmail }}
+            
+            <!-- Info Box -->
+            <div class="info-box">
+                <p><strong>📋 What happens next?</strong><br>
+                Once you set your password, you'll have immediate access to your vendor portal where you can manage invoices, contracts, and documents.</p>
             </div>
             
             <!-- Action Button -->
-            <div class="button-container">
-                <a href="{{ $setPasswordUrl }}" class="btn">Set Your Password</a>
+            @if(isset($setPasswordUrl))
+            <div class="button-section">
+                <p class="button-label">Activate your account now:</p>
+                <a href="{{ $setPasswordUrl }}" class="btn btn-primary">🔐 Set Your Password</a>
             </div>
-
-            <div class="note">
-                <strong>⚠️ Security Note:</strong><br>
-                • This link is valid for <strong>48 hours</strong><br>
-                • Do not share this link with anyone<br>
-                • If you did not request this, please contact support
-            </div>
+            @endif
             
         </div>
         
         <!-- Footer -->
         <div class="email-footer">
-            <p><strong>Vendor Portal</strong></p>
-            <p>This is an automated email. Please do not reply.</p>
-            <p>&copy; {{ date('Y') }} Vendor Portal. All rights reserved.</p>
+            <p class="footer-brand">FIDE Vendor Management Portal</p>
+            <p class="footer-text">
+                This is an automated email from our Vendor Management System.<br>
+                Please do not reply directly to this email.
+            </p>
+            <p class="copyright">
+                © {{ date('Y') }} FIDE. All rights reserved.
+            </p>
         </div>
         
     </div>

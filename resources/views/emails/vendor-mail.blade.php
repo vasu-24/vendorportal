@@ -21,16 +21,15 @@
             max-width: 600px;
             margin: 0 auto;
             background: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
         /* Header Section */
         .email-header {
             background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
             padding: 40px 40px 35px 40px;
             text-align: center;
-            position: relative;
-        }
-        .logo-section {
-            margin-bottom: 15px;
         }
         .logo-section h1 {
             color: white;
@@ -51,39 +50,11 @@
             padding: 40px 40px 35px 40px;
             background: #ffffff;
         }
-        .greeting {
-            font-size: 16px;
-            color: #1f2937;
-            margin-bottom: 20px;
-            font-weight: 500;
-        }
         .content-section {
             color: #374151;
             font-size: 15px;
             line-height: 1.7;
-        }
-        .content-section p {
-            margin: 0 0 15px 0;
-        }
-        .content-section p:last-child {
-            margin-bottom: 0;
-        }
-        .content-section ul {
-            margin: 15px 0;
-            padding-left: 0;
-            list-style: none;
-        }
-        .content-section ul li {
-            padding-left: 25px;
-            margin: 10px 0;
-            position: relative;
-        }
-        .content-section ul li:before {
-            content: "✓";
-            position: absolute;
-            left: 0;
-            color: #10b981;
-            font-weight: bold;
+            white-space: pre-line;
         }
         
         /* Button Section */
@@ -124,7 +95,6 @@
             box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
             transform: translateY(-2px);
         }
-        /* 🔥 UPDATED - LIGHTER RED COLOR */
         .btn-reject {
             background: linear-gradient(135deg, #fb7185 0%, #f43f5e 100%);
             color: white;
@@ -137,8 +107,8 @@
         
         /* Info Box */
         .info-box {
-            background: #f9fafb;
-            border-left: 4px solid #3b82f6;
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
             padding: 16px 20px;
             margin: 25px 0;
             border-radius: 6px;
@@ -146,7 +116,7 @@
         .info-box p {
             margin: 0;
             font-size: 14px;
-            color: #4b5563;
+            color: #166534;
             line-height: 1.6;
         }
         
@@ -168,21 +138,6 @@
             font-size: 13px;
             margin: 8px 0;
             line-height: 1.6;
-        }
-        .footer-links {
-            margin: 20px 0 15px 0;
-            padding-top: 20px;
-            border-top: 1px solid #e5e7eb;
-        }
-        .footer-links a {
-            color: #3b82f6;
-            text-decoration: none;
-            margin: 0 12px;
-            font-size: 13px;
-            font-weight: 500;
-        }
-        .footer-links a:hover {
-            text-decoration: underline;
         }
         .copyright {
             color: #9ca3af;
@@ -215,7 +170,7 @@
         <!-- Header -->
         <div class="email-header">
             <div class="logo-section">
-                <h1>🏢 Vendor Portal</h1>
+                <h1>🏢 FIDE</h1>
             </div>
             <p class="header-subtitle">Vendor Management System</p>
         </div>
@@ -223,19 +178,19 @@
         <!-- Body -->
         <div class="email-body">
             
-            <!-- Content -->
+            <!-- Dynamic Content -->
             <div class="content-section">
                 {!! nl2br(e($body)) !!}
             </div>
             
-            <!-- Info Box (Optional - shows after acceptance) -->
+            <!-- Info Box -->
             <div class="info-box">
                 <p><strong>📋 What happens next?</strong><br>
                 Once you accept this invitation, you will receive your login credentials via email within 5 minutes. Please check your inbox and spam folder.</p>
             </div>
             
             <!-- Action Buttons -->
-            @if($acceptUrl && $rejectUrl)
+            @if(isset($acceptUrl) && isset($rejectUrl))
             <div class="button-section">
                 <p class="button-label">Please respond to this invitation:</p>
                 <div class="button-group">
@@ -249,20 +204,13 @@
         
         <!-- Footer -->
         <div class="email-footer">
-            <p class="footer-brand">Vendor Management Portal</p>
+            <p class="footer-brand">FIDE Vendor Management Portal</p>
             <p class="footer-text">
                 This is an automated email from our Vendor Management System.<br>
                 Please do not reply directly to this email.
             </p>
-            
-            <div class="footer-links">
-                <a href="#">Help Center</a>
-                <a href="#">Contact Support</a>
-                <a href="#">Terms of Service</a>
-            </div>
-            
             <p class="copyright">
-                © {{ date('Y') }} Vendor Portal. All rights reserved.
+                © {{ date('Y') }} FIDE. All rights reserved.
             </p>
         </div>
         

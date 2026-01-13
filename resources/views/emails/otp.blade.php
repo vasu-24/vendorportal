@@ -57,51 +57,49 @@
             white-space: pre-line;
         }
         
-        /* Button Section */
-        .button-section {
-            margin: 35px 0 30px 0;
-            padding: 30px 0;
+        /* OTP Box */
+        .otp-container {
             text-align: center;
+            margin: 35px 0;
+            padding: 30px 0;
             border-top: 2px solid #f3f4f6;
             border-bottom: 2px solid #f3f4f6;
         }
-        .button-label {
-            font-size: 14px;
+        .otp-label {
+            font-size: 12px;
             color: #6b7280;
-            margin-bottom: 20px;
-            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
         }
-        .btn {
+        .otp-box {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            border: 2px dashed #3b82f6;
+            border-radius: 12px;
+            padding: 30px 40px;
             display: inline-block;
-            padding: 15px 45px;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 15px;
-            transition: all 0.3s ease;
+            margin: 10px 0;
         }
-        .btn-primary {
-            background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
-            color: white;
-            box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);
-        }
-        .btn-primary:hover {
-            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.45);
-            transform: translateY(-2px);
+        .otp-code {
+            font-size: 42px;
+            font-weight: 700;
+            color: #1e40af;
+            letter-spacing: 10px;
+            font-family: 'Courier New', monospace;
         }
         
-        /* Info Box */
-        .info-box {
-            background: #f0fdf4;
-            border-left: 4px solid #22c55e;
+        /* Warning Box */
+        .warning-box {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
             padding: 16px 20px;
             margin: 25px 0;
             border-radius: 6px;
         }
-        .info-box p {
+        .warning-box p {
             margin: 0;
-            font-size: 14px;
-            color: #166534;
+            font-size: 13px;
+            color: #92400e;
             line-height: 1.6;
         }
         
@@ -138,9 +136,9 @@
                 padding-left: 25px;
                 padding-right: 25px;
             }
-            .btn {
-                display: block;
-                width: 100%;
+            .otp-code {
+                font-size: 36px;
+                letter-spacing: 6px;
             }
         }
     </style>
@@ -164,19 +162,18 @@
                 {!! nl2br(e($body)) !!}
             </div>
             
-            <!-- Info Box -->
-            <div class="info-box">
-                <p><strong>✅ Good News!</strong><br>
-                Your previously submitted information has been saved. Simply click the button below to update your registration with the required corrections.</p>
+            <!-- OTP Display -->
+            <div class="otp-container">
+                <p class="otp-label">Your OTP Code</p>
+                <div class="otp-box">
+                    <div class="otp-code">{{ $otp }}</div>
+                </div>
             </div>
             
-            <!-- Action Button -->
-            @if(isset($correctionUrl))
-            <div class="button-section">
-                <p class="button-label">Please update your registration:</p>
-                <a href="{{ $correctionUrl }}" class="btn btn-primary">🔄 Update My Registration</a>
+            <!-- Warning Box -->
+            <div class="warning-box">
+                <p><strong>⏱️ Important:</strong> This OTP will expire in <strong>10 minutes</strong>. Do not share this code with anyone.</p>
             </div>
-            @endif
             
         </div>
         

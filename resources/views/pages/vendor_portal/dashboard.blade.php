@@ -3,7 +3,7 @@
 @section('title', 'Dashboard - Vendor Portal')
 
 @section('content')
-<div class="container-fluid py-4">
+<div class="container-fluid py-3">
     
     @php
         $vendor = Auth::guard('vendor')->user();
@@ -15,7 +15,7 @@
     <div class="row mb-3">
         <div class="col-12">
             <div class="card border-0 shadow-sm">
-                <div class="card-body p-3">
+                <div class="card-body py-2 px-3">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h5 class="fw-bold mb-1" style="color: var(--primary-blue);">
@@ -36,78 +36,78 @@
         </div>
     </div>
 
-    <!-- Stats Cards - Compact -->
-    <div class="row mb-3">
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body p-3">
+    <!-- Stats Cards -->
+    <div class="row g-2 mb-3">
+        <div class="col-lg-3 col-md-6 col-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body py-2 px-3">
                     <div class="d-flex align-items-center">
-                        <div class="rounded-3 d-flex align-items-center justify-content-center me-3" 
-                             style="width: 48px; height: 48px; background: rgba(59, 130, 246, 0.1);">
-                            <i class="bi bi-receipt-cutoff fs-4" style="color: var(--accent-blue);"></i>
+                        <div class="rounded-3 d-flex align-items-center justify-content-center me-2" 
+                             style="width: 36px; height: 36px; background: rgba(59, 130, 246, 0.1); flex-shrink: 0;">
+                            <i class="bi bi-receipt-cutoff" style="color: var(--accent-blue); font-size: 18px;"></i>
                         </div>
                         <div>
-                            <h3 class="mb-0 fw-bold" style="color: var(--text-dark);" id="totalInvoices">
+                            <h5 class="mb-0 fw-bold" style="color: var(--text-dark);" id="totalInvoices">
                                 <div class="spinner-border spinner-border-sm" role="status"></div>
-                            </h3>
-                            <small class="text-muted">Total Invoices</small>
+                            </h5>
+                            <small class="text-muted d-block" style="font-size: 0.7rem;">Total Invoices</small>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body p-3">
+        <div class="col-lg-3 col-md-6 col-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body py-2 px-3">
                     <div class="d-flex align-items-center">
-                        <div class="rounded-3 d-flex align-items-center justify-content-center me-3" 
-                             style="width: 48px; height: 48px; background: rgba(34, 197, 94, 0.1);">
-                            <i class="bi bi-check-circle-fill fs-4 text-success"></i>
+                        <div class="rounded-3 d-flex align-items-center justify-content-center me-2" 
+                             style="width: 36px; height: 36px; background: rgba(34, 197, 94, 0.1); flex-shrink: 0;">
+                            <i class="bi bi-check-circle-fill text-success" style="font-size: 18px;"></i>
                         </div>
                         <div>
-                            <h3 class="mb-0 fw-bold" style="color: var(--text-dark);" id="approvedInvoices">
+                            <h5 class="mb-0 fw-bold" style="color: var(--text-dark);" id="approvedInvoices">
                                 <div class="spinner-border spinner-border-sm" role="status"></div>
-                            </h3>
-                            <small class="text-muted">Approved</small>
+                            </h5>
+                            <small class="text-muted d-block" style="font-size: 0.7rem;">Approved</small>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body p-3">
+        <div class="col-lg-3 col-md-6 col-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body py-2 px-3">
                     <div class="d-flex align-items-center">
-                        <div class="rounded-3 d-flex align-items-center justify-content-center me-3" 
-                             style="width: 48px; height: 48px; background: rgba(234, 179, 8, 0.1);">
-                            <i class="bi bi-clock-history fs-4 text-warning"></i>
+                        <div class="rounded-3 d-flex align-items-center justify-content-center me-2" 
+                             style="width: 36px; height: 36px; background: rgba(234, 179, 8, 0.1); flex-shrink: 0;">
+                            <i class="bi bi-clock-history text-warning" style="font-size: 18px;"></i>
                         </div>
                         <div>
-                            <h3 class="mb-0 fw-bold" style="color: var(--text-dark);" id="pendingInvoices">
+                            <h5 class="mb-0 fw-bold" style="color: var(--text-dark);" id="pendingInvoices">
                                 <div class="spinner-border spinner-border-sm" role="status"></div>
-                            </h3>
-                            <small class="text-muted">Pending</small>
+                            </h5>
+                            <small class="text-muted d-block" style="font-size: 0.7rem;">Pending</small>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body p-3">
+        <div class="col-lg-3 col-md-6 col-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body py-2 px-3">
                     <div class="d-flex align-items-center">
-                        <div class="rounded-3 d-flex align-items-center justify-content-center me-3" 
-                             style="width: 48px; height: 48px; background: rgba(239, 68, 68, 0.1);">
-                            <i class="bi bi-x-circle-fill fs-4 text-danger"></i>
+                        <div class="rounded-3 d-flex align-items-center justify-content-center me-2" 
+                             style="width: 36px; height: 36px; background: rgba(239, 68, 68, 0.1); flex-shrink: 0;">
+                            <i class="bi bi-x-circle-fill text-danger" style="font-size: 18px;"></i>
                         </div>
                         <div>
-                            <h3 class="mb-0 fw-bold" style="color: var(--text-dark);" id="rejectedInvoices">
+                            <h5 class="mb-0 fw-bold" style="color: var(--text-dark);" id="rejectedInvoices">
                                 <div class="spinner-border spinner-border-sm" role="status"></div>
-                            </h3>
-                            <small class="text-muted">Rejected</small>
+                            </h5>
+                            <small class="text-muted d-block" style="font-size: 0.7rem;">Rejected</small>
                         </div>
                     </div>
                 </div>
@@ -115,43 +115,43 @@
         </div>
     </div>
 
-    <!-- Quick Actions - More Options -->
+    <!-- Quick Actions -->
     <div class="row mb-3">
         <div class="col-12">
             <div class="card border-0 shadow-sm">
-                <div class="card-body p-3">
-                    <h6 class="fw-bold mb-3" style="color: var(--primary-blue);">
-                        <i class="bi bi-lightning-charge-fill me-2"></i>Quick Actions
+                <div class="card-body py-2 px-3">
+                    <h6 class="fw-bold mb-2" style="color: var(--primary-blue); font-size: 0.9rem;">
+                        <i class="bi bi-lightning-charge-fill me-1"></i>Quick Actions
                     </h6>
                     <div class="row g-2">
-                        <div class="col-lg-2 col-md-3 col-sm-6">
-                            <a href="{{ route('vendor.invoices.create') }}" class="btn btn-primary w-100">
-                                <i class="bi bi-plus-circle me-1"></i>Create Invoice
+                        <div class="col-lg-2 col-md-4 col-sm-6 col-6">
+                            <a href="{{ route('vendor.invoices.create') }}" class="btn btn-primary w-100 btn-sm py-1">
+                                <i class="bi bi-plus-circle me-1"></i><span style="font-size: 0.85rem;">Create Invoice</span>
                             </a>
                         </div>
-                        <div class="col-lg-2 col-md-3 col-sm-6">
-                            <a href="{{ route('vendor.invoices.index') }}" class="btn btn-outline-primary w-100">
-                                <i class="bi bi-receipt me-1"></i>All Invoices
+                        <div class="col-lg-2 col-md-4 col-sm-6 col-6">
+                            <a href="{{ route('vendor.invoices.index') }}" class="btn btn-outline-primary w-100 btn-sm py-1">
+                                <i class="bi bi-receipt me-1"></i><span style="font-size: 0.85rem;">All Invoices</span>
                             </a>
                         </div>
-                        <div class="col-lg-2 col-md-3 col-sm-6">
-                            <a href="{{ route('vendor.invoices.index', ['status' => 'pending']) }}" class="btn btn-outline-primary w-100">
-                                <i class="bi bi-clock me-1"></i>Pending
+                        <div class="col-lg-2 col-md-4 col-sm-6 col-6">
+                            <a href="{{ route('vendor.invoices.index', ['status' => 'pending']) }}" class="btn btn-outline-primary w-100 btn-sm py-1">
+                                <i class="bi bi-clock me-1"></i><span style="font-size: 0.85rem;">Pending</span>
                             </a>
                         </div>
-                        <div class="col-lg-2 col-md-3 col-sm-6">
-                            <a href="{{ route('vendor.documents') }}" class="btn btn-outline-primary w-100">
-                                <i class="bi bi-cloud-upload me-1"></i>Documents
+                        <div class="col-lg-2 col-md-4 col-sm-6 col-6">
+                            <a href="{{ route('vendor.documents') }}" class="btn btn-outline-primary w-100 btn-sm py-1">
+                                <i class="bi bi-cloud-upload me-1"></i><span style="font-size: 0.85rem;">Documents</span>
                             </a>
                         </div>
-                        <div class="col-lg-2 col-md-3 col-sm-6">
-                            <a href="{{ route('vendor.contracts.index') }}" class="btn btn-outline-primary w-100">
-                                <i class="bi bi-file-text me-1"></i>Contracts
+                        <div class="col-lg-2 col-md-4 col-sm-6 col-6">
+                            <a href="{{ route('vendor.contracts.index') }}" class="btn btn-outline-primary w-100 btn-sm py-1">
+                                <i class="bi bi-file-text me-1"></i><span style="font-size: 0.85rem;">Contracts</span>
                             </a>
                         </div>
-                        <div class="col-lg-2 col-md-3 col-sm-6">
-                            <a href="{{ route('vendor.profile') }}" class="btn btn-outline-primary w-100">
-                                <i class="bi bi-person-gear me-1"></i>Profile
+                        <div class="col-lg-2 col-md-4 col-sm-6 col-6">
+                            <a href="{{ route('vendor.profile') }}" class="btn btn-outline-primary w-100 btn-sm py-1">
+                                <i class="bi bi-person-gear me-1"></i><span style="font-size: 0.85rem;">Profile</span>
                             </a>
                         </div>
                     </div>
@@ -160,16 +160,16 @@
         </div>
     </div>
 
-    <!-- Charts Row - Compact -->
-    <div class="row mb-3">
+    <!-- Charts Row -->
+    <div class="row g-2">
         <!-- Invoice Status Chart -->
-        <div class="col-lg-6 mb-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body p-3">
-                    <h6 class="fw-bold mb-3" style="color: var(--primary-blue);">
-                        <i class="bi bi-pie-chart-fill me-2"></i>Invoice Status
+        <div class="col-lg-5 col-md-12">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body py-2 px-3">
+                    <h6 class="fw-bold mb-2" style="color: var(--primary-blue); font-size: 0.9rem;">
+                        <i class="bi bi-pie-chart-fill me-1"></i>Invoice Status
                     </h6>
-                    <div class="d-flex justify-content-center align-items-center" style="height: 220px;" id="statusChartContainer">
+                    <div class="d-flex justify-content-center align-items-center" style="height: 240px;" id="statusChartContainer">
                         <div class="spinner-border" role="status">
                             <span class="visually-hidden">Loading...</span>
                         </div>
@@ -179,13 +179,13 @@
         </div>
 
         <!-- Monthly Activity Chart -->
-        <div class="col-lg-6 mb-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body p-3">
-                    <h6 class="fw-bold mb-3" style="color: var(--primary-blue);">
-                        <i class="bi bi-graph-up me-2"></i>Monthly Submissions
+        <div class="col-lg-7 col-md-12">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body py-2 px-3">
+                    <h6 class="fw-bold mb-2" style="color: var(--primary-blue); font-size: 0.9rem;">
+                        <i class="bi bi-graph-up me-1"></i>Monthly Submissions
                     </h6>
-                    <div style="height: 220px;" id="monthlyChartContainer">
+                    <div style="height: 240px;" id="monthlyChartContainer">
                         <div class="d-flex justify-content-center align-items-center h-100">
                             <div class="spinner-border" role="status">
                                 <span class="visually-hidden">Loading...</span>
@@ -196,9 +196,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Company & Contact Info - Compact -->
-    <!-- Removed Company Information and Contact Information sections as requested -->
 
 </div>
 
@@ -234,10 +231,10 @@ async function loadStats() {
     }
 }
 
-// Load status chart
+// Load status chart - SMALLER SIZE
 function loadStatusChart(stats) {
     const container = document.getElementById('statusChartContainer');
-    container.innerHTML = '<canvas id="statusChart"></canvas>';
+    container.innerHTML = '<canvas id="statusChart" style="max-width: 280px; max-height: 280px; margin: 0 auto;"></canvas>';
     
     const ctx = document.getElementById('statusChart').getContext('2d');
     statusChart = new Chart(ctx, {
@@ -266,8 +263,8 @@ function loadStatusChart(stats) {
                 legend: {
                     position: 'bottom',
                     labels: {
-                        padding: 10,
-                        font: { size: 12 },
+                        padding: 8,
+                        font: { size: 11 },
                         usePointStyle: true,
                         pointStyle: 'circle'
                     }
@@ -278,7 +275,7 @@ function loadStatusChart(stats) {
                     cornerRadius: 6
                 }
             },
-            cutout: '65%'
+            cutout: '60%'
         }
     });
 }
@@ -331,14 +328,14 @@ async function loadMonthlyChart() {
                             ticks: { 
                                 stepSize: 1, 
                                 color: '#6b7280',
-                                font: { size: 11 }
+                                font: { size: 10 }
                             },
                             grid: { color: 'rgba(0, 0, 0, 0.05)', drawBorder: false }
                         },
                         x: {
                             ticks: { 
                                 color: '#6b7280',
-                                font: { size: 11 }
+                                font: { size: 10 }
                             },
                             grid: { display: false }
                         }

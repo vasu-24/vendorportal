@@ -6,23 +6,23 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 
-class VendorRejectionMail extends Mailable
+class VendorOtpMail extends Mailable
 {
     use Queueable, SerializesModels;
 
     public $subject;
     public $body;
-    public $correctionUrl;
+    public $otp;
     public $vendor;
 
     /**
      * Create a new message instance.
      */
-    public function __construct($subject, $body, $correctionUrl, $vendor)
+    public function __construct($subject, $body, $otp, $vendor)
     {
         $this->subject = $subject;
         $this->body = $body;
-        $this->correctionUrl = $correctionUrl;
+        $this->otp = $otp;
         $this->vendor = $vendor;
     }
 
@@ -32,10 +32,10 @@ class VendorRejectionMail extends Mailable
     public function build()
     {
         return $this->subject($this->subject)
-                    ->view('emails.rejection')
+                    ->view('emails.otp')
                     ->with([
                         'body' => $this->body,
-                        'correctionUrl' => route('vendor.registration', $this->vendor->token),
+                        'otp' => $this->otp,
                         'vendor' => $this->vendor,
                     ]);
     }
