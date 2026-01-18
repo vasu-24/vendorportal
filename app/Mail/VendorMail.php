@@ -12,26 +12,28 @@ class VendorMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public $subject;
-    public $body;
-    public $acceptUrl;
-    public $rejectUrl;
-    public $vendorName;
-    public $templateContent;
+  public $subject;
+public $body;
+public $acceptUrl;
+public $rejectUrl;
+public $vendorName;
+public $templateContent;
+public $vendorEmail;  // ← ADD THIS LINE
+
 
     /**
      * Create a new message instance.
      */
-    public function __construct($subject, $body, $acceptUrl, $rejectUrl, $vendorName, $templateContent)
-    {
-        $this->subject = $subject;
-        $this->body = $body;
-        $this->acceptUrl = $acceptUrl;
-        $this->rejectUrl = $rejectUrl;
-        $this->vendorName = $vendorName;
-        $this->templateContent = $templateContent;
-    }
-
+   public function __construct($subject, $body, $acceptUrl, $rejectUrl, $vendorName, $templateContent, $vendorEmail)
+{
+    $this->subject = $subject;
+    $this->body = $body;
+    $this->acceptUrl = $acceptUrl;
+    $this->rejectUrl = $rejectUrl;
+    $this->vendorName = $vendorName;
+    $this->templateContent = $templateContent;
+    $this->vendorEmail = $vendorEmail;  // ← ADD THIS LINE
+}
     /**
      * Get the message envelope.
      */

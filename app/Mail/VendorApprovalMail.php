@@ -31,12 +31,12 @@ class VendorApprovalMail extends Mailable
      */
     public function build()
     {
-        return $this->subject($this->subject)
-                    ->view('emails.approved')
-                    ->with([
-                        'body' => $this->body,
-                        'setPasswordUrl' => $this->setPasswordUrl,
-                        'vendor' => $this->vendor,
-                    ]);
+       return $this->subject($this->subject)
+            ->view('emails.vendor-set-password')
+            ->with([
+                'body' => $this->body,
+                'setPasswordUrl' => $this->setPasswordUrl,
+                'vendorName' => $this->vendor->vendor_name,  // ✅ FIXED
+            ]);
     }
 }

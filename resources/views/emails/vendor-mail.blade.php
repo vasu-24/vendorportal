@@ -4,216 +4,230 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
             line-height: 1.6;
             color: #1f2937;
             background-color: #f3f4f6;
-            margin: 0;
             padding: 20px 0;
         }
         .email-container {
             max-width: 600px;
             margin: 0 auto;
             background: #ffffff;
-            border-radius: 8px;
+            border-radius: 6px;
             overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
-        /* Header Section */
         .email-header {
-            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
-            padding: 40px 40px 35px 40px;
+            background: #3b82f6;
+            padding: 30px;
             text-align: center;
-        }
-        .logo-section h1 {
             color: white;
-            font-size: 32px;
+        }
+        .header-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        .header-title {
+            font-size: 24px;
             font-weight: 700;
-            margin: 0;
-            letter-spacing: -0.5px;
+            margin-bottom: 4px;
         }
         .header-subtitle {
-            color: rgba(255,255,255,0.9);
-            font-size: 15px;
-            margin: 8px 0 0 0;
-            font-weight: 400;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.9);
         }
-        
-        /* Body Section */
         .email-body {
-            padding: 40px 40px 35px 40px;
-            background: #ffffff;
+            padding: 30px;
         }
-        .content-section {
-            color: #374151;
+        .greeting {
             font-size: 15px;
-            line-height: 1.7;
-            white-space: pre-line;
+            color: #1f2937;
+            margin-bottom: 20px;
         }
-        
-        /* Button Section */
+        .message-text {
+            color: #374151;
+            font-size: 14px;
+            line-height: 1.7;
+            margin-bottom: 20px;
+        }
+        .details-box {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 18px;
+            margin: 20px 0;
+        }
+        .details-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 12px;
+        }
+        .detail-row {
+            margin: 8px 0;
+            font-size: 14px;
+            color: #4b5563;
+        }
+        .detail-label {
+            font-weight: 500;
+            color: #1f2937;
+        }
+        .detail-value {
+            color: #3b82f6;
+        }
+        .info-box {
+            background: #f0f9ff;
+            border-left: 3px solid #3b82f6;
+            padding: 14px 16px;
+            margin: 20px 0;
+            border-radius: 3px;
+        }
+        .info-box-title {
+            font-size: 13px;
+            color: #1e40af;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        .info-box-text {
+            font-size: 13px;
+            color: #1e3a8a;
+            line-height: 1.5;
+        }
         .button-section {
-            margin: 35px 0 30px 0;
-            padding: 30px 0;
             text-align: center;
-            border-top: 2px solid #f3f4f6;
-            border-bottom: 2px solid #f3f4f6;
+            margin: 25px 0;
+            padding-top: 5px;
         }
         .button-label {
-            font-size: 14px;
+            font-size: 13px;
             color: #6b7280;
-            margin-bottom: 20px;
-            font-weight: 500;
-        }
-        .button-group {
-            display: inline-block;
+            margin-bottom: 16px;
         }
         .btn {
             display: inline-block;
-            padding: 15px 45px;
+            padding: 13px 40px;
             margin: 0 6px;
             text-decoration: none;
-            border-radius: 8px;
+            border-radius: 6px;
             font-weight: 600;
-            font-size: 15px;
-            transition: all 0.3s ease;
-            border: none;
-            cursor: pointer;
+            font-size: 14px;
         }
         .btn-accept {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
-            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+            background: #10b981;
+            color: #ffffff;
         }
-        .btn-accept:hover {
-            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
-            transform: translateY(-2px);
+        .btn-decline {
+            background: #ec4899;
+            color: #ffffff;
         }
-        .btn-reject {
-            background: linear-gradient(135deg, #fb7185 0%, #f43f5e 100%);
-            color: white;
-            box-shadow: 0 4px 14px rgba(251, 113, 133, 0.35);
-        }
-        .btn-reject:hover {
-            box-shadow: 0 6px 20px rgba(251, 113, 133, 0.45);
-            transform: translateY(-2px);
-        }
-        
-        /* Info Box */
-        .info-box {
-            background: #f0fdf4;
-            border-left: 4px solid #22c55e;
-            padding: 16px 20px;
-            margin: 25px 0;
-            border-radius: 6px;
-        }
-        .info-box p {
-            margin: 0;
+        .signature {
+            margin-top: 20px;
             font-size: 14px;
-            color: #166534;
-            line-height: 1.6;
+            color: #374151;
         }
-        
-        /* Footer Section */
+        .signature-name {
+            font-weight: 600;
+            color: #1f2937;
+        }
         .email-footer {
             background: #f9fafb;
-            padding: 35px 40px;
+            padding: 20px 30px;
             text-align: center;
             border-top: 1px solid #e5e7eb;
         }
         .footer-brand {
             font-weight: 600;
             color: #1f2937;
-            font-size: 16px;
-            margin-bottom: 12px;
+            font-size: 14px;
+            margin-bottom: 6px;
         }
         .footer-text {
             color: #6b7280;
-            font-size: 13px;
-            margin: 8px 0;
-            line-height: 1.6;
-        }
-        .copyright {
-            color: #9ca3af;
             font-size: 12px;
-            margin-top: 15px;
         }
-        
-        /* Responsive Design */
         @media only screen and (max-width: 600px) {
-            .email-header,
-            .email-body,
-            .email-footer {
-                padding-left: 25px;
-                padding-right: 25px;
-            }
-            .btn {
-                display: block;
-                margin: 8px 0;
+            .email-header { padding: 25px 20px; }
+            .email-body { padding: 25px 20px; }
+            .email-footer { padding: 18px 20px; }
+            .btn { 
+                display: block; 
+                margin: 8px 0; 
                 width: 100%;
-            }
-            .button-group {
-                display: block;
             }
         }
     </style>
 </head>
 <body>
     <div class="email-container">
-        
-        <!-- Header -->
         <div class="email-header">
-            <div class="logo-section">
-                <h1>🏢 FIDE</h1>
-            </div>
-            <p class="header-subtitle">Vendor Management System</p>
+            <div class="header-icon">📊</div>
+            <div class="header-title">FIDE</div>
+            <div class="header-subtitle">Vendor Management System</div>
         </div>
-        
-        <!-- Body -->
+
         <div class="email-body">
+            <div class="greeting">Dear {{ $vendorName ?? 'Vendor' }},</div>
             
-            <!-- Dynamic Content -->
-            <div class="content-section">
-                {!! nl2br(e($body)) !!}
+            <div class="message-text">
+                We are pleased to invite you to join our Vendor Portal.
             </div>
-            
-            <!-- Info Box -->
+
+            <div class="details-box">
+                <div class="details-title">Your Details:</div>
+                <div class="detail-row">
+                    <span class="detail-label">Name:</span> {{ $vendorName ?? 'Vendor' }}
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Email:</span> 
+                    <span class="detail-value">{{ $vendorEmail ?? 'vendor@example.com' }}</span>
+                </div>
+                @if(isset($acceptUrl))
+                <div class="detail-row">
+                    <span class="detail-label">Portal Access:</span> 
+                    <span class="detail-value">{{ $acceptUrl }}</span>
+                </div>
+                @endif
+                <div class="detail-row">
+                    <span class="detail-label">Date:</span> {{ date('d-M-Y') }}
+                </div>
+            </div>
+
+            <div class="message-text">
+                Please review the attached document and accept or reject the invitation using the buttons in this email.
+            </div>
+
+            <div class="message-text">
+                We look forward to working with you.
+            </div>
+
+            <div class="signature">
+                <p>Best Regards,</p>
+                <p class="signature-name">Vendor Management Team</p>
+            </div>
+
             <div class="info-box">
-                <p><strong>📋 What happens next?</strong><br>
-                Once you accept this invitation, you will receive your login credentials via email within 5 minutes. Please check your inbox and spam folder.</p>
+                <div class="info-box-title">📋 What happens next?</div>
+                <div class="info-box-text">
+                    Once you accept the invitation, you will receive your login credentials via email within 5 minutes. Please check your inbox and spam folder.
+                </div>
             </div>
-            
-            <!-- Action Buttons -->
+
             @if(isset($acceptUrl) && isset($rejectUrl))
             <div class="button-section">
                 <p class="button-label">Please respond to this invitation:</p>
-                <div class="button-group">
-                    <a href="{{ $acceptUrl }}" class="btn btn-accept">✅ Accept Invitation</a>
-                    <a href="{{ $rejectUrl }}" class="btn btn-reject">❌ Decline Invitation</a>
-                </div>
+                <a href="{{ $acceptUrl }}" class="btn btn-accept">✓ Accept Invitation</a>
+                <a href="{{ $rejectUrl }}" class="btn btn-decline">✗ Decline Invitation</a>
             </div>
             @endif
-            
         </div>
-        
-        <!-- Footer -->
+
         <div class="email-footer">
-            <p class="footer-brand">FIDE Vendor Management Portal</p>
-            <p class="footer-text">
-                This is an automated email from our Vendor Management System.<br>
-                Please do not reply directly to this email.
-            </p>
-            <p class="copyright">
-                © {{ date('Y') }} FIDE. All rights reserved.
-            </p>
+            <p class="footer-brand">Vendor Management Portal</p>
+            <p class="footer-text">This is an automated email from our Vendor Management System.<br>Please do not reply directly to this email.</p>
         </div>
-        
     </div>
 </body>
 </html>

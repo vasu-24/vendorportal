@@ -267,7 +267,7 @@
 
                     {{-- Auto Selected Template Info with Preview --}}
                     @if(isset($templates) && count($templates) > 0)
-                        @php $defaultTemplate = $templates->first(); @endphp
+                        @php $defaultTemplate = $templates->where('category', 'invitation')->first();@endphp
                         <div class="template-info-box mb-3">
                             <div class="template-label">
                                 <i class="bi bi-envelope-check me-1"></i>Email Template
@@ -468,7 +468,7 @@ $('#vendorTabs .nav-link').on('click', function(e) {
         });
 
         // Resend Mail button
-        $('#resendMailBtn').on('click', resendMail);
+     
 
         // Search with debounce
 let searchTimeout;
@@ -532,33 +532,28 @@ $('#searchInput').on('keyup', function() {
     // =====================================================
     // RESEND MAIL (For existing vendors)
     // =====================================================
-    function openResendModal(vendorId, vendorName, vendorEmail) {
-        $('#resendVendorId').val(vendorId);
-        $('#resendVendorName').text(vendorName);
-        $('#resendVendorEmail').text(vendorEmail);
-        new bootstrap.Modal('#resendMailModal').show();
-    }
+   // =====================================================
+// RESEND MAIL (Direct - No Modal)
+// =====================================================
+function openResendModal(vendorId, vendorName, vendorEmail) {
+    if (!confirm(`Resend email to ${vendorName}?`)) return;
+    
+    const btn = $(`button[onclick*="openResendModal(${vendorId}"]`);
+    btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
+    
+    axios.post(`/vendors/${vendorId}/send-email`)
+        .then(res => {
+            Toast.success('Email resent successfully!');
+            btn.html('<i class="bi bi-check-circle me-1"></i>Sent');
+            setTimeout(() => location.reload(), 1000);
+        })
+        .catch(err => {
+            Toast.error(err.response?.data?.message || 'Failed to resend');
+            btn.prop('disabled', false).html('<i class="bi bi-arrow-repeat me-1"></i>Resend');
+        });
+}
 
-    function resendMail() {
-        const vendorId = $('#resendVendorId').val();
-        const btn = $('#resendMailBtn');
-
-        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Sending...');
-
-        axios.post(`/vendors/${vendorId}/send-email`)
-            .then(res => {
-                bootstrap.Modal.getInstance('#resendMailModal').hide();
-                Toast.success('Email resent successfully!');
-                setTimeout(() => location.reload(), 1000);
-            })
-            .catch(err => {
-                Toast.error(err.response?.data?.message || 'Failed to resend email');
-            })
-            .finally(() => {
-                btn.prop('disabled', false).html('<i class="bi bi-send me-1"></i>Resend Email');
-            });
-    }
-
+  
     // =====================================================
     // IMPORT EVENTS
     // =====================================================

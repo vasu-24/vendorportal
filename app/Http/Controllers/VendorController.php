@@ -74,67 +74,78 @@ public function store(Request $request)
         return view('pages.vendors.index', compact('vendors', 'templates'));
     }
 
-    // Send email to vendor
-    public function sendEmail(Request $request, $id)
-    {
-        $vendor = Vendor::with('template')->findOrFail($id);
+ public function sendEmail(Request $request, $id)
+{
+    $vendor = Vendor::with('template')->findOrFail($id);
 
-        if (!$vendor->template) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No template selected for this vendor!'
-            ], 400);
-        }
-
-        $templateBody = $vendor->template->body;
-        $templateSubject = $vendor->template->subject;
-
-        $placeholders = [
-            '{vendor_name}' => $vendor->vendor_name,
-            '{vendor_email}' => $vendor->vendor_email,
-            '{portal_url}' => url('/'),
-            '{current_date}' => now()->format('d-M-Y'),
-            '{current_time}' => now()->format('h:i A'),
-            '{year}' => date('Y'),
-            '{company_name}' => 'Vendor Portal',
-        ];
-
-        foreach ($placeholders as $placeholder => $value) {
-            $templateBody = str_replace($placeholder, $value, $templateBody);
-            $templateSubject = str_replace($placeholder, $value, $templateSubject);
-        }
-
-        $acceptUrl = route('vendors.accept', $vendor->token);
-        $rejectUrl = route('vendors.reject', $vendor->token);
-
-        try {
-            Mail::to($vendor->vendor_email)->send(
-                new VendorMail(
-                    $templateSubject,
-                    $templateBody,
-                    $acceptUrl,
-                    $rejectUrl,
-                    $vendor->vendor_name,
-                    $templateBody
-                )
-            );
-            
-            $vendor->update([
-                'email_sent_at' => now(),
-            ]);
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'Email sent successfully to ' . $vendor->vendor_email
-            ]);
-            
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to send email: ' . $e->getMessage()
-            ], 500);
-        }
+    if (!$vendor->template) {
+        return response()->json([
+            'success' => false,
+            'message' => 'No template selected for this vendor!'
+        ], 400);
     }
+
+    $templateBody = $vendor->template->body;
+    $templateSubject = $vendor->template->subject;
+
+    $acceptUrl = route('vendors.accept', $vendor->token);
+    $rejectUrl = route('vendors.reject', $vendor->token);
+
+    // ✅ FIX: Add BOTH single { } and double {{ }} placeholders!
+    $placeholders = [
+        // Double curly braces (what your template uses)
+        '{{vendor_name}}' => $vendor->vendor_name,
+        '{{vendor_email}}' => $vendor->vendor_email,
+        '{{registration_url}}' => $acceptUrl,
+        '{{accept_url}}' => $acceptUrl,
+        '{{reject_url}}' => $rejectUrl,
+        '{{portal_url}}' => url('/'),
+        '{{current_date}}' => now()->format('d-M-Y'),
+        '{{year}}' => date('Y'),
+        '{{company_name}}' => 'FIDE',
+        
+        // Single curly braces (for backward compatibility)
+        '{vendor_name}' => $vendor->vendor_name,
+        '{vendor_email}' => $vendor->vendor_email,
+        '{registration_url}' => $acceptUrl,
+        '{portal_url}' => url('/'),
+        '{current_date}' => now()->format('d-M-Y'),
+        '{year}' => date('Y'),
+        '{company_name}' => 'FIDE',
+    ];
+
+    foreach ($placeholders as $placeholder => $value) {
+        $templateBody = str_replace($placeholder, $value, $templateBody);
+        $templateSubject = str_replace($placeholder, $value, $templateSubject);
+    }
+
+    try {
+      Mail::to($vendor->vendor_email)->send(
+    new VendorMail(
+        $templateSubject,
+        $templateBody,
+        $acceptUrl,
+        $rejectUrl,
+        $vendor->vendor_name,
+        $templateBody,
+        $vendor->vendor_email  // ← ADD THIS LINE (with comma above!)
+    )
+);
+        $vendor->update(['email_sent_at' => now()]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Email sent successfully to ' . $vendor->vendor_email
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to send email: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
 
     // =====================================================
     // 🔥 IMPORT VENDORS

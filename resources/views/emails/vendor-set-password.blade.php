@@ -4,209 +4,150 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            line-height: 1.6;
-            color: #1f2937;
-            background-color: #f3f4f6;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #ffffff;
+            padding: 0;
             margin: 0;
-            padding: 20px 0;
         }
         .email-container {
             max-width: 600px;
             margin: 0 auto;
             background: #ffffff;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
-        /* Header Section */
         .email-header {
-            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
-            padding: 40px 40px 35px 40px;
+            background: #174081;
+            padding: 35px 30px;
             text-align: center;
         }
-        .logo-section h1 {
-            color: white;
-            font-size: 32px;
+        .logo-title {
+            font-size: 28px;
             font-weight: 700;
-            margin: 0;
-            letter-spacing: -0.5px;
+            color: #ffffff;
+            letter-spacing: 1px;
         }
         .header-subtitle {
-            color: rgba(255,255,255,0.9);
-            font-size: 15px;
-            margin: 8px 0 0 0;
-            font-weight: 400;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.85);
+            margin-top: 5px;
         }
-        
-        /* Body Section */
         .email-body {
-            padding: 40px 40px 35px 40px;
-            background: #ffffff;
+            padding: 40px 35px;
         }
-        .content-section {
-            color: #374151;
-            font-size: 15px;
-            line-height: 1.7;
-            white-space: pre-line;
-        }
-        
-        /* Button Section */
-        .button-section {
-            margin: 35px 0 30px 0;
-            padding: 30px 0;
-            text-align: center;
-            border-top: 2px solid #f3f4f6;
-            border-bottom: 2px solid #f3f4f6;
-        }
-        .button-label {
-            font-size: 14px;
-            color: #6b7280;
+        .greeting {
+            font-size: 16px;
+            color: #2d3748;
+            font-weight: 600;
             margin-bottom: 20px;
-            font-weight: 500;
+        }
+        .message-text {
+            color: #4a5568;
+            font-size: 14px;
+            line-height: 1.7;
+            margin-bottom: 30px;
+        }
+        .info-box {
+            background: #f0fdf4;
+            border-left: 4px solid #10b981;
+            padding: 18px 20px;
+            margin: 25px 0;
+            border-radius: 4px;
+        }
+        .info-box-title {
+            font-size: 14px;
+            color: #047857;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .info-box-text {
+            font-size: 13px;
+            color: #065f46;
+            line-height: 1.6;
+        }
+        .button-wrapper {
+            text-align: center;
+            margin: 35px 0;
         }
         .btn {
             display: inline-block;
-            padding: 15px 45px;
+            padding: 16px 50px;
             text-decoration: none;
             border-radius: 8px;
-            font-weight: 600;
+            font-weight: 700;
             font-size: 15px;
+            background: #174081;
+            color: #ffffff;
+            box-shadow: 0 4px 15px rgba(23, 64, 129, 0.3);
             transition: all 0.3s ease;
         }
-        .btn-success {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
-            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
-        }
-        .btn-success:hover {
-            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
-            transform: translateY(-2px);
-        }
-        
-        /* Info Box */
-        .info-box {
-            background: #f0fdf4;
-            border-left: 4px solid #22c55e;
-            padding: 16px 20px;
-            margin: 25px 0;
-            border-radius: 6px;
-        }
-        .info-box p {
-            margin: 0;
+        .signature {
+            margin-top: 30px;
             font-size: 14px;
-            color: #166534;
-            line-height: 1.6;
+            color: #4a5568;
         }
-        
-        /* Warning Box */
-        .warning-box {
-            background: #fef3c7;
-            border-left: 4px solid #f59e0b;
-            padding: 16px 20px;
-            margin: 25px 0;
-            border-radius: 6px;
-        }
-        .warning-box p {
-            margin: 0;
-            font-size: 13px;
-            color: #92400e;
-            line-height: 1.6;
-        }
-        
-        /* Footer Section */
-        .email-footer {
-            background: #f9fafb;
-            padding: 35px 40px;
-            text-align: center;
-            border-top: 1px solid #e5e7eb;
-        }
-        .footer-brand {
+        .signature-name {
             font-weight: 600;
-            color: #1f2937;
-            font-size: 16px;
-            margin-bottom: 12px;
+            color: #174081;
+            margin-top: 4px;
+        }
+        .email-footer {
+            background: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            border-top: 1px solid #e2e8f0;
         }
         .footer-text {
-            color: #6b7280;
-            font-size: 13px;
-            margin: 8px 0;
-            line-height: 1.6;
-        }
-        .copyright {
-            color: #9ca3af;
+            color: #718096;
             font-size: 12px;
-            margin-top: 15px;
+            margin-bottom: 5px;
         }
-        
-        /* Responsive Design */
+        .footer-copyright {
+            color: #a0aec0;
+            font-size: 11px;
+        }
         @media only screen and (max-width: 600px) {
-            .email-header,
-            .email-body,
-            .email-footer {
-                padding-left: 25px;
-                padding-right: 25px;
-            }
-            .btn {
-                display: block;
-                width: 100%;
-            }
+            .email-body { padding: 30px 25px; }
+            .btn { display: block; width: 100%; padding: 14px 30px; }
         }
     </style>
 </head>
 <body>
     <div class="email-container">
-        
-        <!-- Header -->
         <div class="email-header">
-            <div class="logo-section">
-                <h1>🏢 FIDE</h1>
-            </div>
-            <p class="header-subtitle">Vendor Management System</p>
+            <div class="logo-title">FIDE</div>
+            <div class="header-subtitle">Vendor Management System</div>
         </div>
-        
-        <!-- Body -->
+
         <div class="email-body">
+            <div class="greeting">Dear {{ $vendorName }},</div>
             
-            <!-- Dynamic Content -->
-            <div class="content-section">
-                {!! nl2br(e($body)) !!}
+            <div class="message-text">
+                Congratulations! Your vendor registration has been approved.<br><br>
+                We are pleased to inform you that you have been successfully onboarded as a vendor partner with FIDE. You can now access your vendor portal to manage all your business transactions with us.
             </div>
-            
-            <!-- Info Box -->
+
             <div class="info-box">
-                <p><strong>📋 What happens next?</strong><br>
-                Once you set your password, you'll have immediate access to your vendor portal where you can manage invoices, contracts, and documents.</p>
+                <div class="info-box-title">✓ What's Next?</div>
+                <div class="info-box-text">
+                    Set your password to access your vendor portal where you can manage invoices, contracts, and documents.
+                </div>
             </div>
-            
-            <!-- Action Button -->
-            @if(isset($setPasswordUrl))
-            <div class="button-section">
-                <p class="button-label">Activate your account now:</p>
-                <a href="{{ $setPasswordUrl }}" class="btn btn-primary">🔐 Set Your Password</a>
+
+            <div class="button-wrapper">
+                <a href="{{ $setPasswordUrl }}" class="btn" style="color: #ffffff;">Set Password</a>
             </div>
-            @endif
-            
+
+            <div class="signature">
+                <p>Thanks & Regards,</p>
+                <p class="signature-name">FIDE Team</p>
+            </div>
         </div>
-        
-        <!-- Footer -->
+
         <div class="email-footer">
-            <p class="footer-brand">FIDE Vendor Management Portal</p>
-            <p class="footer-text">
-                This is an automated email from our Vendor Management System.<br>
-                Please do not reply directly to this email.
-            </p>
-            <p class="copyright">
-                © {{ date('Y') }} FIDE. All rights reserved.
-            </p>
+            <p class="footer-text">This is an automated email. Please do not reply.</p>
+            <p class="footer-copyright">© 2026 FIDE. All rights reserved.</p>
         </div>
-        
     </div>
 </body>
 </html>
